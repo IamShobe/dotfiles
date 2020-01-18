@@ -50,5 +50,5 @@ source ${HOME}/.zshrc.d/plugins/per_directory_history.zsh
 typeset -U PATH path
 umask 022
 
-[ -f ${HOME}/.aliases] && source ${HOME}/.aliases
+[ -f ${HOME}/.aliases ] && source ${HOME}/.aliases
 
