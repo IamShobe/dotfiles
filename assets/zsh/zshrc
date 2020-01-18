@@ -23,7 +23,7 @@ SAVEHIST=10000
 HISTFILE=~/.zsh_history
 
 # change default ls colors
-eval `dircolors -b $HOME/.zshrc.d/ls_colors`
+eval `dircolors -b ${HOME}/.zshrc.d/ls_colors`
 
 
 # history search
@@ -36,19 +36,19 @@ zle -N down-line-or-beginning-search
 
 
 # include all files
-for file ($HOME/.zshrc.d/*.zsh(N)); do
+for file (${HOME}/.zshrc.d/*.zsh(N)); do
 	source $file
 done
 
-source ~/.zshrc.d/plugins/zsh-autosuggestions.zsh
+source ${HOME}/.zshrc.d/plugins/zsh-autosuggestions.zsh
 bindkey '^ ' autosuggest-accept
 
-source ~/.zshrc.d/plugins/per_directory_history.zsh
+source ${HOME}/.zshrc.d/plugins/per_directory_history.zsh
 
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
 
 typeset -U PATH path
 umask 022
 
-source ~/.aliases
+[ -f ${HOME}/.aliases] && source ${HOME}/.aliases
 
