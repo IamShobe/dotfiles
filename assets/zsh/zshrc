@@ -1,0 +1,54 @@
+# Set up the prompt
+#autoload -Uz promptinit
+#promptinit
+#prompt adam1
+
+# current file directory
+#_custom_zsh_config_base="${${(%):-%x}:A:h}"
+
+
+setopt histignorealldups sharehistory
+
+# Use emacs keybindings even if our EDITOR is set to vi
+bindkey -e
+
+ZSH_CACHE="/tmp/.zsh-${USER}-${ZSH_VERSION}"
+mkdir -p $ZSH_CACHE
+chmod 700 $ZSH_CACHE
+
+
+# Keep 10000 lines of history within the shell and save it to ~/.zsh_history:
+HISTSIZE=10000
+SAVEHIST=10000
+HISTFILE=~/.zsh_history
+
+# change default ls colors
+eval `dircolors -b $HOME/.zshrc.d/ls_colors`
+
+
+# history search
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+
+[[ -n "${key[Up]}"   ]] && bindkey -- "${key[Up]}"   up-line-or-beginning-search
+[[ -n "${key[Down]}" ]] && bindkey -- "${key[Down]}" down-line-or-beginning-search
+
+
+# include all files
+for file ($HOME/.zshrc.d/*.zsh(N)); do
+	source $file
+done
+
+source ~/.zshrc.d/plugins/zsh-autosuggestions.zsh
+bindkey '^ ' autosuggest-accept
+
+source ~/.zshrc.d/plugins/per_directory_history.zsh
+
+# source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
+
+typeset -U PATH path
+umask 022
+
+source ~/.aliases
+
