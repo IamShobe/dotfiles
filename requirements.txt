@@ -1,4 +1,0 @@
-docopt
-pyyaml
-attrdict
-inquirer
