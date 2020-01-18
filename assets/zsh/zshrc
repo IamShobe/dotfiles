@@ -1,3 +1,4 @@
+#!/bin/zsh
 # Set up the prompt
 #autoload -Uz promptinit
 #promptinit

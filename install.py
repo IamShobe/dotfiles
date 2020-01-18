@@ -1,9 +1,12 @@
+#!/usr/bin/env python3
 """Usage:
+install.py show
 install.py [options]
 
--f --force                 force linking new paths [default: False].
---config=<config_path>     config file of the install script [default: config.yaml].
---base-dir=<base_dir>      base directory of all assets.
+-a --all                    install all in config.
+-f --force                  force linking new paths [default: False].
+--config=<config_path>      config file of the install script [default: config.yaml].
+--base-dir=<base_dir>       base directory of all assets.
 """
 import os
 import shutil
@@ -18,7 +21,6 @@ from attrdict import AttrDict
 from methods import CONFIG_TO_HANDLER
 from methods.utils import Colors
 
-
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -27,43 +29,70 @@ def get_config(path):
         return yaml.load(config_f)
 
 
-def get_filtered_config(path):
-    config = get_config(path)
+def get_filtered_config(args):
+    config = get_config(args["--config"])
     print(f"{Colors.OKBLUE}Config loaded successfully!{Colors.ENDC}")
-    steps = [step["key"] for step in config]
+    if args["--all"]:
+        return config
+
+    settings = [setting["key"] for setting in config]
 
     questions = [
         inquirer.Checkbox('interests',
                           message="What are you interested in?",
-                          choices=steps),
+                          choices=settings),
     ]
     answers = inquirer.prompt(questions, theme=GreenPassion())
-    return [step for step in config if step["key"] in answers["interests"]]
+    if answers is None:
+        answers = {
+            "interests": []
+        }
+
+    return [setting for setting in config
+            if setting["key"] in answers["interests"]]
 
 
-def install():
-    args = docopt.docopt(__doc__)
-    config = get_filtered_config(args["--config"])
+def install(args):
+    config = get_filtered_config(args)
     base_dir = args["--base-dir"]
     if base_dir is None:
         base_dir = BASE_DIR
 
-    total = len(config)
-    for index, step in enumerate(config):
-        counter = Counter()
-        step = AttrDict(step)
-        print(f"Running step {1 + index}/{total} - {step.description}")
-        for key, handler in CONFIG_TO_HANDLER.items():
-            if hasattr(step, key):
-                handler(base_dir,
-                        getattr(step, key), args=args, counter=counter)
+    for setting_index, setting in enumerate(config):
+        setting = AttrDict(setting)
+        total_steps = len(setting.steps)
+        print(f"Running settings of {setting.key} - {setting.description}")
+        for index, step in enumerate(setting.steps):
+            counter = Counter()
+            print(f"- Running step {1 + index}/{total_steps} - {step.description}")
+            for key, handler in CONFIG_TO_HANDLER.items():
+                if hasattr(step, key):
+                    handler(base_dir,
+                            getattr(step, key), args=args, counter=counter)
 
-        print(f"Done step {1 + index}/{total} - "
-              f"{Colors.OKGREEN}successes: {counter['ok']}{Colors.ENDC}, "
-              f"{Colors.WARNING}warnings: {counter['warnings']}{Colors.ENDC}")
+            print(f"- Done step {1 + index}/{total_steps} - "
+                  f"{Colors.OKGREEN}successes: {counter['ok']}{Colors.ENDC}, "
+                  f"{Colors.WARNING}warnings: {counter['warnings']}{Colors.ENDC}")
 
     print(f"{Colors.fg.green}Done!{Colors.ENDC}")
 
 
+def show_config(args):
+    config = get_config(args["--config"])
+    for index, step in enumerate(config):
+        step = AttrDict(step)
+        print(f"{index} - {step.key} - {step.description}")
+
+
+def main():
+    args = docopt.docopt(__doc__)
+
+    if args["show"]:
+        show_config(args)
+
+    else:
+        install(args)
+
+
 if __name__ == '__main__':
-    install()
+    main()

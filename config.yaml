@@ -1,6 +1,8 @@
 - description: "Zsh configurations"
   key: zsh
-  links:
-    ~/.zshrc.d: assets/zsh/zshrc.d/
-    ~/.zshrc: assets/zsh/zshrc
+  steps:
+    - description: "Linking files"
+      links:
+        ~/.zshrc.d: assets/zsh/zshrc.d/
+        ~/.zshrc: assets/zsh/zshrc
 
