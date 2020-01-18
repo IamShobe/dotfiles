@@ -5,7 +5,6 @@ from .utils import remove, Colors
 
 def make_links(base_dir, links, args, counter=None):
     force = args["--force"]
-    print(f"  {Colors.OKBLUE}Making all required links...{Colors.ENDC}")
     for dest, src in links.items():
         src = os.path.join(base_dir, src)
         dest = os.path.expanduser(dest)
