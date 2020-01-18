@@ -1,7 +1,6 @@
 DOTFILES
 ========
 
-
 ## How to start?
 
 ```bash
@@ -12,3 +11,10 @@ then run:
 ```bash
 fast-installer
 ```
+
+
+### Credits
+
+Asset |   Source                                  |  Comment
+----  | ----------------------------------------- |-------------------------
+zsh   | https://github.com/ThiefMaster/zsh-config | heavily based on configs
