@@ -21,7 +21,7 @@ from attrdict import AttrDict
 from methods import CONFIG_TO_HANDLER
 from methods.utils import Colors
 
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+BASE_DIR = os.getcwd()
 
 
 def get_config(path):
