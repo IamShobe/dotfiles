@@ -18,3 +18,4 @@ fast-installer
 Asset |   Source                                  |  Comment
 ----  | ----------------------------------------- |-------------------------
 zsh   | https://github.com/ThiefMaster/zsh-config | heavily based on configs
+vimrc | https://github.com/amix/vimrc             | cloned repo

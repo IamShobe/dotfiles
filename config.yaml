@@ -6,3 +6,12 @@ options:
         links:
           ~/.zshrc.d: assets/zsh/zshrc.d/
           ~/.zshrc: assets/zsh/zshrc
+  - description: "Vim configurations"
+    key: vim
+    steps:
+      - description: "Linking files"
+        links:
+          ~/.vim_runtime: assets/vimrc
+      - description: "Installing awesome vim"
+        shell:
+          - sh ~/.vim_runtime/install_awesome_vimrc.sh
