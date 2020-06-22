@@ -8,9 +8,11 @@ alias ..='cd ..'
 alias ...='cd ../..'
 
 alias l='ls -l'
-alias ll='ls -al'
-alias ls='ls --color=auto -N -F --group-directories-first'
+alias ll='ls -a -l'
+alias ls='ls -G'
 
-alias dmesg='dmesg --color --reltime'
+#alias ls='ls --color=auto -N -F --group-directories-first'
+
+#alias dmesg='dmesg --color --reltime'
 
 alias alf='autoload -Uz'

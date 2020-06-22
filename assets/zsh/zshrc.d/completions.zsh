@@ -44,13 +44,13 @@ zstyle ':completion:*:*:cd:*:directory-stack' force-list always
 zstyle ':completion:*:*:cd:*:directory-stack' menu yes select
 
 # Pretty messages during pagination
-zstyle ':completion:*' list-prompt '%SAt %p: Hit TAB for more, or the character to insert%s'
-zstyle ':completion:*' select-prompt '%SScrolling active: current selection at %p%s'
+zstyle ':completion:*' list-prompt '%SAt %p: Hit TAB for more, or the character to insert%s%f'
+zstyle ':completion:*' select-prompt '%SScrolling active: current selection at %p%s%f'
 
 # Nicer format for completion messages
 zstyle ':completion:*:descriptions' format '%U%B%d%b%u'
 zstyle ':completion:*:corrections' format '%U%F{green}%d (errors: %e)%f%u'
-zstyle ':completion:*:warnings' format '%F{202}%BSorry, no matches for: %F{214}%d%b'
+zstyle ':completion:*:warnings' format '%F{202}%BSorry, no matches for: %F{214}%d%b%f'
 
 # Show message while waiting for completion
 zstyle ':completion:*' show-completer true
@@ -92,8 +92,8 @@ bindkey -M menuselect '^[[Z' reverse-menu-complete
 
 
 # pip
-eval "`pip completion --zsh`"
-compctl -K _pip_completion pip3
+#eval "`pip completion --zsh`"
+#compctl -K _pip_completion pip3
 
 # git
 zstyle ':completion:*:*:git:*' script ~/.zshrc.d/git-completion.bash
