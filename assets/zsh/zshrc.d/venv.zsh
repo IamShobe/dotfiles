@@ -1,7 +1,8 @@
 # Virtualenvwrapper things
 export WORKON_HOME=$HOME/.virtualenvs
 export PROJECT_HOME=$HOME/Devel
-#source ${HOME}/.local/bin/virtualenvwrapper.sh
+[ -f $HOME/.local/bin/virtualenvwrapper.sh ] && source $HOME/.local/bin/virtualenvwrapper.sh
+[ -f /usr/local/bin/virtualenvwrapper.sh ] && source /usr/local/bin/virtualenvwrapper.sh
 
 
 function virtualenv_prompt_info(){

@@ -11,7 +11,9 @@ options:
     steps:
       - description: "Linking files"
         links:
-          ~/.vim_runtime: assets/vimrc
-      - description: "Installing awesome vim"
+          ~/.vim: assets/vim/vim
+          ~/.vimrc: assets/vim/vimrc
+      - description: "Installing vundle plugins vim"
         shell:
-          - sh ~/.vim_runtime/install_awesome_vimrc.sh
+          - git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+          - vim +PluginInstall +qall 

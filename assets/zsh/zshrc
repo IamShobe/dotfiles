@@ -24,8 +24,12 @@ SAVEHIST=10000
 HISTFILE=~/.zsh_history
 
 # change default ls colors
-#eval `dircolors -b ${HOME}/.zshrc.d/ls_colors`
-export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
+if command -v dircolors &> /dev/null
+then
+    eval `dircolors -b ${HOME}/.zshrc.d/ls_colors`
+else
+    export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
+fi
 
 
 
@@ -43,15 +47,44 @@ for file (${HOME}/.zshrc.d/*.zsh(N)); do
 	source $file
 done
 
-source ${HOME}/.zshrc.d/plugins/zsh-autosuggestions.zsh
+source $HOME/.zshrc.d/plugins/zsh-autosuggestions.zsh
 bindkey '^ ' autosuggest-accept
 
-source ${HOME}/.zshrc.d/plugins/per_directory_history.zsh
+source $HOME/.zshrc.d/plugins/per_directory_history.zsh
 
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
-export PATH=/usr/local/bin:$PATH:/Library/Apple/usr/bin
-typeset -U PATH path
 umask 022
 
 [ -f ${HOME}/.aliases ] && source ${HOME}/.aliases
-eval "$(pyenv init -)"
+
+_TITLE ()
+{
+    local PRE= NAME="$1" LENGTH="$2";
+    [[ "$NAME" != "${NAME#$HOME/}" || -z "${NAME#$HOME}" ]] &&
+        PRE+='~' NAME="${NAME#$HOME}" LENGTH=$[LENGTH-1];
+    ((${#NAME}>$LENGTH)) && NAME="/...${NAME:$[${#NAME}-LENGTH+4]}";
+    echo "$PRE$NAME"
+}
+
+precmd () { 
+    if [ -n "$TITLE" ]; then
+        print -Pn "\e]0;$TITLE\a" 
+    else
+        print -Pn "\e]0;$(_TITLE "$PWD" 20)\a"
+    fi
+}
+preexec () {
+    print -Pn "\e]0;$2\a"
+}
+title() { export TITLE="$*" }
+
+if [ -n "$SSH_CLIENT" ]; then
+    export DISPLAY=`echo $SSH_CLIENT | cut -d" " -f1`:0
+fi
+
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+if command -v pyenv 1>/dev/null 2>&1; then 
+	eval "$(pyenv init -)"
+fi
+typeset -U PATH path

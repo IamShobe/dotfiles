@@ -8,10 +8,15 @@ alias ..='cd ..'
 alias ...='cd ../..'
 
 alias l='ls -l'
-alias ll='ls -a -l'
-alias ls='ls -G'
+if [ "$(uname 2> /dev/null)" != "Linux" ]; then
+    # macos
+    alias ll='ls -a -l -G'
+else
+    # linux
+    alias ls='ls --color=auto -N -F --group-directories-first'
+    alias ll='ls -a -l -F'
+fi
 
-#alias ls='ls --color=auto -N -F --group-directories-first'
 
 #alias dmesg='dmesg --color --reltime'
 
