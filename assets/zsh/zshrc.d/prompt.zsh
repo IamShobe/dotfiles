@@ -32,7 +32,7 @@ function _prompt_precmd() {
 		endsign='#'
 		user_color='%F{9}'
 	else
-		endsign='$'
+		endsign='%%'
 		user_color='%F{10}'
 	fi
 
@@ -45,7 +45,7 @@ function _prompt_precmd() {
 	vcs_info
 
 	# Set the actual prompts
-	typeset -g PS1="$(virtualenv_prompt_info)%B%F{red}[$user_color%n%F{green}@%F{blue}%M %F{magenta}%~%f%F{red}]%f%b$vcs_info_msg_0_ $endsign%f "	
+	typeset -g PS1="%B%F{red}[$user_color%n%F{green}@%F{blue}%M %F{magenta}%~%f%F{red}]%f%b"$'\n'"$vcs_info_msg_0_$(virtualenv_prompt_info)$endsign%f "	
 	#typeset -g PS1="%F{15}[$user_color%n%F{15}@$host_color%m%F{15}:%F{11}%~%F{15}$vcs_info_msg_0_%F{15}] %F{14}$endsign%f "
 	typeset -g PS2='%F{14}%_%F{15}>%f '
 }
@@ -57,15 +57,15 @@ zstyle ':vcs_info:*' nvcsformats ''
 zstyle ':vcs_info:git*' check-for-changes true
 zstyle ':vcs_info:git*' check-for-staged-changes true
 zstyle ':vcs_info:git*' get-revision false
-zstyle ':vcs_info:git*' stagedstr '%F{2}+%f'
-zstyle ':vcs_info:git*' unstagedstr '%F{1}*%f'
-zstyle ':vcs_info:git*' formats ' [%F{85}%b%F{85}%u%c%m%f]'
-zstyle ':vcs_info:git*' actionformats ' [%F{85}%b%F{85}%u%c%m%f|%F{67}%a%F{15}%f]'
+zstyle ':vcs_info:git*' stagedstr '%F{2}✅%f'
+zstyle ':vcs_info:git*' unstagedstr '%F{1}✍ %f'
+zstyle ':vcs_info:git*' formats '[%F{85}%b%F{85}%u%c%m%f] '
+zstyle ':vcs_info:git*' actionformats '[%F{85}%b%F{85}%u%c%m%f|%F{67}%a%F{15}f] '
 zstyle ':vcs_info:git*+set-message:*' hooks git-untracked git-fancybranch git-stash git-space
 
 function +vi-git-untracked() {
 	if [[ $(git rev-parse --is-inside-work-tree 2> /dev/null) == 'true' ]] && git status --porcelain | grep '??' &> /dev/null ; then
-		hook_com[staged]+='%F{1}%%%f'
+		hook_com[staged]+='%F{1}💢%f'
 	fi
 }
 
@@ -93,7 +93,7 @@ function +vi-git-stash() {
 	hook_com[misc]=''  # we don't care about patches
 	if [[ -s ${hook_com[base]}/.git/refs/stash ]] ; then
 		stashes=$(git stash list 2>/dev/null | wc -l)
-		hook_com[misc]='%F{12}$'
+		hook_com[misc]='%F{12}📦'
 	fi
 }
 
