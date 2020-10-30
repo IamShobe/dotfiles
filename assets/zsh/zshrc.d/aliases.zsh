@@ -22,4 +22,5 @@ fi
 
 alias alf='autoload -Uz'
 alias reload='source ~/.zshrc'
-
+alias edit_rc='vim ~/.zshrc'
+alias edit_aliases="vim ${ZSH_DIR}/aliases.zsh"

@@ -19,6 +19,8 @@ mkdir -p $ZSH_CACHE
 chmod 700 $ZSH_CACHE
 
 
+export ZSH_DIR="${HOME}/.zshrc.d/"
+
 # Keep 10000 lines of history within the shell and save it to ~/.zsh_history:
 HISTSIZE=10000
 SAVEHIST=10000
@@ -44,14 +46,14 @@ zle -N down-line-or-beginning-search
 
 
 # include all files
-for file (${HOME}/.zshrc.d/*.zsh(N)); do
+for file (${ZSH_DIR}/*.zsh(N)); do
 	source $file
 done
 
-source $HOME/.zshrc.d/plugins/zsh-autosuggestions.zsh
+source $ZSH_DIR/plugins/zsh-autosuggestions.zsh
 bindkey '^ ' autosuggest-accept
 
-source $HOME/.zshrc.d/plugins/per_directory_history.zsh
+source $ZSH_DIR/plugins/per_directory_history.zsh
 
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
 umask 022
@@ -110,3 +112,4 @@ fi
 typeset -U PATH path
 export EDITOR=vim
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"

@@ -15,7 +15,7 @@ zstyle -e ':completion:*:approximate:*' max-errors 'reply=($((($#PREFIX+$#SUFFIX
 zstyle ':completion:*' rehash true
 
 # Use menu completion
-zstyle ':completion:*:*:*:*' menu yes select
+zstyle ':completion:*:*:*:default' menu yes select
 
 
 # Verbose completion results
