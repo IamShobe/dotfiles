@@ -108,3 +108,5 @@ if [ -s "$NVM_DIR/nvm.sh" ] && [ ! "$(type -w __init_nvm | cut -f2 -d' ')" = fun
   for i in "${__node_commands[@]}"; do alias $i='__init_nvm && '$i; done
 fi
 typeset -U PATH path
+export EDITOR=vim
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

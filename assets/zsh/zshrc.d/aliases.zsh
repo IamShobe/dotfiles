@@ -21,3 +21,5 @@ fi
 #alias dmesg='dmesg --color --reltime'
 
 alias alf='autoload -Uz'
+alias reload='source ~/.zshrc'
+
