@@ -45,7 +45,7 @@ function _prompt_precmd() {
 	vcs_info
 
 	# Set the actual prompts
-	typeset -g PS1="%B%F{red}[$user_color%n%F{green}@%F{blue}%M %F{magenta}%~%f%F{red}]%f%b"$'\n'"$vcs_info_msg_0_$(virtualenv_prompt_info)$endsign%f "	
+	typeset -g PS1="%B%F{red}[$user_color%n%F{green}@%F{blue}%M %F{magenta}%(5~|%-1~/…/%3~|%4~)%f%F{red}]%f%b"$'\n'"$vcs_info_msg_0_$(virtualenv_prompt_info)$endsign%f "	
 	#typeset -g PS1="%F{15}[$user_color%n%F{15}@$host_color%m%F{15}:%F{11}%~%F{15}$vcs_info_msg_0_%F{15}] %F{14}$endsign%f "
 	typeset -g PS2='%F{14}%_%F{15}>%f '
 }
