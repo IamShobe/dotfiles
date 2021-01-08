@@ -4,7 +4,7 @@ DOTFILES
 ## How to start?
 
 ```bash
-curl https://github.com/IamShobe/dotfiles/blob/master/setup.sh | bash
+curl https://raw.githubusercontent.com/IamShobe/dotfiles/master/setup.sh | bash
 ```
 
 Alternatively:
