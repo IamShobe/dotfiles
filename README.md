@@ -9,7 +9,7 @@ pip3 install fast-installer
 
 then run:
 ```bash
-fast-installer
+fastinstall
 ```
 
 
