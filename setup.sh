@@ -43,7 +43,6 @@ install_zsh
 install_docker
 install_dotfiles
 
-exec /bin/zsh  # rerun with zsh 
 pyenv install 3.9.1 
 pyenv install 2.7.18
 pyenv global 3.9.1 2.7.18  # set 3.9 as default and 2.7 as secondary
