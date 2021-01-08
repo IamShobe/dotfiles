@@ -1,4 +1,27 @@
 options:
+  - description: "pyenv"
+    key: pyenv
+    steps:
+        - description: "Clone Pyenv directory"
+          shell:
+              - git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+  - description: "fzf"
+    key: fzf
+    steps:
+      - description: "cloning fzf"
+        shell:
+            - command: git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+              allow_fail: true
+      - description: "Running fzf install"
+        shell:
+            - ~/.fzf/install --all
+  - description: "NVM"
+    key: nvm
+    steps:
+      - description: "Installing NVM from curl"
+        shell:
+            - curl -sL https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash
+
   - description: "Zsh configurations"
     key: zsh
     steps:
@@ -14,7 +37,10 @@ options:
         links:
           ~/.vim: assets/vim/vim
           ~/.vimrc: assets/vim/vimrc
-      - description: "Installing vundle plugins vim"
+      - description: "Cloning vundle for vim"
         shell:
-          - git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+            - command: git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+              allow_fail: true
+      - description: "Installing vim plugins"
+        shell:
           - vim -c PluginInstall -c qall 
