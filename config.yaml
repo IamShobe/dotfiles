@@ -4,7 +4,8 @@ options:
     steps:
         - description: "Clone Pyenv directory"
           shell:
-              - git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+              - command: git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+                allow_fail: true
   - description: "fzf"
     key: fzf
     steps:
