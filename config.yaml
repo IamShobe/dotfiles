@@ -6,6 +6,7 @@ options:
         links:
           ~/.zshrc.d: assets/zsh/zshrc.d/
           ~/.zshrc: assets/zsh/zshrc
+          ~/.zprofile: assets/zsh/zprofile
   - description: "Vim configurations"
     key: vim
     steps:
