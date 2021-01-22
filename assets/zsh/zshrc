@@ -20,6 +20,7 @@ chmod 700 $ZSH_CACHE
 
 
 export ZSH_DIR="${HOME}/.zshrc.d/"
+source $ZSH_DIR/plugins/git-prompt.zsh
 
 # Keep 10000 lines of history within the shell and save it to ~/.zsh_history:
 HISTSIZE=10000
@@ -49,6 +50,7 @@ zle -N down-line-or-beginning-search
 for file (${ZSH_DIR}/*.zsh(N)); do
 	source $file
 done
+
 
 source $ZSH_DIR/plugins/zsh-autosuggestions.zsh
 bindkey '^ ' autosuggest-accept
