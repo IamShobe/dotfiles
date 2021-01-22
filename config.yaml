@@ -1,3 +1,6 @@
+# vim: set shiftwidth=2:
+# vim: set tabstop=2:
+
 options:
   - description: "Zsh configurations"
     key: zsh
@@ -17,3 +20,16 @@ options:
         shell:
           - git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
           - vim +PluginInstall +qall 
+  - description: "Tmux configurations"
+    key: tmux
+    steps:
+      - description: "Cloning oh my tmux"
+        shell:
+          - git clone https://github.com/gpakosz/.tmux.git ~/.tmux
+      - description: "linking files"
+        shell:
+          - ln -f -s ~/.tmux/.tmux.conf ~/.tmux.conf
+        links:
+          ~/.tmux.conf.local: assets/tmux/.tmux.conf.local
+
+      

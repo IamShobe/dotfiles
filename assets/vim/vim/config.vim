@@ -22,6 +22,12 @@ let g:gitgutter_highlight_linenrs = 1
 let g:gitgutter_preview_win_floating = 1
 set updatetime=100  " for updating file status
 
+let g:NERDDefaultAlign = 'left'
+let g:NERDCompactSexyComs = 1
+let g:NERDSpaceDelims = 1
+let g:NERDCommentEmptyLines = 1
+
+
 "let g:solarized_termcolors=256
 
 "let background=dark
