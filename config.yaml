@@ -2,6 +2,30 @@
 # vim: set tabstop=2:
 
 options:
+  - description: "pyenv"
+    key: pyenv
+    steps:
+        - description: "Clone Pyenv directory"
+          shell:
+              - command: git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+                allow_fail: true
+  - description: "fzf"
+    key: fzf
+    steps:
+      - description: "cloning fzf"
+        shell:
+            - command: git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+              allow_fail: true
+      - description: "Running fzf install"
+        shell:
+            - ~/.fzf/install --all
+  - description: "NVM"
+    key: nvm
+    steps:
+      - description: "Installing NVM from curl"
+        shell:
+            - curl -sL https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.0/install.sh | bash
+
   - description: "Zsh configurations"
     key: zsh
     steps:
@@ -9,6 +33,7 @@ options:
         links:
           ~/.zshrc.d: assets/zsh/zshrc.d/
           ~/.zshrc: assets/zsh/zshrc
+          ~/.zprofile: assets/zsh/zprofile
   - description: "Vim configurations"
     key: vim
     steps:
@@ -16,10 +41,14 @@ options:
         links:
           ~/.vim: assets/vim/vim
           ~/.vimrc: assets/vim/vimrc
-      - description: "Installing vundle plugins vim"
+      - description: "Cloning vundle for vim"
+        shell:
+            - command: git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+              allow_fail: true
+      - description: "Installing vim plugins"
         shell:
           - git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
-          - vim +PluginInstall +qall 
+          - vim -c PluginInstall -c qall 
   - description: "Tmux configurations"
     key: tmux
     steps:
@@ -32,4 +61,3 @@ options:
         links:
           ~/.tmux.conf.local: assets/tmux/.tmux.conf.local
 
-      

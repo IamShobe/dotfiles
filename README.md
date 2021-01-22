@@ -4,12 +4,18 @@ DOTFILES
 ## How to start?
 
 ```bash
+curl https://raw.githubusercontent.com/IamShobe/dotfiles/master/setup.sh | bash
+```
+
+Alternatively:
+
+```bash
 pip3 install fast-installer
 ```
 
 then run:
 ```bash
-fast-installer
+fastinstall
 ```
 
 
