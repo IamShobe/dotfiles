@@ -3,15 +3,19 @@
 ZCALCPROMPT='%F{48}%1v>%f '
 SPROMPT='zsh: correct '%F{166}%R%f' to '%F{76}%r%f' [nyae]? '
 
-PROMPT='%(!.$fg[red].$fg[green])%n'  # user
+PROMPT=''
+PROMPT+='$(virtualenv_prompt_info)'  # venv
+PROMPT+='%(!.$fg[red].$fg[green])%n'  # user
 PROMPT+='$fg[yellow]@$fg[blue]%M '  # domain
 PROMPT+='$fg[magenta]%(6~|%-1~/…/%4~|%5~)%f' # path
 # PROMPT+='$fg[magenta]%~%f' # path full
 PROMPT+=$'\n'
-PROMPT+='$(gitprompt)$(virtualenv_prompt_info) %(?..%K{9}%F{15})'
-PROMPT+='%(!.#.%%)%k%f ' # endsign
+PROMPT+='$(gitprompt)'  # git
+PROMPT+='%(?..%K{9}%F{15})%(!.#.%%)%k%f ' # endsign
 
 PS2='%F{14}%_%F{15}>%f '
+
+VIRTUAL_ENV_DISABLE_PROMPT=1   
 
 ZSH_GIT_PROMPT_FORCE_BLANK=1
 ZSH_GIT_PROMPT_SHOW_STASH=1

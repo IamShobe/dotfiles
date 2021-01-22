@@ -73,7 +73,7 @@ setopt PROMPT_SUBST
 function _zsh_git_prompt_git_status() {
     emulate -L zsh
     {
-        c2=$(GIT_OPTIONAL_LOCKS=0 command basename $(git rev-parse --show-toplevel) 2>&1)
+        c2=$(GIT_OPTIONAL_LOCKS=0 command basename $(git rev-parse --show-toplevel 2> /dev/null) 2> /dev/null)
         [[ -n "$c2" ]] && echo "# git.repo $c2"
 
         [[ -n "$ZSH_GIT_PROMPT_SHOW_STASH" ]] && (
