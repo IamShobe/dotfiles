@@ -15,6 +15,8 @@ set shiftwidth=4   " using shift+> will move given value amount spaces
 set expandtab      " entering tab is translated to space
 set smarttab 
 
+:set directory=$HOME/.vim/swapfiles/
+
 source ~/.vim/airline.vim
 source ~/.vim/autocomplete.vim
 let g:gitgutter_preview_win_floating = 1
