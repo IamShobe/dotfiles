@@ -55,6 +55,9 @@ done
 source $ZSH_DIR/plugins/zsh-autosuggestions.zsh
 bindkey '^ ' autosuggest-accept
 
+# source $ZSH_DIR/plugins/fzf-zsh-completion.sh
+source $ZSH_DIR/plugins/fzf-tab/fzf-tab.plugin.zsh
+
 source $ZSH_DIR/plugins/per_directory_history.zsh
 
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
@@ -115,3 +118,4 @@ typeset -U PATH path
 export EDITOR=vim
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
+
