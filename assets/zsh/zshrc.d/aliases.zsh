@@ -9,7 +9,7 @@ alias ...='cd ../..'
 
 alias l='exa -l'
 alias ls='exa --icons -F --group-directories-first'
-alias ll='ls -a -l'
+alias ll='ls -a -l --time-style=long-iso --git'
 
 
 #alias dmesg='dmesg --color --reltime'
