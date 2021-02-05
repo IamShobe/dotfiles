@@ -7,9 +7,11 @@ unset GREP_OPTS
 alias ..='cd ..'
 alias ...='cd ../..'
 
-alias l='exa -l'
-alias ls='exa --icons -F --group-directories-first'
-alias ll='ls -a -l --time-style=long-iso --git'
+if command -v exa; then 
+    alias l='exa -l'
+    alias ls='exa --icons -F --group-directories-first'
+    alias ll='ls -a -l --time-style=long-iso --git'
+fi
 
 
 #alias dmesg='dmesg --color --reltime'
@@ -19,5 +21,9 @@ alias reload='source ~/.zshrc'
 alias edit_rc='vim ~/.zshrc'
 alias edit_aliases="editor ${ZSH_DIR}/aliases.zsh"
 
-alias cat='bat'
-alias find='fd'
+if command -v bat; then
+  alias cat='bat'
+fi
+if command -v fd; then
+ alias find='fd'
+fi
