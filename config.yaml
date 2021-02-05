@@ -76,3 +76,4 @@ options:
       - description: "Install requirements"
         shell:
           - cat assets/rust/requirements.txt | xargs cargo install
+          - eval /bin/zsh
