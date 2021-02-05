@@ -1,0 +1,7 @@
+bat
+du-dust
+exa
+fd-find
+ripgrep
+tealdeer
+
