@@ -28,12 +28,12 @@ SAVEHIST=10000
 HISTFILE=~/.zsh_history
 
 # change default ls colors
-if command -v dircolors &> /dev/null
-then
-    eval `dircolors -b ${HOME}/.zshrc.d/ls_colors`
-else
-    export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
-fi
+# if command -v dircolors &> /dev/null
+# then
+#     eval `dircolors -b ${HOME}/.zshrc.d/ls_colors`
+# else
+#     export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
+# fi
 
 
 
@@ -91,7 +91,7 @@ if [ -n "$SSH_CLIENT" ]; then
 fi
 
 export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
+export PATH="$PYENV_ROOT/bin:$HOME/.cargo/bin:$PATH"
 if command -v pyenv 1>/dev/null 2>&1; then 
 	eval "$(pyenv init -)"
     if pyenv commands | grep virtualenvwrapper 1>/dev/null 2>&1; then

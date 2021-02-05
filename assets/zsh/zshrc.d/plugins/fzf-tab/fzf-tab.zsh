@@ -213,7 +213,7 @@ fzf-tab-complete() {
       zle fzf-tab-dummy
     fi
   done
-#  echoti cnorm >/dev/tty
+  echoti cnorm >/dev/tty
   zle .redisplay
   (( _ftb_accept )) && zle .accept-line
 }

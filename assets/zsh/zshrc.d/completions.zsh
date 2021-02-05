@@ -62,11 +62,11 @@ zstyle ':completion:*:*:*:*:processes' list-colors '=(#b) #([0-9]#) ([0-9a-z-]#)
 zstyle ':completion:*:*:*:*:processes' command "ps -ea -o pid,user,args -w -w"  # -u $USER
 
 # Use ls-colors for path completions
-function _set-list-colors() {
-	zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-	unfunction _set-list-colors
-}
-sched 0 _set-list-colors  # deferred since LC_COLORS might not be available yet
+# function _set-list-colors() {
+#     zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+#     unfunction _set-list-colors
+# }
+# sched 0 _set-list-colors  # deferred since LC_COLORS might not be available yet
 
 # Don't complete hosts from /etc/hosts
 # zstyle -e ':completion:*' hosts 'reply=()'
@@ -101,4 +101,4 @@ sched 0 _set-list-colors  # deferred since LC_COLORS might not be available yet
 zstyle ":completion:*:git-checkout:*" sort false
 zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-#zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1 --color=always $realpath'
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1 --color=always $realpath'
