@@ -7,7 +7,7 @@ unset GREP_OPTS
 alias ..='cd ..'
 alias ...='cd ../..'
 
-if command -v exa; then 
+if command -v exa 2&>1 >/dev/null; then 
     alias l='exa -l'
     alias ls='exa --icons -F --group-directories-first'
     alias ll='ls -a -l --time-style=long-iso --git'
@@ -21,14 +21,14 @@ alias reload='source ~/.zshrc'
 alias edit_rc='vim ~/.zshrc'
 alias edit_aliases="editor ${ZSH_DIR}/aliases.zsh"
 
-if command -v bat; then
+if command -v bat 2&>1 >/dev/null; then
     alias cat='bat'
 fi
-if command -v fd; then
+if command -v fd 2&>1 >/dev/null; then
     alias find='fd'
 fi
 
-if command -v tmux; then
+if command -v tmux 2&>1 >/dev/null; then
     #alias rtmux="tmux"
     alias rtmux="tmux attach -t base || tmux new -s base"
 fi
