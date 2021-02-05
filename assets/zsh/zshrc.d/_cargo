@@ -1,2 +1,2 @@
 #compdef cargo
-source $(rustc --print sysroot)/share/zsh/site-functions/_cargo
+command -v rustc && source $(rustc --print sysroot)/share/zsh/site-functions/_cargo
