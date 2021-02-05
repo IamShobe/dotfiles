@@ -7,15 +7,9 @@ unset GREP_OPTS
 alias ..='cd ..'
 alias ...='cd ../..'
 
-alias l='ls -l'
-if [ "$(uname 2> /dev/null)" != "Linux" ]; then
-    # macos
-    alias ll='ls -a -l -G'
-else
-    # linux
-    alias ls='ls --color=auto -N -F --group-directories-first'
-    alias ll='ls -a -l -F'
-fi
+alias l='exa -l'
+alias ls='exa -F --group-directories-first'
+alias ll='ls -a -l'
 
 
 #alias dmesg='dmesg --color --reltime'
@@ -23,4 +17,4 @@ fi
 alias alf='autoload -Uz'
 alias reload='source ~/.zshrc'
 alias edit_rc='vim ~/.zshrc'
-alias edit_aliases="vim ${ZSH_DIR}/aliases.zsh"
+alias edit_aliases="editor ${ZSH_DIR}/aliases.zsh"
