@@ -22,8 +22,14 @@ alias edit_rc='vim ~/.zshrc'
 alias edit_aliases="editor ${ZSH_DIR}/aliases.zsh"
 
 if command -v bat; then
-  alias cat='bat'
+    alias cat='bat'
 fi
 if command -v fd; then
- alias find='fd'
+    alias find='fd'
 fi
+
+if command -v tmux; then
+    #alias rtmux="tmux"
+    alias rtmux="tmux attach -t base || tmux new -s base"
+fi
+
