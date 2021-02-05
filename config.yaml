@@ -34,12 +34,6 @@ options:
           ~/.zshrc.d: assets/zsh/zshrc.d/
           ~/.zshrc: assets/zsh/zshrc
           ~/.zprofile: assets/zsh/zprofile
-  - description: "Rust configs"
-    key: rust
-    steps:
-      - description: "install rustup"
-        shell:
-          - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
   - description: "Vim configurations"
     key: vim
     steps:
@@ -67,3 +61,15 @@ options:
         links:
           ~/.tmux.conf.local: assets/tmux/.tmux.conf.local
 
+  - description: "Rust configs"
+    key: rust
+    steps:
+      - description: "install rustup"
+        shell:
+          - curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+  - description: "Rust requirements"
+    key: rust-cli
+    steps:
+      - description: "Install requirements"
+        shell:
+          - cat assets/rust/requirements.txt | xargs cargo install
