@@ -1,8 +1,8 @@
 # vim: ts=4 sw=4
 # Initialize completion
-# autoload -Uz compinit
-# compinit -d "$ZSH_CACHE/zcompdump"
-# # _comp_options+=(globdots) # add dot files to autocomplete
+autoload -Uz compinit
+compinit -d "$ZSH_CACHE/zcompdump"
+_comp_options+=(globdots) # add dot files to autocomplete
 # # zstyle ':completion:*' accept-exact '*(N)'
 # zstyle ':completion:*' use-cache on
 # zstyle ':completion:*' cache-path $ZSH_CACHE
@@ -19,7 +19,7 @@
 # 
 # 
 # # Verbose completion results
-# zstyle ':completion:*' verbose true
+zstyle ':completion:*' verbose true
 # 
 # # Smart matching of dashed values, e.g. f-b matching foo-bar
 # zstyle ':completion:*' matcher-list 'r:|[._-]=* r:|=*'
@@ -31,7 +31,7 @@
 # zstyle ':completion:*' insert-tab false
 
 # Keep directories and files separated
-# zstyle ':completion:*' list-dirs-first true
+zstyle ':completion:*' list-dirs-first true
 
 # Don't try parent path completion if the directories exist
 # zstyle ':completion:*' accept-exact-dirs true
@@ -62,11 +62,11 @@ zstyle ':completion:*:*:*:*:processes' list-colors '=(#b) #([0-9]#) ([0-9a-z-]#)
 zstyle ':completion:*:*:*:*:processes' command "ps -ea -o pid,user,args -w -w"  # -u $USER
 
 # Use ls-colors for path completions
-# function _set-list-colors() {
-#     zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-#     unfunction _set-list-colors
-# }
-# sched 0 _set-list-colors  # deferred since LC_COLORS might not be available yet
+function _set-list-colors() {
+    zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+    unfunction _set-list-colors
+}
+sched 0 _set-list-colors  # deferred since LC_COLORS might not be available yet
 
 # Don't complete hosts from /etc/hosts
 # zstyle -e ':completion:*' hosts 'reply=()'
@@ -83,7 +83,7 @@ zstyle ':completion:*:*:*:*:processes' command "ps -ea -o pid,user,args -w -w"  
 #         rpc rpcuser rpm rtkit scard shutdown squid sshd statd svn sync tftp \
 #         usbmux uucp vcsa wwwrun xfs cron mongodb nullmail portage redis \
 #         shoutcast tcpdump '_*'
-# zstyle ':completion:*' single-ignored show
+zstyle ':completion:*' single-ignored show
 
 # zmodload zsh/complist
 # # bind shift tab to reverse selection
@@ -101,4 +101,4 @@ zstyle ':completion:*:*:*:*:processes' command "ps -ea -o pid,user,args -w -w"  
 zstyle ":completion:*:git-checkout:*" sort false
 zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1 --color=always $realpath'
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa --icons -1 --color=always $realpath'

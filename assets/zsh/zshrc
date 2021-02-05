@@ -28,12 +28,12 @@ SAVEHIST=10000
 HISTFILE=~/.zsh_history
 
 # change default ls colors
-# if command -v dircolors &> /dev/null
-# then
-#     eval `dircolors -b ${HOME}/.zshrc.d/ls_colors`
-# else
-#     export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
-# fi
+if command -v dircolors &> /dev/null
+then
+    eval `dircolors -b ${HOME}/.zshrc.d/ls_colors`
+else
+    export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
+fi
 
 
 
@@ -91,13 +91,16 @@ if [ -n "$SSH_CLIENT" ]; then
 fi
 
 export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$HOME/.cargo/bin:$PATH"
+export PATH="$PYENV_ROOT/bin:$PATH"
 if command -v pyenv 1>/dev/null 2>&1; then 
 	eval "$(pyenv init -)"
     if pyenv commands | grep virtualenvwrapper 1>/dev/null 2>&1; then
         pyenv virtualenvwrapper
     fi
 fi
+# configure rust:
+[ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
+
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 #[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 # Defer initialization of nvm until nvm, node or a node-dependent command is
@@ -118,4 +121,5 @@ typeset -U PATH path
 export EDITOR=vim
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 
