@@ -8,7 +8,7 @@ alias ..='cd ..'
 alias ...='cd ../..'
 
 alias l='exa -l'
-alias ls='exa -F --group-directories-first'
+alias ls='exa --icons -F --group-directories-first'
 alias ll='ls -a -l'
 
 
@@ -18,3 +18,6 @@ alias alf='autoload -Uz'
 alias reload='source ~/.zshrc'
 alias edit_rc='vim ~/.zshrc'
 alias edit_aliases="editor ${ZSH_DIR}/aliases.zsh"
+
+alias cat='bat'
+alias find='fd'
