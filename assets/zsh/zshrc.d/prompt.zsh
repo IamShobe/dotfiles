@@ -9,7 +9,7 @@ PROMPT+='%(!.$fg[red].$fg[green])%n'  # user
 PROMPT+='$fg[yellow]@$fg[blue]%M '  # domain
 PROMPT+='$fg[magenta]%(6~|%-1~/…/%4~|%5~)%f' # path
 # PROMPT+='$fg[magenta]%~%f' # path full
-PROMPT+=$'\n'
+PROMPT+=$'%{\n\r%}'
 PROMPT+='$(gitprompt)'  # git
 PROMPT+='%(?..%K{9}%F{15})%(!.#.%%)%k%f ' # endsign
 
