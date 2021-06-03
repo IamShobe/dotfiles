@@ -75,7 +75,6 @@ function _zsh_git_prompt_git_status() {
     {
         c2=$(GIT_OPTIONAL_LOCKS=0 command basename $(git rev-parse --show-toplevel 2> /dev/null) 2> /dev/null)
         [[ -n "$c2" ]] && echo "# git.repo $c2"
-
         [[ -n "$ZSH_GIT_PROMPT_SHOW_STASH" ]] && (
             c=$(command git rev-list --walk-reflogs --count refs/stash 2> /dev/null)
             [[ -n "$c" ]] && echo "# stash.count $c"

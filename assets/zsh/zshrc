@@ -122,4 +122,5 @@ export EDITOR=vim
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
 export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+hidutil property --set '{"UserKeyMapping": [{"HIDKeyboardModifierMappingSrc": 0x700000064, "HIDKeyboardModifierMappingDst": 0x700000035}, {"HIDKeyboardModifierMappingSrc": 0x700000035, "HIDKeyboardModifierMappingDst": 0x700000035}]}'  >/dev/null 2>&1
 
