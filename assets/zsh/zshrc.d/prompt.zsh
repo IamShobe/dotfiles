@@ -1,7 +1,10 @@
 
+ZSH_GIT_PROMPT_NO_ASYNC=1
 # Misc prompts
 ZCALCPROMPT='%F{48}%1v>%f '
 SPROMPT='zsh: correct '%F{166}%R%f' to '%F{76}%r%f' [nyae]? '
+
+autoload -Uz colors && colors
 
 PROMPT=''
 PROMPT+='$(virtualenv_prompt_info)'  # venv
@@ -9,13 +12,16 @@ PROMPT+='%(!.$fg[red].$fg[green])%n'  # user
 PROMPT+='$fg[yellow]@$fg[blue]%M '  # domain
 PROMPT+='$fg[magenta]%(6~|%-1~/…/%4~|%5~)%f' # path
 # PROMPT+='$fg[magenta]%~%f' # path full
-PROMPT+=$'%{\n\r%}'
-PROMPT+='$(gitprompt)'  # git
+PROMPT+=$'\n'
+PROMPT+='$GITSTATUS_PROMPT'
+#PROMPT+='$(gitprompt)'  # git
 PROMPT+='%(?..%K{9}%F{15})%(!.#.%%)%k%f ' # endsign
+
+# RPROMPT='$GITSTATUS_PROMPT'
 
 PS2='%F{14}%_%F{15}>%f '
 
-VIRTUAL_ENV_DISABLE_PROMPT=1   
+VIRTUAL_ENV_DISABLE_PROMPT=1
 
 ZSH_GIT_PROMPT_FORCE_BLANK=1
 ZSH_GIT_PROMPT_SHOW_STASH=1
