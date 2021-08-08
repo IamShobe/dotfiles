@@ -15,7 +15,7 @@ setopt		ALWAYS_LAST_PROMPT
 # XXX setopt		ALWAYS_TO_END
 setopt		AUTO_LIST
 setopt		AUTO_MENU
-setopt		AUTO_NAME_DIRS
+# setopt		AUTO_NAME_DIRS
 setopt		AUTO_PARAM_KEYS
 setopt		AUTO_PARAM_SLASH
 unsetopt	AUTO_REMOVE_SLASH
