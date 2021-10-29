@@ -20,6 +20,7 @@ Plugin 'tpope/vim-fugitive'
 Plugin 'tomasr/molokai'
 Plugin 'vim-python/python-syntax'
 
+Plugin 'valloric/youcompleteme'
 
 
 call vundle#end()

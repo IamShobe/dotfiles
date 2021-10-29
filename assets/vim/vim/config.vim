@@ -16,6 +16,8 @@ set expandtab      " entering tab is translated to space
 set smarttab 
 
 :set directory=$HOME/.vim/swapfiles/
+:set undofile
+:set undodir=$HOME/.vim/undodir/
 
 source ~/.vim/airline.vim
 source ~/.vim/autocomplete.vim
@@ -41,4 +43,8 @@ syntax enable
 
 
 source ~/.vim/shortcuts.vim
+
+let g:ycm_confirm_extra_conf = 0
+
+
 

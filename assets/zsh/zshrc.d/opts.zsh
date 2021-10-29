@@ -1,4 +1,5 @@
 # vim: ts=4 sw=4
+unsetopt    BEEP
 # Changing Directories
 unsetopt	AUTO_CD
 setopt		AUTO_PUSHD
@@ -159,7 +160,6 @@ unsetopt	SH_WORD_SPLIT
 unsetopt	TRAPS_ASYNC
 
 # ZLE
-setopt		BEEP
 unsetopt	COMBINING_CHARS
 setopt		EMACS
 unsetopt	OVERSTRIKE
