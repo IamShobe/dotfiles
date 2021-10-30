@@ -28,4 +28,4 @@
     version: master
 
 - name: install plugins
-  shell: vim +PluginInstall +qall
+  shell: . "{{ zsh_setting_path }}" && vim +PluginInstall +qall
