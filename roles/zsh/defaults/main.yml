@@ -1,0 +1,17 @@
+zsh_root: "{{ dotfiles_home | expanduser }}/roles/zsh/files"
+zsh_setting_path: "{{dotfiles_user_home}}/.zshrc"
+zsh_directory: "{{dotfiles_user_home}}/.zshrc.d"
+zsh_plugin_root: "{{ zsh_root }}/zshrc.d/plugins"
+zsh_plugins:
+  - repo: https://github.com/Aloxaf/fzf-tab.git
+    name: fzf-tab
+    to_source: fzf-tab.zsh
+  - repo: https://github.com/romkatv/gitstatus.git
+    name: gitstatus
+    to_source: gitstatus.prompt.zsh
+  - repo: https://github.com/jimhester/per-directory-history.git
+    name: per-directory-history
+    to_source: per-directory-history.zsh
+  - repo: https://github.com/zsh-users/zsh-autosuggestions.git
+    name: zsh-auto-suggestions
+    to_source: zsh-autosuggestions.zsh

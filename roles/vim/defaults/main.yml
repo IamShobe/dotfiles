@@ -1,0 +1,3 @@
+vim_path: "{{ dotfiles_user_home }}/.vimrc"
+vim_directory_path: "{{ dotfiles_user_home }}/.vim"
+vim_root: "{{ dotfiles_home | expanduser }}/roles/vim/files"

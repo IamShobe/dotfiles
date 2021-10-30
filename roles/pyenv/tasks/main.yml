@@ -1,0 +1,36 @@
+- name: Clone pyenv
+  git:
+    repo: "https://github.com/pyenv/pyenv.git"
+    dest: "{{ pyenv_path }}"
+    version: master
+
+- name: Install .pyenvrc
+  template:
+    src: ".pyenvrc.j2"
+    dest: "{{ pyenv_path }}/.pyenvrc"
+    owner: "{{ user }}"
+    mode: "0644"
+
+- name: "Load pyenv env variables in {{ zsh_setting_path }}"
+  lineinfile: 
+    dest: "{{ zsh_setting_path }}"
+    regexp: '\.pyenvrc$'
+    line: "[ -f {{ pyenv_path }}/.pyenvrc ] && source {{ pyenv_path }}/.pyenvrc"
+    state: present
+    create: yes
+
+- name: Install Python interpreters "{{ pyenv_python_versions }}"
+  shell: ". {{ pyenv_path }}/.pyenvrc && pyenv install {{ item }}"
+  environment:
+    PYTHON_CONFIGURE_OPTS: "{{ pyenv_python_configure_opts }}"
+  args:
+    creates: "{{ pyenv_path }}/versions/{{ item }}/bin/python"
+  with_items: "{{ pyenv_python_versions }}"
+
+- name: Set pyenv global
+  shell: ". {{ pyenv_path }}/.pyenvrc && pyenv global {{ pyenv_global | join(' ') }} && pyenv rehash"
+  when: pyenv_global is defined
+
+- name: Install ansible
+  pip:
+    name: ansible=={{ pip_ansible_version }}

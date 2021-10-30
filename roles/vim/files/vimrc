@@ -1,0 +1,30 @@
+set nocompatible
+filetype off
+
+set rtp+=$VIM_HOME/bundle/Vundle.vim
+call vundle#begin()
+
+" required
+Plugin 'VundleVim/Vundle.vim'
+
+Plugin 'vim-airline/vim-airline'
+Plugin 'scrooloose/nerdtree'
+Plugin 'tpope/vim-surround'
+Plugin 'scrooloose/nerdcommenter'
+Plugin 'altercation/vim-colors-solarized'
+Plugin 'vim-airline/vim-airline-themes'
+Plugin 'jeetsukumaran/vim-buffergator'
+Plugin 'godlygeek/tabular'
+Plugin 'airblade/vim-gitgutter'
+Plugin 'tpope/vim-fugitive'
+Plugin 'tomasr/molokai'
+Plugin 'vim-python/python-syntax'
+
+Plugin 'valloric/youcompleteme'
+
+
+call vundle#end()
+filetype plugin indent on
+
+source $VIM_HOME/config.vim
+

@@ -1,0 +1,21 @@
+- name: Set up local workstation
+  hosts: local
+  roles:
+    - role: apt
+      tags: ['apt', 'zsh', 'fzf', 'docker', 'pyenv', 'nvm', 'vim', 'tmux', 'rust']
+    - role: zsh
+      tags: ['zsh']
+    - role: fzf
+      tags: ['fzf']
+    - role: docker
+      tags: ['docker']
+    - role: pyenv
+      tags: ['pyenv']
+    - role: 'nvm'
+      tags: ['nvm']
+    - role: 'vim'
+      tags: ['vim']
+    - role: 'tmux'
+      tags: ['tmux']
+    - role: 'rust'
+      tags: ['rust'] 

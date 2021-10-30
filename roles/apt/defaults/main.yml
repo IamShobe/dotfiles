@@ -1,0 +1,30 @@
+apt_package_upgrade: yes
+apt_packages:
+  - ansible
+  - make
+  - build-essential
+  - libssl-dev
+  - zlib1g-dev
+  - libbz2-dev
+  - libreadline-dev
+  - libsqlite3-dev
+  - wget
+  - curl
+  - llvm
+  - libncurses5-dev
+  - libncursesw5-dev
+  - xz-utils
+  - tk-dev
+  - libffi-dev
+  - liblzma-dev
+  - python-openssl
+  - git
+  - apt-transport-https
+  - ca-certificates
+  - gnupg-agent
+  - software-properties-common
+  - python3-pip
+  - vim
+
+# remove_packages:
+#   - gnome-shell-extension-ubuntu-dock

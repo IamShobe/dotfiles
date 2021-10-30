@@ -1,0 +1,109 @@
+#!/bin/zsh
+# Set up the prompt
+#autoload -Uz promptinit
+#promptinit
+#prompt adam1
+
+# current file directory
+#_custom_zsh_config_base="${${(%):-%x}:A:h}"
+#
+
+
+setopt histignorealldups sharehistory
+# Use emacs keybindings even if our EDITOR is set to vi
+bindkey -e
+
+ZSH_CACHE="/tmp/.zsh-${USER}-${ZSH_VERSION}"
+mkdir -p $ZSH_CACHE
+chmod 700 $ZSH_CACHE
+
+export EDITOR=vim
+export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+# bind +- key into ~ as well (OSX)
+hidutil property --set '{"UserKeyMapping": [{"HIDKeyboardModifierMappingSrc": 0x700000064, "HIDKeyboardModifierMappingDst": 0x700000035}, {"HIDKeyboardModifierMappingSrc": 0x700000035, "HIDKeyboardModifierMappingDst": 0x700000035}]}'  >/dev/null 2>&1
+export ZSH_DIR="$(realpath ~/.zshrc.d)"
+
+# Keep 10000 lines of history within the shell and save it to ~/.zsh_history:
+HISTSIZE=10000
+SAVEHIST=10000
+HISTFILE=~/.zsh_history
+
+# change default ls colors
+if command -v dircolors &> /dev/null
+then
+    eval `dircolors -b ${ZSH_DIR}/ls_colors`
+else
+    export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
+fi
+
+
+
+# history search
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+
+[[ -n "${key[Up]}"   ]] && bindkey -- "${key[Up]}"   up-line-or-beginning-search
+[[ -n "${key[Down]}" ]] && bindkey -- "${key[Down]}" down-line-or-beginning-search
+
+
+source ${ZSH_DIR}/venv.zsh
+source ${ZSH_DIR}/completions.zsh
+
+# PLUGINS go here
+[ -f ${ZSH_DIR}/plugins/gitstatus/gitstatus.prompt.zsh ] && source ${ZSH_DIR}/plugins/gitstatus/gitstatus.prompt.zsh
+[ -f ${ZSH_DIR}/plugins/fzf-tab/fzf-tab.zsh ] && source ${ZSH_DIR}/plugins/fzf-tab/fzf-tab.zsh
+[ -f ${ZSH_DIR}/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && source ${ZSH_DIR}/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
+[ -f ${ZSH_DIR}/plugins/per-directory-history/per-directory-history.zsh ] && source ${ZSH_DIR}/plugins/per-directory-history/per-directory-history.zsh
+# source $ZSH_DIR/plugins/fzf-zsh-completion.sh
+# source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
+# PLUGINS END
+
+source ${ZSH_DIR}/opts.zsh
+source ${ZSH_DIR}/binds.zsh
+source ${ZSH_DIR}/aliases.zsh
+source ${ZSH_DIR}/prompt.zsh
+
+
+bindkey '^ ' autosuggest-accept
+
+umask 022
+
+[ -f ${HOME}/.aliases ] && source ${HOME}/.aliases
+
+_TITLE ()
+{
+    local PRE= NAME="$1" LENGTH="$2";
+    [[ "$NAME" != "${NAME#$HOME/}" || -z "${NAME#$HOME}" ]] &&
+        PRE+='~' NAME="${NAME#$HOME}" LENGTH=$[LENGTH-1];
+    ((${#NAME}>$LENGTH)) && NAME="/...${NAME:$[${#NAME}-LENGTH+4]}";
+    echo "$PRE$NAME"
+}
+
+precmd () { 
+    if [ -n "$TITLE" ]; then
+        print -Pn "\e]0;$TITLE\a" 
+    else
+        print -Pn "\e]0;$(_TITLE "$PWD" 20)\a"
+    fi
+}
+preexec () {
+    print -Pn "\e]0;$2\a"
+}
+title() { export TITLE="$*" }
+
+if [ -n "$SSH_CLIENT" ]; then
+    export DISPLAY=`echo $SSH_CLIENT | cut -d" " -f1`:0
+fi
+
+# configure rust:
+[ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
+
+
+typeset -U PATH path
+
+[ -f ~/.pyenv/.pyenvrc ] && source ~/.pyenv/.pyenvrc
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
+[ -f ~/.nvm/.nvmrc ] && source ~/.nvm/.nvmrc
+export VIM_HOME="$(realpath ~/.vim)"

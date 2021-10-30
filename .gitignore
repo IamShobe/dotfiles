@@ -1,5 +1,7 @@
 .idea/
 .vscode/
-assets/vim/vim/bundle/
-assets/vim/vim/undodir/
+roles/vim/files/vim/bundle/
+roles/vim/files/vim/swapfiles/
+roles/vim/files/vim/undodir/
+roles/zsh/files/zshrc.d/plugins/
 

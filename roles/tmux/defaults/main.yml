@@ -1,0 +1,4 @@
+tmux_root: "{{ dotfiles_home | expanduser }}/roles/tmux/files"
+tmux_local_path: "{{ dotfiles_user_home }}/.tmux.conf.local"
+tmux_path: "{{ dotfiles_user_home }}/.tmux.conf"
+tmux_directory_path: "{{ dotfiles_user_home }}/.tmux"

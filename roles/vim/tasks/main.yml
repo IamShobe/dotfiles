@@ -1,0 +1,31 @@
+- name: Install vim
+  apt: name=vim state=present
+  become: yes
+  become_user: root
+  become_method: sudo
+
+- name: Symlink .vimrc
+  file:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    state: link
+  loop:
+    - {src: "{{ vim_root }}/vimrc", dest: "{{ vim_path }}"}
+    - {src: "{{ vim_root }}/vim", dest: "{{vim_directory_path}}"}
+  
+- name: "include vim direcotry in {{ zsh_setting_path }}"
+  lineinfile: 
+    dest: "{{ zsh_setting_path }}"
+    regexp: '^export VIM_HOME'
+    line: 'export VIM_HOME="$(realpath {{vim_directory_path}})"'
+    state: present
+    create: yes
+
+- name: Clone vundle
+  git:
+    repo: "https://github.com/VundleVim/Vundle.vim.git"
+    dest: "{{ vim_directory_path }}/bundle/Vundle.vim"
+    version: master
+
+- name: install plugins
+  shell: vim +PluginInstall +qall

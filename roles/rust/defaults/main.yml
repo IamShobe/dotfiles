@@ -1,0 +1,7 @@
+rust_packages:
+    - bat
+    - du-dust
+    - exa
+    - fd-find
+    - ripgrep
+    - tealdeer

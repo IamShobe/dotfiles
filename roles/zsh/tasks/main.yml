@@ -1,0 +1,46 @@
+- name: Clone zsh plugins
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ zsh_plugin_root }}/{{ item.name }}"
+    version: master
+  loop: "{{ zsh_plugins }}"
+
+- name: Install zsh
+  apt: name=zsh state=present
+  become: yes
+  become_user: root
+  become_method: sudo
+
+- name: Symlink .zshrc
+  file:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+    state: link
+  loop:
+    - {src: "{{ zsh_root }}/zshrc", dest: "{{ zsh_setting_path }}"}
+    - {src: "{{ zsh_root }}/zshrc.d", dest: "{{zsh_directory}}"}
+    - {src: "{{ zsh_root }}/zprofile", dest: "{{dotfiles_user_home}}/.zprofile"}
+
+- name: change user shell to zsh 
+  become: yes
+  user:
+    name: "{{ user }}"
+    shell: /bin/zsh
+  
+- name: "Source zsh direcotry in {{ zsh_setting_path }}"
+  lineinfile: 
+    dest: "{{ zsh_setting_path }}"
+    regexp: '^export ZSH_DIR'
+    line: 'export ZSH_DIR="$(realpath {{zsh_directory}})"'
+    state: present
+    create: yes
+
+- name: "Load zsh plugins in {{ zsh_setting_path }}"
+  lineinfile: 
+    insertafter: "PLUGINS go here$"
+    dest: "{{ zsh_setting_path }}"
+    regexp: '\/{{item.to_source}}$'
+    line: "[ -f ${ZSH_DIR}/plugins/{{ item.name }}/{{item.to_source}} ] && source ${ZSH_DIR}/plugins/{{ item.name }}/{{item.to_source}}"
+    state: present
+    create: yes
+  loop: "{{zsh_plugins}}"
