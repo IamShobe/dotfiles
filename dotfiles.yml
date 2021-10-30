@@ -1,8 +1,8 @@
 - name: Set up local workstation
   hosts: local
   roles:
-    - role: apt
-      tags: ['apt', 'zsh', 'fzf', 'docker', 'pyenv', 'nvm', 'vim', 'tmux', 'rust']
+    - role: packages
+      tags: ['packages', 'zsh', 'fzf', 'docker', 'pyenv', 'nvm', 'vim', 'tmux', 'rust']
     - role: zsh
       tags: ['zsh']
     - role: fzf

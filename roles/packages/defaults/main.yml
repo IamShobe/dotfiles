@@ -1,5 +1,5 @@
-apt_package_upgrade: yes
-apt_packages:
+package_upgrade: yes
+packages:
   - ansible
   - make
   - build-essential
