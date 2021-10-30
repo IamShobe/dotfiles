@@ -19,7 +19,9 @@ set smarttab
 :set undofile
 :set undodir=$VIM_HOME/undodir/
 
-source $VIM_HOME/airline.vim
+if exists('g:airline_symbols')
+    source $VIM_HOME/airline.vim
+endif
 source $VIM_HOME/autocomplete.vim
 let g:gitgutter_preview_win_floating = 1
 let g:gitgutter_highlight_linenrs = 1
