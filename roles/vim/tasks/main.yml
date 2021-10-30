@@ -28,4 +28,7 @@
     version: master
 
 - name: install plugins
-  shell: . "{{ zsh_setting_path }}" && vim +PluginInstall +qall
+  shell: vim +PluginInstall +qall
+  environment:
+      VIM_HOME: "{{ vim_directory_path | expanduser }}"
+
