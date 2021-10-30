@@ -27,10 +27,3 @@
     creates: "{{ pyenv_path }}/versions/{{ item }}/bin/python"
   with_items: "{{ pyenv_python_versions }}"
 
-- name: Set pyenv global
-  shell: ". {{ pyenv_path }}/.pyenvrc && pyenv global {{ pyenv_global | join(' ') }} && pyenv rehash"
-  when: pyenv_global is defined
-
-- name: Install ansible
-  pip:
-    name: ansible=={{ pip_ansible_version }}
