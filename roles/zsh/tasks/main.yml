@@ -6,7 +6,7 @@
   loop: "{{ zsh_plugins }}"
 
 - name: Install zsh
-  apt: name=zsh state=present
+  package: name=zsh state=present
   become: yes
   become_user: root
   become_method: sudo

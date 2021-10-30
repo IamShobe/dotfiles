@@ -9,8 +9,8 @@
     state: present
 
 - name: Update apt and install docker-ce
-  apt: 
-    pkg:
+  package: 
+    name:
         - docker-ce
         - docker-ce-cli
         - containerd.io
@@ -23,7 +23,7 @@
     state: present
 
 - name: Add the to docker group 
-  ansible.builtin.user:
+  user:
     name: "{{ user }}"
     groups: docker 
     append: yes

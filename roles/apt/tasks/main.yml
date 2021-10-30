@@ -1,21 +1,21 @@
 - name: Upgrade apt
-  apt: upgrade=yes
+  package: upgrade=yes
   when: apt_package_upgrade
   become: yes
   become_user: root
   become_method: sudo
 
 - name: Install apt packages
-  apt:
-    pkg: "{{ apt_packages }}"
+  package:
+    name: "{{ apt_packages }}"
     update_cache: yes
   become: yes
   become_user: root
   become_method: sudo
 
 - name: Remove apt packages
-  apt:
-    pkg: "{{ apt_remove_packages }}"
+  package:
+    name: "{{ apt_remove_packages }}"
     update_cache: yes
     state: absent
   become: yes
