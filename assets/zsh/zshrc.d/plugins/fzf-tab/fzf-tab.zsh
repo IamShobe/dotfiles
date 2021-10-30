@@ -45,15 +45,15 @@
   local key expanded __tmp_value=$'<\0>' # placeholder
   for key in $keys; do
     expanded=${(P)key}
-    if [[ $expanded ]]; then
+    if [[ -n $expanded ]]; then
       __tmp_value+=$'\0'$key$'\0'$expanded
     fi
   done
-  if [[ $expl ]]; then
+  if [[ -n $expl ]]; then
     # store group index
     __tmp_value+=$'\0group\0'$_ftb_groups[(ie)$expl]
   fi
-  if [[ $isfile ]]; then
+  if [[ -n $isfile ]]; then
     # NOTE: need a extra ${} here or ~ expansion won't work
     __tmp_value+=$'\0realdir\0'${${(Qe)~${:-$IPREFIX$hpre}}}
   fi
@@ -96,10 +96,11 @@
   local -a _ftb_compcap
   local -Ua _ftb_groups
   local choice choices _ftb_curcontext continuous_trigger print_query accept_line bs=$'\2' nul=$'\0'
+  local ret=0
 
   # must run with user options; don't move `emulate -L zsh` above this line
   (( $+builtins[fzf-tab-compcap-generate] )) && fzf-tab-compcap-generate -i
-  COLUMNS=500 _ftb__main_complete "$@"
+  COLUMNS=500 _ftb__main_complete "$@" || ret=$?
   (( $+builtins[fzf-tab-compcap-generate] )) && fzf-tab-compcap-generate -o
 
   emulate -L zsh -o extended_glob
@@ -108,7 +109,7 @@
   -ftb-generate-complist # sets `_ftb_complist`
 
   case $#_ftb_complist in
-    0) return;;
+    0) return 1;;
     # NOTE: won't trigger continuous completion
     1) choices=("EXPECT_KEY" "${_ftb_compcap[1]%$bs*}");;
     *)
@@ -119,6 +120,7 @@
       -ftb-zstyle -s accept-line accept_line
 
       choices=("${(@f)"$(builtin print -rl -- $_ftb_headers $_ftb_complist | -ftb-fzf)"}")
+      ret=$?
       # choices=(query_string expect_key returned_word)
 
       # insert query string directly
@@ -136,7 +138,7 @@
             compstate[insert]='2'
             [[ $RBUFFER == ' '* ]] || compstate[insert]+=' '
         fi
-        return
+        return $ret
       fi
       choices[1]=()
 
@@ -146,11 +148,11 @@
       ;;
   esac
 
-  if [[ $choices[1] && $choices[1] == $continuous_trigger ]]; then
+  if [[ -n $choices[1] && $choices[1] == $continuous_trigger ]]; then
     typeset -gi _ftb_continue=1
   fi
 
-  if [[ $choices[1] && $choices[1] == $accept_line ]]; then
+  if [[ -n $choices[1] && $choices[1] == $accept_line ]]; then
     typeset -gi _ftb_accept=1
   fi
   choices[1]=()
@@ -171,6 +173,7 @@
   elif (( $#choices > 1 )); then
     compstate[insert]='all'
   fi
+  return $ret
 }
 
 fzf-tab-debug() {
@@ -195,14 +198,16 @@ fzf-tab-debug() {
 
 fzf-tab-complete() {
   # this name must be ugly to avoid clashes
-  local -i _ftb_continue=1 _ftb_accept=0
+  local -i _ftb_continue=1 _ftb_accept=0 ret=0
   # hide the cursor until finishing completion, so that users won't see cursor up and down
-  echoti civis >/dev/tty
+  # NOTE: MacOS Terminal doesn't support civis & cnorm
+  echoti civis >/dev/tty 2>/dev/null
   while (( _ftb_continue )); do
     _ftb_continue=0
     local IN_FZF_TAB=1
     {
       zle .fzf-tab-orig-$_ftb_orig_widget
+      ret=$?
     } always {
       IN_FZF_TAB=0
     }
@@ -213,9 +218,10 @@ fzf-tab-complete() {
       zle fzf-tab-dummy
     fi
   done
-  echoti cnorm >/dev/tty
+  echoti cnorm >/dev/tty 2>/dev/null
   zle .redisplay
   (( _ftb_accept )) && zle .accept-line
+  return $ret
 }
 
 # this function does nothing, it is used to be wrapped by other plugins like f-sy-h.
@@ -328,6 +334,7 @@ build-fzf-tab-module() {
 }
 
 zmodload zsh/zutil
+zmodload zsh/mapfile
 zmodload -F zsh/stat b:zstat
 
 0="${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}"

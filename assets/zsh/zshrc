@@ -54,11 +54,12 @@ for file (${ZSH_DIR}/*.zsh(N)); do
 done
 
 
-source $ZSH_DIR/plugins/zsh-autosuggestions.zsh
 bindkey '^ ' autosuggest-accept
 
 # source $ZSH_DIR/plugins/fzf-zsh-completion.sh
 source $ZSH_DIR/plugins/fzf-tab/fzf-tab.plugin.zsh
+
+source $ZSH_DIR/plugins/zsh-autosuggestions.zsh
 
 source $ZSH_DIR/plugins/per_directory_history.zsh
 

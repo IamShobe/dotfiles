@@ -22,11 +22,12 @@ if (( $+builtins[fzf-tab-candidates-generate] )); then
 else
   local -A namecolors=(${(@s:=:)${(@s.:.)list_colors}:#[[:alpha:]][[:alpha:]]=*})
   local -A modecolors=(${(@Ms:=:)${(@s.:.)list_colors}:#[[:alpha:]][[:alpha:]]=*})
+  (( $#namecolors == 0 && $#modecolors == 0 )) && list_colors=()
 fi
 
 if (( $#_ftb_groups == 1 )); then
   -ftb-zstyle -m single-group prefix || prefix=''
-  -ftb-zstyle -m single-group color || group_colors=($default_color)
+  -ftb-zstyle -m single-group color || group_colors=("$default_color")
 fi
 
 if (( $+builtins[fzf-tab-candidates-generate] )); then
@@ -40,28 +41,19 @@ else
     dsuf='' dpre=''
     if (( $+v[realdir] )); then
       filepath=$v[realdir]${(Q)v[word]}
-      if (( $#list_colors && $+builtins[fzf-tab-colorize] )); then
-        fzf-tab-colorize $filepath 2>/dev/null
-        dpre=$reply[2]$reply[1] dsuf=$reply[2]$reply[3]
-        if [[ $reply[4] ]]; then
-          dsuf+=" -> $reply[4]"
-        fi
-        [[ $dpre ]] && colorful=1
-      else
-        if [[ -d $filepath ]]; then
-          dsuf=/
-        fi
-        # add color and resolve symlink if have list-colors
-        # detail: http://zsh.sourceforge.net/Doc/Release/Zsh-Modules.html#The-zsh_002fcomplist-Module
-        if (( $#list_colors )) && [[ -a $filepath || -L $filepath ]]; then
-          -ftb-colorize $filepath
-          colorful=1
-        elif [[ -L $filepath ]]; then
-          dsuf=@
-        fi
-        if [[ $options[list_types] == off ]]; then
-          dsuf=''
-        fi
+      if [[ -d $filepath ]]; then
+        dsuf=/
+      fi
+      # add color and resolve symlink if have list-colors
+      # detail: http://zsh.sourceforge.net/Doc/Release/Zsh-Modules.html#The-zsh_002fcomplist-Module
+      if (( $#list_colors )) && [[ -a $filepath || -L $filepath ]]; then
+        -ftb-colorize $filepath
+        colorful=1
+      elif [[ -L $filepath ]]; then
+        dsuf=@
+      fi
+      if [[ $options[list_types] == off ]]; then
+        dsuf=''
       fi
     fi
 
@@ -108,9 +100,13 @@ fi
 typeset -gUa _ftb_complist=("${(@)tcandidates//[0-9]#$bs}")
 
 # hide needless group
-if [[ $show_group == brief && -n ${_ftb_groups[@]} ]]; then
-  local i indexs=({1..$#_ftb_groups})
-  for i in ${indexs:|duplicate_groups}; do
+if (( $#_ftb_groups )); then
+  local i to_hide indexs=({1..$#_ftb_groups})
+  case $show_group in
+    brief) to_hide=(${indexs:|duplicate_groups}) ;;
+    none) to_hide=($indexs) ;;
+  esac
+  for i in $to_hide; do
     # NOTE: _ftb_groups is unique array
     _ftb_groups[i]="__hide__$i"
   done
