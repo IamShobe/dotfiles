@@ -13,7 +13,7 @@
     - {src: "{{ vim_root }}/vimrc", dest: "{{ vim_path }}"}
     - {src: "{{ vim_root }}/vim", dest: "{{vim_directory_path}}"}
   
-- name: "include vim direcotry in {{ zsh_setting_path }}"
+- name: "include vim directory in {{ zsh_setting_path }}"
   lineinfile: 
     dest: "{{ zsh_setting_path }}"
     regexp: '^export VIM_HOME'

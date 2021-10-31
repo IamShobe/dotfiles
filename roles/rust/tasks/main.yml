@@ -11,5 +11,5 @@
     creates: "{{dotfiles_user_home | expanduser}}/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc"
 
 - name: install rust requirements
-  shell:
+  shell: |
    . {{dotfiles_user_home | expanduser}}/.cargo/env && cargo install {{ rust_packages | join(' ') }}
