@@ -77,7 +77,5 @@ source $VIM_HOME/shortcuts.vim
 let g:ycm_confirm_extra_conf = 0
 let g:loaded_youcompleteme = 1
 
-if has('nvim') && exists(':CocCommand')
-    source $VIM_HOME/coc_config.vim
-endif 
+autocmd VimEnter * if has('nvim') && exists(':CocCommand') | source $VIM_HOME/coc_config.vim | endif 
 
