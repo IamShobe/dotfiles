@@ -14,14 +14,25 @@ set softtabstop=4
 set shiftwidth=4   " using shift+> will move given value amount spaces
 set expandtab      " entering tab is translated to space
 set smarttab 
+set backspace=indent,eol,start
 
-:set directory=$VIM_HOME/swapfiles/
-:set undofile
-:set undodir=$VIM_HOME/undodir/
-
-if exists('g:airline_symbols')
-    source $VIM_HOME/airline.vim
+if !isdirectory($VIM_HOME."/swapfiles/")
+    call mkdir($VIM_HOME."/swapfiles/", "", 0700)
 endif
+
+set directory=$VIM_HOME/swapfiles/
+
+if !isdirectory($VIM_HOME."/undodir/")
+    call mkdir($VIM_HOME."/undodir/", "", 0700)
+endif
+set undodir=$VIM_HOME/undodir/
+set undofile
+
+if !exists('g:airline_symbols')
+    let g:airline_symbols = {} 
+endif
+ 
+source $VIM_HOME/airline.vim
 source $VIM_HOME/autocomplete.vim
 let g:gitgutter_preview_win_floating = 1
 let g:gitgutter_highlight_linenrs = 1

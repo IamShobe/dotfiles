@@ -1,6 +1,10 @@
 set nocompatible
 filetype off
 
+if !isdirectory($VIM_HOME)
+    echo "VIM_HOME is not configured! exiting!"
+    finish
+endif
 set rtp+=$VIM_HOME/bundle/Vundle.vim
 call vundle#begin()
 
