@@ -1,6 +1,6 @@
 - name: Install vim
   package: name=vim state=present
-  become: yes
+  become: '{{ansible_distribution != "MacOSX"}}'
   become_user: root
   become_method: sudo
 
@@ -32,3 +32,15 @@
   environment:
       VIM_HOME: "{{ vim_directory_path | expanduser }}"
 
+- name: Install cmake
+  package: name=cmake state=present
+  become: '{{ansible_distribution != "MacOSX"}}'
+  become_user: root
+  become_method: sudo
+
+- name: Compile you complete me
+  shell: python install.py --all 
+  args:
+    executable: /bin/bash
+    chdir: "{{ vim_root }}/vim/bundle/youcompleteme/"
+    # creates: "{{ vim_root }}/vim/bundle/youcompleteme/"

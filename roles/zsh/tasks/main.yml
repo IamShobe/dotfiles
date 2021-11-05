@@ -7,7 +7,7 @@
 
 - name: Install zsh
   package: name=zsh state=present
-  become: yes
+  become: '{{ansible_distribution != "MacOSX"}}'
   become_user: root
   become_method: sudo
 
@@ -26,6 +26,7 @@
   user:
     name: "{{ user }}"
     shell: /bin/zsh
+  when: ansible_distribution != 'MacOSX'
   
 - name: "Source zsh direcotry in {{ zsh_setting_path }}"
   lineinfile: 

@@ -3,12 +3,14 @@
   roles:
     - role: packages
       tags: ['packages', 'zsh', 'fzf', 'docker', 'pyenv', 'nvm', 'vim', 'tmux', 'rust']
+      when: ansible_distribution != "MacOSX"
     - role: zsh
       tags: ['zsh']
     - role: fzf
       tags: ['fzf']
     - role: docker
       tags: ['docker']
+      when: ansible_distribution != "MacOSX"
     - role: pyenv
       tags: ['pyenv']
     - role: 'nvm'

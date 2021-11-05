@@ -8,6 +8,23 @@
 #_custom_zsh_config_base="${${(%):-%x}:A:h}"
 #
 
+unameOut="$(uname -s)"
+case "${unameOut}" in
+    Linux*)     machine=Linux;;
+    Darwin*)    machine=Mac;;
+    CYGWIN*)    machine=Cygwin;;
+    MINGW*)     machine=MinGw;;
+    *)          machine="UNKNOWN:${unameOut}"
+esac
+
+if [ $machine = 'Mac' ]; then
+    export CFLAGS="-Wno-error=implicit-function-declaration"
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
+    if [ -x "$(command -v xcrun)" ]; then
+        export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+    fi
+fi
 
 setopt histignorealldups sharehistory
 # Use emacs keybindings even if our EDITOR is set to vi

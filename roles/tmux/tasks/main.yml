@@ -1,6 +1,6 @@
 - name: Install tmux
   package: name=tmux state=present
-  become: yes
+  become: '{{ansible_distribution != "MacOSX"}}'
   become_user: root
   become_method: sudo
 
