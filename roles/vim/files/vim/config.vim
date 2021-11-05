@@ -16,17 +16,26 @@ set expandtab      " entering tab is translated to space
 set smarttab 
 set backspace=indent,eol,start
 
-if !isdirectory($VIM_HOME."/swapfiles/")
-    call mkdir($VIM_HOME."/swapfiles/", "", 0700)
-endif
-
-set directory=$VIM_HOME/swapfiles/
-
-if !isdirectory($VIM_HOME."/undodir/")
-    call mkdir($VIM_HOME."/undodir/", "", 0700)
-endif
-set undodir=$VIM_HOME/undodir/
-set undofile
+function! s:addSwapfiles(path)
+    if !isdirectory(a:path)
+        call mkdir(a:path, "", 0700)
+    endif
+    let &directory=a:path
+endfunction
+function! s:addUndodir(path)
+    if !isdirectory(a:path)
+        call mkdir(a:path, "", 0700)
+    endif
+    let &undodir=a:path
+    set undofile
+endfunction
+if has('nvim')
+  call s:addSwapfiles($VIM_HOME."/nswapfiles/")
+  call s:addUndodir($VIM_HOME."/nundodir/")
+else
+  call s:addSwapfiles($VIM_HOME."/swapfiles/")
+  call s:addUndodir($VIM_HOME."/undodir/")
+endif 
 
 if !exists('g:airline_symbols')
     let g:airline_symbols = {} 
@@ -66,6 +75,9 @@ syntax enable
 source $VIM_HOME/shortcuts.vim
 
 let g:ycm_confirm_extra_conf = 0
+let g:loaded_youcompleteme = 1
 
-
+if has('nvim') && exists(':CocCommand')
+    source $VIM_HOME/coc_config.vim
+endif 
 

@@ -17,6 +17,12 @@ else
     alias ll='ls -alF'
 fi
 
+if command -v nvim 2>&1 >/dev/null; then
+   ovim=`which vim`
+   alias ovim=$ovim
+   alias vim='nvim'
+fi
+
 
 #alias dmesg='dmesg --color --reltime'
 

@@ -1,5 +1,6 @@
 .idea/
 .vscode/
 roles/vim/files/vim/bundle/
+roles/vim/files/vim/plugged/
 roles/zsh/files/zshrc.d/plugins/
 

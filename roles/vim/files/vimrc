@@ -5,29 +5,33 @@ if !isdirectory($VIM_HOME)
     echo "VIM_HOME is not configured! exiting!"
     finish
 endif
-set rtp+=$VIM_HOME/bundle/Vundle.vim
-call vundle#begin()
 
-" required
-Plugin 'VundleVim/Vundle.vim'
+" Specify a directory for plugins
+" - For Neovim: stdpath('data') . '/plugged'
+" - Avoid using standard Vim directory names like 'plugin'
+call plug#begin('~/.vim/plugged')
 
-Plugin 'vim-airline/vim-airline'
-Plugin 'scrooloose/nerdtree'
-Plugin 'tpope/vim-surround'
-Plugin 'scrooloose/nerdcommenter'
-Plugin 'altercation/vim-colors-solarized'
-Plugin 'vim-airline/vim-airline-themes'
-Plugin 'jeetsukumaran/vim-buffergator'
-Plugin 'godlygeek/tabular'
-Plugin 'airblade/vim-gitgutter'
-Plugin 'tpope/vim-fugitive'
-Plugin 'tomasr/molokai'
-Plugin 'vim-python/python-syntax'
+" Make sure you use single quotes
+Plug 'VundleVim/Vundle.vim'
 
-Plugin 'valloric/youcompleteme'
+Plug 'vim-airline/vim-airline'
+Plug 'scrooloose/nerdtree'
+Plug 'tpope/vim-surround'
+Plug 'scrooloose/nerdcommenter'
+Plug 'altercation/vim-colors-solarized'
+Plug 'vim-airline/vim-airline-themes'
+Plug 'jeetsukumaran/vim-buffergator'
+Plug 'godlygeek/tabular'
+Plug 'airblade/vim-gitgutter'
+Plug 'tpope/vim-fugitive'
+Plug 'tomasr/molokai'
+Plug 'vim-python/python-syntax'
+if has('nvim')
+ Plug 'neoclide/coc.nvim', {'branch': 'release'}
+endif
 
-
-call vundle#end()
+" Initialize plugin system
+call plug#end()
 filetype plugin indent on
 
 source $VIM_HOME/config.vim
