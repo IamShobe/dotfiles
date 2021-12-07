@@ -6,9 +6,9 @@ autoload -Uz colors && colors
 
 PROMPT=''
 PROMPT+='$(virtualenv_prompt_info)'  # venv
-PROMPT+='%(!.$fg[red].$fg[green])%n'  # user
-PROMPT+='$fg[yellow]@$fg[blue]%M '  # domain
-PROMPT+='$fg[magenta]%(6~|%-1~/…/%4~|%5~)%f' # path
+PROMPT+='%(!.%{$fg[red]%}.%{$fg[green]%})%n'  # user
+PROMPT+='%{$fg[yellow]%}@%{$fg[blue]%}%M '  # domain
+PROMPT+='%{$fg[magenta]%}%(6~|%-1~/…/%4~|%5~)%f' # path
 # PROMPT+='$fg[magenta]%~%f' # path full
 PROMPT+=$'\n'
 PROMPT+='$GITSTATUS_PROMPT'
