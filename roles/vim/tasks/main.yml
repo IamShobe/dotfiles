@@ -1,19 +1,17 @@
-- name: Install vim and neovim - mac
-  package: 
-    name:
-      - vim
-      - nvim
+- name: Add neovim Repository
+  apt_repository:
+    repo: ppa:neovim-ppa/unstable
     state: present
-  when: '{{ansible_distribution == "MacOSX"}}'
-
-- name: Install vim and neovim - ubuntu
-  package: 
-    name:
-      - vim
-      - neovim
-    state: present
+  become: yes
   when: '{{ansible_distribution != "MacOSX"}}'
-  become: yes 
+
+- name: Install vim and neovim
+  package: 
+    name:
+      - vim
+      - '{{"neovim" if ansible_distribution != "MacOSX" else "nvim"}}'
+    state: present
+  become: '{{ansible_distribution != "MacOSX"}}' 
   become_user: root
   become_method: sudo
 
