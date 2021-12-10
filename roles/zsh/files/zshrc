@@ -39,6 +39,11 @@ export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 # bind +- key into ~ as well (OSX)
 hidutil property --set '{"UserKeyMapping": [{"HIDKeyboardModifierMappingSrc": 0x700000064, "HIDKeyboardModifierMappingDst": 0x700000035}, {"HIDKeyboardModifierMappingSrc": 0x700000035, "HIDKeyboardModifierMappingDst": 0x700000035}]}'  >/dev/null 2>&1
 export ZSH_DIR="$(realpath ~/.zshrc.d)"
+fpath=(
+    ~/.zfuncs
+    ~/.zfuncs/**/*~*/(CVS)#(/N)
+    "${fpath[@]}"
+)
 
 # Keep 10000 lines of history within the shell and save it to ~/.zsh_history:
 HISTSIZE=10000
