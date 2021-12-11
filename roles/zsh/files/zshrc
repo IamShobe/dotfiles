@@ -78,6 +78,7 @@ source $ZSH_DIR/completions.zsh
 
 if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 # PLUGINS go here
+[ -f $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh ] && source $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh
 [ -f $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh ] && source $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh
 [ -f $ZSH_DIR/plugins/zsh-histdb/sqlite-history.zsh ] && source $ZSH_DIR/plugins/zsh-histdb/sqlite-history.zsh
 [ -f $ZSH_DIR/plugins/zsh-histdb/histdb-interactive.zsh ] && source $ZSH_DIR/plugins/zsh-histdb/histdb-interactive.zsh
@@ -114,6 +115,10 @@ source $ZSH_DIR/aliases.zsh
 source $ZSH_DIR/prompt.zsh
 
 autoload -Uz add-zsh-hook
+autoload -U edit-command-line
+zle -N edit-command-line
+bindkey '^xe' edit-command-line
+bindkey '^x^e' edit-command-line
 
 
 bindkey '^ ' autosuggest-accept

@@ -12,9 +12,12 @@ PROMPT+='%{$fg[magenta]%}%(6~|%-1~/…/%4~|%5~)%f' # path
 # PROMPT+='$fg[magenta]%~%f' # path full
 PROMPT+=$'\n'
 PROMPT+='$GITSTATUS_PROMPT'
+#PROMPT+=$'\n'
 #PROMPT+='$(gitprompt)'  # git
 PROMPT+='%(?..%K{9}%F{15})%(!.#.%%)%k%f ' # endsign
 
+KUBE_PS1_SYMBOL_ENABLE=false
+RPROMPT='$(kube_ps1)'
 # RPROMPT='$GITSTATUS_PROMPT'
 
 PS2='%F{14}%_%F{15}>%f '
