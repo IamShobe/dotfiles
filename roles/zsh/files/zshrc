@@ -70,23 +70,49 @@ zle -N down-line-or-beginning-search
 [[ -n "${key[Up]}"   ]] && bindkey -- "${key[Up]}"   up-line-or-beginning-search
 [[ -n "${key[Down]}" ]] && bindkey -- "${key[Down]}" down-line-or-beginning-search
 
+HISTDB_TABULATE_CMD=(sed -e $'s/\x1f/\t/g')
+HISTDB_FZF_DEFAULT_MODE=2
 
 source $ZSH_DIR/venv.zsh
 source $ZSH_DIR/completions.zsh
 
+if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 # PLUGINS go here
+[ -f $ZSH_DIR/plugins/zsh-histdb/sqlite-history.zsh ] && source $ZSH_DIR/plugins/zsh-histdb/sqlite-history.zsh
+[ -f $ZSH_DIR/plugins/zsh-histdb/histdb-interactive.zsh ] && source $ZSH_DIR/plugins/zsh-histdb/histdb-interactive.zsh
+[ -f $ZSH_DIR/plugins/zsh-histdb-fzf/fzf-histdb.zsh ] && source $ZSH_DIR/plugins/zsh-histdb-fzf/fzf-histdb.zsh
 [ -f $ZSH_DIR/plugins/gitstatus/gitstatus.prompt.zsh ] && source $ZSH_DIR/plugins/gitstatus/gitstatus.prompt.zsh
 [ -f $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh ] && source $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
 [ -f $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && source $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
-[ -f $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh ] && source $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh
 # source $ZSH_DIR/plugins/fzf-zsh-completion.sh
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
 # PLUGINS END
+export ZSH_PLUGINS_LOADED=1  # dont reload plugins on shell "reload" alias
+fi
+_BORING_COMMANDS=("^ ", "^histdb ")
+
+# history auto suggest:
+_zsh_autosuggest_strategy_histdb_top() {
+    local query="
+        select commands.argv from history
+        left join commands on history.command_id = commands.rowid
+        left join places on history.place_id = places.rowid
+        where commands.argv LIKE '$(sql_escape $1)%'
+        group by commands.argv, places.dir
+        order by places.dir != '$(sql_escape $PWD)', count(*) desc
+        limit 1
+    "
+    suggestion=$(_histdb_query "$query")
+}
+
+ZSH_AUTOSUGGEST_STRATEGY=histdb_top
 
 source $ZSH_DIR/opts.zsh
 source $ZSH_DIR/binds.zsh
 source $ZSH_DIR/aliases.zsh
 source $ZSH_DIR/prompt.zsh
+
+autoload -Uz add-zsh-hook
 
 
 bindkey '^ ' autosuggest-accept
@@ -131,6 +157,9 @@ export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d
 [ -f ~/.nvm/.nvmrc ] && source ~/.nvm/.nvmrc
 export VIM_HOME="$(realpath ~/.vim)"
 export PATH="$HOME/.local/bin:$PATH"
+# bindkey '^r' _histdb-isearch  # normal histdb search
+bindkey '^r' histdb-fzf-widget  # fzf histdb search 
+
 
 typeset -U PATH path
 

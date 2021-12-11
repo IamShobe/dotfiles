@@ -2,7 +2,7 @@
   git:
     repo: "{{ item.repo }}"
     dest: "{{ zsh_plugin_root }}/{{ item.name }}"
-    version: master
+    version: "{{item.version | default('master')}}"
   loop: "{{ zsh_plugins }}"
 
 - name: Install zsh
@@ -40,8 +40,10 @@
   lineinfile: 
     insertafter: "PLUGINS go here$"
     dest: "{{ zsh_setting_path }}"
-    regexp: '\/{{item.to_source}}$'
-    line: "[ -f ${ZSH_DIR}/plugins/{{ item.name }}/{{item.to_source}} ] && source ${ZSH_DIR}/plugins/{{ item.name }}/{{item.to_source}}"
+    regexp: '\/{{item[1]}}$'
+    line: "[ -f $ZSH_DIR/plugins/{{ item[0].name }}/{{item[1]}} ] && source $ZSH_DIR/plugins/{{ item[0].name }}/{{item[1]}}"
     state: present
     create: yes
-  loop: "{{zsh_plugins}}"
+  with_subelements: 
+    - "{{zsh_plugins}}"
+    - to_source
