@@ -55,7 +55,7 @@ HISTFILE=~/.zsh_history
 # change default ls colors
 if command -v dircolors &> /dev/null
 then
-    eval `dircolors -b ${ZSH_DIR}/ls_colors`
+    eval `dircolors -b $ZSH_DIR/ls_colors`
 else
     export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
 fi
@@ -71,29 +71,29 @@ zle -N down-line-or-beginning-search
 [[ -n "${key[Down]}" ]] && bindkey -- "${key[Down]}" down-line-or-beginning-search
 
 
-source ${ZSH_DIR}/venv.zsh
-source ${ZSH_DIR}/completions.zsh
+source $ZSH_DIR/venv.zsh
+source $ZSH_DIR/completions.zsh
 
 # PLUGINS go here
-[ -f ${ZSH_DIR}/plugins/gitstatus/gitstatus.prompt.zsh ] && source ${ZSH_DIR}/plugins/gitstatus/gitstatus.prompt.zsh
-[ -f ${ZSH_DIR}/plugins/fzf-tab/fzf-tab.zsh ] && source ${ZSH_DIR}/plugins/fzf-tab/fzf-tab.zsh
-[ -f ${ZSH_DIR}/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && source ${ZSH_DIR}/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
-[ -f ${ZSH_DIR}/plugins/per-directory-history/per-directory-history.zsh ] && source ${ZSH_DIR}/plugins/per-directory-history/per-directory-history.zsh
+[ -f $ZSH_DIR/plugins/gitstatus/gitstatus.prompt.zsh ] && source $ZSH_DIR/plugins/gitstatus/gitstatus.prompt.zsh
+[ -f $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh ] && source $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
+[ -f $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && source $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
+[ -f $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh ] && source $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh
 # source $ZSH_DIR/plugins/fzf-zsh-completion.sh
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
 # PLUGINS END
 
-source ${ZSH_DIR}/opts.zsh
-source ${ZSH_DIR}/binds.zsh
-source ${ZSH_DIR}/aliases.zsh
-source ${ZSH_DIR}/prompt.zsh
+source $ZSH_DIR/opts.zsh
+source $ZSH_DIR/binds.zsh
+source $ZSH_DIR/aliases.zsh
+source $ZSH_DIR/prompt.zsh
 
 
 bindkey '^ ' autosuggest-accept
 
 umask 022
 
-[ -f ${HOME}/.aliases ] && source ${HOME}/.aliases
+[ -f $HOME/.aliases ] && source $HOME/.aliases
 
 _TITLE ()
 {
