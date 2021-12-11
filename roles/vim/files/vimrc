@@ -26,6 +26,7 @@ Plug 'airblade/vim-gitgutter'
 Plug 'tpope/vim-fugitive'
 Plug 'tomasr/molokai'
 Plug 'vim-python/python-syntax'
+Plug 'ypcrts/securemodelines'
 if has('nvim')
  Plug 'neoclide/coc.nvim', {'branch': 'release'}
 endif

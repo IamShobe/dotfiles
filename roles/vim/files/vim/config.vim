@@ -77,5 +77,25 @@ source $VIM_HOME/shortcuts.vim
 let g:ycm_confirm_extra_conf = 0
 let g:loaded_youcompleteme = 1
 
+set secure
+let g:secure_modelines_allowed_items = [
+    \ "textwidth",       "tw",
+    \ "softtabstop",     "sts",
+    \ "tabstop",         "ts",
+    \ "shiftwidth",      "sw",
+    \ "expandtab",       "et",        "noexpandtab",    "noet",
+    \ "filetype",        "ft",
+    \ "foldmethod",      "fdm",
+    \ "formatoptions",   "fo",
+    \ "readonly",        "ro",        "noreadonly",     "noro",
+    \ "rightleft",       "rl",        "norightleft",    "norl",
+    \ "cindent",         "cin",       "nocindent",      "nocin",
+    \ "smartindent",     "si",        "nosmartindent",  "nosi",
+    \ "autoindent",      "ai",        "noautoindent",   "noai",
+    \ "syntax",
+    \ "spell",           "nospell",
+    \ "spelllang"
+    \ ]
+
 autocmd VimEnter * if has('nvim') && exists(':CocCommand') | source $VIM_HOME/coc_config.vim | endif 
 
