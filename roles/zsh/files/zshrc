@@ -130,7 +130,7 @@ fi
 export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
 [ -f ~/.nvm/.nvmrc ] && source ~/.nvm/.nvmrc
 export VIM_HOME="$(realpath ~/.vim)"
-export PATH="$HOME/.poetry/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
 typeset -U PATH path
 
