@@ -78,6 +78,7 @@ source $ZSH_DIR/completions.zsh
 
 if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 # PLUGINS go here
+[ -f $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh ] && source $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh
 [ -f $ZSH_DIR/plugins/zsh-histdb/sqlite-history.zsh ] && source $ZSH_DIR/plugins/zsh-histdb/sqlite-history.zsh
 [ -f $ZSH_DIR/plugins/zsh-histdb/histdb-interactive.zsh ] && source $ZSH_DIR/plugins/zsh-histdb/histdb-interactive.zsh
 [ -f $ZSH_DIR/plugins/zsh-histdb-fzf/fzf-histdb.zsh ] && source $ZSH_DIR/plugins/zsh-histdb-fzf/fzf-histdb.zsh

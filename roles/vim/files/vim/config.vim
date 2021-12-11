@@ -41,8 +41,8 @@ if !exists('g:airline_symbols')
     let g:airline_symbols = {} 
 endif
  
-source $VIM_HOME/airline.vim
-source $VIM_HOME/autocomplete.vim
+silent! source $VIM_HOME/airline.vim
+silent! source $VIM_HOME/autocomplete.vim
 let g:gitgutter_preview_win_floating = 1
 let g:gitgutter_highlight_linenrs = 1
 let g:gitgutter_preview_win_floating = 1
@@ -58,13 +58,7 @@ let g:NERDCommentEmptyLines = 1
 
 "let background=dark
 
-try
-  colorscheme molokai
-catch /^Vim\%((\a\+)\)\=:E185/
-
-        " deal with it
-        "
-endtry
+silent! colorscheme molokai
 
 let g:molokai_original = 1
 let g:rehash256 = 1

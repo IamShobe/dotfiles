@@ -50,7 +50,7 @@
       }
 
 - name: install plugins
-  shell: "{{item}} -E -s +PlugInstall +visual +qall"
+  shell: "{{item}} +PlugInstall +qall"
   environment:
       VIM_HOME: "{{ vim_directory_path | expanduser }}"
   loop:

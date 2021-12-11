@@ -1,0 +1,5 @@
+- name: Install Poetry
+  shell: "curl -sSL https://install.python-poetry.org | python3 -"
+  args:
+    creates: "{{dotfiles_user_home | expanduser }}/.local/bin/poetry"
+

@@ -20,7 +20,6 @@ if [ $machine = Mac ]; then
     else
         echo "brew was detected!"
     fi
-    brew install ansible
 
 elif [ $machine = Linux ]; then
     echo "Detected linux based machine!"
@@ -29,10 +28,11 @@ elif [ $machine = Linux ]; then
         exit 1
     fi
     if ! [ -x "$(command -v ansible)" ]; then
-      eval $run_as apt update
-      eval $run_as apt install ansible -y
+      eval $run_as apt-get update
     fi
 fi
+pip3 install pipx
+pipx install ansible --include-deps
 set -e
 [[ ! -e ~/.dotfiles ]] && git clone https://github.com/IamShobe/dotfiles ~/.dotfiles
 ansible-playbook -i ~/.dotfiles/hosts ~/.dotfiles/dotfiles.yml --ask-become-pass -v

@@ -13,6 +13,8 @@
       when: ansible_distribution != "MacOSX"
     - role: pyenv
       tags: ['pyenv']
+    - role: poetry
+      tags: ['poetry']
     - role: 'nvm'
       tags: ['nvm']
     - role: 'vim'

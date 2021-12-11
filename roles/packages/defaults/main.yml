@@ -1,6 +1,5 @@
 package_upgrade: yes
 packages:
-  - ansible
   - make
   - build-essential
   - libssl-dev
