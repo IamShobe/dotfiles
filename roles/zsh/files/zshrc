@@ -40,6 +40,8 @@ export MANPAGER="sh -c 'col -bx | bat -l man -p'"
 hidutil property --set '{"UserKeyMapping": [{"HIDKeyboardModifierMappingSrc": 0x700000064, "HIDKeyboardModifierMappingDst": 0x700000035}, {"HIDKeyboardModifierMappingSrc": 0x700000035, "HIDKeyboardModifierMappingDst": 0x700000035}]}'  >/dev/null 2>&1
 export ZSH_DIR="$(realpath ~/.zshrc.d)"
 fpath=(
+    ~/.zfunc
+    ~/.zfunc/**/*~*/(CVS)#(/N)
     ~/.zfuncs
     ~/.zfuncs/**/*~*/(CVS)#(/N)
     "${fpath[@]}"
