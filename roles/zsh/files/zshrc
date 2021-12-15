@@ -89,7 +89,7 @@ if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 # source $ZSH_DIR/plugins/fzf-zsh-completion.sh
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
 # PLUGINS END
-export ZSH_PLUGINS_LOADED=1  # dont reload plugins on shell "reload" alias
+ZSH_PLUGINS_LOADED=1  # dont reload plugins on shell "reload" alias
 fi
 _BORING_COMMANDS=("^ ", "^histdb ")
 
@@ -156,16 +156,19 @@ fi
 [ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
 
 
-
+export PATH="$HOME/.local/bin:$PATH"
 [ -f ~/.pyenv/.pyenvrc ] && source ~/.pyenv/.pyenvrc
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
 [ -f ~/.nvm/.nvmrc ] && source ~/.nvm/.nvmrc
 export VIM_HOME="$(realpath ~/.vim)"
-export PATH="$HOME/.local/bin:$PATH"
 # bindkey '^r' _histdb-isearch  # normal histdb search
 bindkey '^r' histdb-fzf-widget  # fzf histdb search 
 
 
 typeset -U PATH path
 
+
+autoload -Uz compinit
+zstyle ':completion:*' menu select
+fpath+=~/.zfunc
