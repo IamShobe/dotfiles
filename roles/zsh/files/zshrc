@@ -168,7 +168,3 @@ bindkey '^r' histdb-fzf-widget  # fzf histdb search
 
 typeset -U PATH path
 
-
-autoload -Uz compinit
-zstyle ':completion:*' menu select
-fpath+=~/.zfunc
