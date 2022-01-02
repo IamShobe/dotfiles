@@ -19,6 +19,7 @@ if [ $machine = Mac ]; then
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     else
         echo "brew was detected!"
+        brew install coreutils
     fi
 
 elif [ $machine = Linux ]; then
@@ -35,6 +36,7 @@ pip3 install pipx
 pipx install ansible --include-deps
 set -e
 [[ ! -e ~/.dotfiles ]] && git clone https://github.com/IamShobe/dotfiles ~/.dotfiles
+export PATH=$HOME/.local/bin:$PATH
 ansible-playbook -i ~/.dotfiles/hosts ~/.dotfiles/dotfiles.yml --ask-become-pass $@
 if command -v terminal-notifier 1>/dev/null 2>&1; then
   terminal-notifier -title "dotfiles: Bootstrap complete" -message "Successfully set up dev environment."

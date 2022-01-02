@@ -1,4 +1,4 @@
-
+[ -f /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv)"
 [ -f /root/.nvm/.nvm.sh ] && source /root/.nvm/nvm.sh
 [ -f ~/.nvm/.nvm.sh ] && source ~/.nvm/nvm.sh
 export PATH="$HOME/.local/bin:$PATH"
