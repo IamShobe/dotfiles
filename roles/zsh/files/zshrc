@@ -163,6 +163,8 @@ export PATH="$HOME/.local/bin:$PATH"
 [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 
 [ -f ~/.pyenv/.pyenvrc ] && source ~/.pyenv/.pyenvrc
+# Google cli rc file
+[ -f ~/.gcprc ] && source ~/.gcprc
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
 [ -f ~/.nvm/.nvmrc ] && source ~/.nvm/.nvmrc
