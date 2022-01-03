@@ -157,6 +157,9 @@ fi
 
 
 export PATH="$HOME/.local/bin:$PATH"
+# GOLang
+[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
+
 [ -f ~/.pyenv/.pyenvrc ] && source ~/.pyenv/.pyenvrc
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
