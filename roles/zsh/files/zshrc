@@ -157,6 +157,8 @@ fi
 
 
 export PATH="$HOME/.local/bin:$PATH"
+# kubectl krew
+[ -d "$HOME/.krew" ] && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 # GOLang
 [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 
