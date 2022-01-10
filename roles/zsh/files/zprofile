@@ -2,7 +2,7 @@
 [ -f /opt/homebrew/bin/brew ] && eval "$(/opt/homebrew/bin/brew shellenv)"
 # Node
 [ -f /root/.nvm/.nvm.sh ] && source /root/.nvm/nvm.sh
-[ -f ~/.nvm/.nvm.sh ] && source ~/.nvm/nvm.sh
+[ -f $HOME/.nvm/.nvm.sh ] && source $HOME/.nvm/nvm.sh
 # GOLang
 [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 
