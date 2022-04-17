@@ -123,6 +123,7 @@ bindkey '^x^e' edit-command-line
 
 bindkey '^ ' autosuggest-accept
 
+
 umask 022
 
 [ -f $HOME/.aliases ] && source $HOME/.aliases

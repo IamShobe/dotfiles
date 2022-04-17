@@ -4,10 +4,15 @@ SPROMPT='zsh: correct '%F{166}%R%f' to '%F{76}%r%f' [nyae]? '
 
 autoload -Uz colors && colors
 
+function middle_prompt {
+    # overrideable function
+}
+
 PROMPT=''
 PROMPT+='$(virtualenv_prompt_info)'  # venv
 PROMPT+='%(!.%{$fg[red]%}.%{$fg[green]%})%n'  # user
-PROMPT+='%{$fg[yellow]%}@%{$fg[blue]%}%M '  # domain
+PROMPT+='%{$fg[yellow]%}@%{$fg[blue]%}%M%f '  # domain
+PROMPT+='$(middle_prompt)'
 PROMPT+='%{$fg[magenta]%}%(6~|%-1~/…/%4~|%5~)%f' # path
 # PROMPT+='$fg[magenta]%~%f' # path full
 PROMPT+=$'\n'

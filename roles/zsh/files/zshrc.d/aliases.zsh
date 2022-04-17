@@ -34,9 +34,9 @@ alias edit_aliases="editor ${ZSH_DIR}/aliases.zsh"
 if command -v bat 2>&1 >/dev/null; then
     alias cat='bat'
 fi
-if command -v fd 2>&1 >/dev/null; then
-    alias find='fd'
-fi
+#if command -v fd 2>&1 >/dev/null; then
+#    alias find='fd'
+#fi
 
 if command -v tmux 2>&1 >/dev/null; then
     #alias rtmux="tmux"
