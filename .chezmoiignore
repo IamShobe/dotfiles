@@ -1,0 +1,11 @@
+README.md
+.gitignore
+
+# TODO: delete this after full migration:
+./Dockerfile
+./dotfiles.yml
+./hosts
+./roles
+./install.sh
+./Makefile
+

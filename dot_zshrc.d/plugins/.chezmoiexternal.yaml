@@ -1,0 +1,30 @@
+# zsh plugins
+zsh-auto-suggestions/:
+  type: git-repo
+  url: https://github.com/zsh-users/zsh-autosuggestions.git
+  refreshPeriod: 168h
+fzf-tab/:
+  type: git-repo
+  url: https://github.com/Aloxaf/fzf-tab.git
+  refreshPeriod: 168h
+gitstatus/:
+  type: git-repo
+  url: https://github.com/romkatv/gitstatus.git
+  refreshPeriod: 168h
+per-directory-history/:
+  type: git-repo
+  url: https://github.com/jimhester/per-directory-history.git
+  refreshPeriod: 168h
+zsh-histdb/:
+  type: git-repo
+  url: https://github.com/larkery/zsh-histdb.git
+  refreshPeriod: 168h
+zsh-histdb-fzf/:
+  type: git-repo
+  url: https://github.com/m42e/zsh-histdb-fzf.git
+  refreshPeriod: 168h
+kube-ps1/:
+  type: git-repo
+  url: https://github.com/jonmosco/kube-ps1.git
+  refreshPeriod: 168h
+
