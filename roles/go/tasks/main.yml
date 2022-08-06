@@ -9,16 +9,21 @@
   shell: |
     . {{ gvm_root }}/scripts/gvm && gvm install go{{item}} 
   args:
+    executable: /bin/zsh
     creates: "{{ gvm_root }}/gos/go{{item}}/bin/go"
+  
   loop: "{{ go_versions }}"
 
 - name: use go {{go_global_version}} globally
   shell: |
     . {{ gvm_root }}/scripts/gvm && gvm use go{{go_global_version}} --default
+  args:
+    executable: /bin/zsh
 
 - name: "install package {{ item.name }}"
   shell: |
     go install {{item.path}}@{{item.version}}
   args:
+    executable: /bin/zsh
     creates: "{{ gvm_root }}/pkgsets/go{{go_global_version}}/global/bin/{{item.name}}"
   loop: "{{ go_packages }}"
