@@ -36,9 +36,9 @@ chmod 700 $ZSH_CACHE
 
 if command -v nvim 2>&1 >/dev/null; then
     export EDITOR=nvim
-else if command -v vim 2>&1 >/dev/null; then
+elif command -v vim 2>&1 >/dev/null; then
     export EDITOR=vim
-else if command -v code 2>&1 >/dev/null; then
+elif command -v code 2>&1 >/dev/null; then
     export EDITOR=code
 fi
 
@@ -170,19 +170,17 @@ fi
 [ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
 
 
+[ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
+
 export PATH="$HOME/.local/bin:$PATH"
 # kubectl krew
 [ -d "$HOME/.krew" ] && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 # GOLang
 [[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 
-[ -f $HOME/.pyenv/.pyenvrc ] && source $HOME/.pyenv/.pyenvrc
 # Google cli rc file
 [ -f $HOME/.gcprc ] && source $HOME/.gcprc
-[ -f $HOME/.fzf.zsh ] && source $HOME/.fzf.zsh
 export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
-[ -f $HOME/.nvm/.nvmrc ] && source $HOME/.nvm/.nvmrc
-export VIM_HOME="$(realpath $HOME/.vim)"
 # bindkey '^r' _histdb-isearch  # normal histdb search
 bindkey '^r' histdb-fzf-widget  # fzf histdb search 
 

@@ -1,4 +1,5 @@
-dotfiles_user_home: "~"
+dotfiles_user_home_unexpended: "~"
+dotfiles_user_home: "{{ dotfiles_user_home_unexpended | expanduser }}"
 dotfiles_home: "{{ dotfiles_user_home }}/.dotfiles"
 
 user: "{{ ansible_user_id }}"

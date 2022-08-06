@@ -21,29 +21,29 @@
     - {src: "{{ zsh_root }}/zshrc.d", dest: "{{zsh_directory}}"}
     - {src: "{{ zsh_root }}/zprofile", dest: "{{dotfiles_user_home}}/.zprofile"}
 
-- name: change user shell to zsh 
+- name: change user shell to zsh
   become: yes
   user:
     name: "{{ user }}"
     shell: /bin/zsh
   when: ansible_distribution != 'MacOSX'
-  
-- name: "Source zsh direcotry in {{ zsh_setting_path }}"
-  lineinfile: 
+
+- name: "Source zsh directory in {{ zsh_setting_path }}"
+  lineinfile:
     dest: "{{ zsh_setting_path }}"
     regexp: '^export ZSH_DIR'
-    line: 'export ZSH_DIR="$(realpath {{zsh_directory}})"'
+    line: 'export ZSH_DIR="$(realpath {{zsh_directory_unexpended}})"'
     state: present
     create: yes
 
 - name: "Load zsh plugins in {{ zsh_setting_path }}"
-  lineinfile: 
+  lineinfile:
     insertafter: "PLUGINS go here$"
     dest: "{{ zsh_setting_path }}"
     regexp: '\/{{item[1]}}$'
     line: "[ -f $ZSH_DIR/plugins/{{ item[0].name }}/{{item[1]}} ] && source $ZSH_DIR/plugins/{{ item[0].name }}/{{item[1]}}"
     state: present
     create: yes
-  with_subelements: 
+  with_subelements:
     - "{{zsh_plugins}}"
     - to_source

@@ -6,12 +6,12 @@
   when: '{{ansible_distribution != "MacOSX"}}'
 
 - name: Install vim and neovim
-  package: 
+  package:
     name:
       - vim
       - '{{"neovim" if ansible_distribution != "MacOSX" else "nvim"}}'
     state: present
-  become: '{{ansible_distribution != "MacOSX"}}' 
+  become: '{{ansible_distribution != "MacOSX"}}'
   become_user: root
   become_method: sudo
 
@@ -24,10 +24,10 @@
     - {src: "{{ vim_root }}/vimrc", dest: "{{ vim_path }}"}
     - {src: "{{ vim_root }}/vim", dest: "{{vim_directory_path}}"}
     - {src: "{{ vim_root }}/nvim", dest: "{{ dotfiles_user_home }}/.config/nvim"}
-  
-- name: "include vim directory in {{ zsh_setting_path }}"
-  lineinfile: 
-    dest: "{{ zsh_setting_path }}"
+
+- name: "include vim directory in {{ zsh_path_binding_path }}"
+  lineinfile:
+    dest: "{{ zsh_path_binding_path }}"
     regexp: '^export VIM_HOME'
     line: 'export VIM_HOME="$(realpath {{vim_directory_path}})"'
     state: present
@@ -45,7 +45,7 @@
         creates: "{{vim_directory_path | expanduser}}/autoload/plug.vim" 
       }
     - {
-        name: neovim, 
+        name: neovim,
         command: "sh -c 'curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'",
         creates: "{{dotfiles_user_home | expanduser}}/.local/share/nvim/site/autoload/plug.vim"
       }
@@ -57,4 +57,3 @@
   loop:
     - vim
     - nvim
-

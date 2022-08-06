@@ -11,9 +11,9 @@
     owner: "{{ user }}"
     mode: "0644"
 
-- name: "Load pyenv env variables in {{ zsh_setting_path }}"
-  lineinfile: 
-    dest: "{{ zsh_setting_path }}"
+- name: "Load pyenv env variables in {{ zsh_path_binding_path }}"
+  lineinfile:
+    dest: "{{ zsh_path_binding_path }}"
     regexp: '\.pyenvrc$'
     line: "[ -f {{ pyenv_path }}/.pyenvrc ] && source {{ pyenv_path }}/.pyenvrc"
     state: present

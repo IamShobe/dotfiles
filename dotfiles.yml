@@ -22,4 +22,4 @@
     - role: 'tmux'
       tags: ['tmux']
     - role: 'rust'
-      tags: ['rust'] 
+      tags: ['rust']

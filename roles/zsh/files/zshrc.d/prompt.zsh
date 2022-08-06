@@ -19,7 +19,7 @@ function on_middle_prompt_complete() {
 
 function _middle_prompt() {
     if ! type middle_prompt >/dev/null; then return; fi # if "middle_prompt" function doesnt exists exit..
-    MIDDLE_PROMPT="" # reset middle prompt
+#    MIDDLE_PROMPT="" # reset middle prompt
     async_flush_jobs middle_prompt_calculate
     async_start_worker middle_prompt_calculate -n
     async_register_callback middle_prompt_calculate on_middle_prompt_complete 

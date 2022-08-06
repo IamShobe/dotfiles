@@ -5,15 +5,6 @@
     chdir: "{{ dotfiles_user_home }}"
     creates: "{{ nvm_root }}/nvm.sh"
 
-- name: Setup .profile
-  lineinfile:
-    path: "{{ item }}"
-    line: "[ -f {{ nvm_root }}/.nvm.sh ] && source {{ nvm_root }}/nvm.sh" # This will make sure Node is on the user's PATH
-    create: yes
-  loop:
-    - ~/.profile
-    - ~/.zprofile
-
 - name: Install .nvmrc
   template:
     src: ".nvmrc.j2"
@@ -21,9 +12,9 @@
     owner: "{{ user }}"
     mode: "0644"
 
-- name: "Load nvm env variables in {{ zsh_setting_path }}"
-  lineinfile: 
-    dest: "{{ zsh_setting_path }}"
+- name: "Load nvm env variables in {{ zsh_path_binding_path }}"
+  lineinfile:
+    dest: "{{ zsh_path_binding_path }}"
     regexp: '\.nvmrc$'
     line: "[ -f {{ nvm_root }}/.nvmrc ] && source {{ nvm_root }}/.nvmrc"
     state: present

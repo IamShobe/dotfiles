@@ -8,3 +8,4 @@
 
 export PATH="$HOME/.local/bin:$PATH"
 
+[ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
