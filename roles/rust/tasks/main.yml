@@ -19,10 +19,11 @@
   when: ansible_distribution == "MacOSX"
 
 - name: add net config
-  lineinfile:
-    dest: "{{dotfiles_user_home | expanduser}}/.cargo/config.toml"
-    regexp: 'git-fetch-with-cli = true$'
-    line: "[net]\n    git-fetch-with-cli = true"
+  blockinfile:
+    path: "{{dotfiles_user_home | expanduser}}/.cargo/config.toml"
+    block: |
+      [net]
+          git-fetch-with-cli = true
     state: present
     create: yes
 
