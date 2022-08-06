@@ -40,5 +40,5 @@ filetype plugin indent on
 
 source $VIM_HOME/config.vim
 
-autocmd BufWritePost ~/.local/share/chezmoi/* ! chezmoi apply --source-path "%"
+" autocmd BufWritePost ~/.local/share/chezmoi/* ! chezmoi apply --source-path "%"
 
