@@ -5,10 +5,6 @@
     chdir: "{{ dotfiles_user_home }}"
     creates: "{{ gvm_root }}/scripts/gvm"
 
-- name: update gvm
-  shell: |
-    . {{ gvm_root }}/scripts/gvm && gvm update
-
 - name: install go {{item}}
   shell: |
     . {{ gvm_root }}/scripts/gvm && gvm install go{{item}} 
