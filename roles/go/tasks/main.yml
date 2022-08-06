@@ -5,27 +5,35 @@
     chdir: "{{ dotfiles_user_home }}"
     creates: "{{ gvm_root }}/scripts/gvm"
 
-- name: install go {{item}}
+- name: install go bootstrapping
   shell: |
     . {{ gvm_root }}/scripts/gvm
     gvm install go1.4 -B # adds bootstrapping
+  args:
+    executable: /bin/zsh
+    creates: "{{ gvm_root }}/gos/go1.4/bin/go"
+
+- name: install go versions
+  shell: |
     gvm use go1.4
     export GOROOT_BOOTSTRAP=$GOROOT
     gvm install go{{item}}
   args:
     executable: /bin/zsh
     creates: "{{ gvm_root }}/gos/go{{item}}/bin/go"
-  
   loop: "{{ go_versions }}"
 
 - name: use go {{go_global_version}} globally
   shell: |
-    . {{ gvm_root }}/scripts/gvm && gvm use go{{go_global_version}} --default
+    . {{ gvm_root }}/scripts/gvm
+    gvm use go{{go_global_version}} --default
   args:
     executable: /bin/zsh
 
 - name: "install package {{ item.name }}"
   shell: |
+    . {{ gvm_root }}/scripts/gvm
+    gvm use go{{go_global_version}}
     go install {{item.path}}@{{item.version}}
   args:
     executable: /bin/zsh
