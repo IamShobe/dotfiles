@@ -15,6 +15,7 @@ set shiftwidth=4   " using shift+> will move given value amount spaces
 set expandtab      " entering tab is translated to space
 set smarttab 
 set backspace=indent,eol,start
+set mouse=a
 
 let base16colorspace=256
 

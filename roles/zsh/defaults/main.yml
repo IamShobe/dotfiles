@@ -5,6 +5,7 @@ zsh_path_binding_path: "{{dotfiles_user_home}}/.zshrc.pathbindings.zsh"
 zsh_directory_unexpended: "{{ dotfiles_user_home_unexpended }}/.zshrc.d"
 zsh_directory: "{{zsh_directory_unexpended | expanduser}}"
 zsh_plugin_root: "{{ zsh_root }}/zshrc.d/plugins"
+theme: tomorrow-night
 zsh_plugins:
   - repo: https://github.com/Aloxaf/fzf-tab.git
     name: fzf-tab

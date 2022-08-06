@@ -3,12 +3,24 @@
     repo: "{{ item.repo }}"
     dest: "{{ zsh_plugin_root }}/{{ item.name }}"
     version: "{{item.version | default('master')}}"
+  register: git_result
+  changed_when: "git_result.after|default('after') != git_result.before|default('before')"
   loop: "{{ zsh_plugins }}"
 
 - name: Clone base16 shell
   git:
     repo: https://github.com/chriskempson/base16-shell.git
     dest: "{{ '~/.config/base16-shell' | expanduser}}"
+
+- name: Set shell theme {{ theme }}
+  shell: |
+    BASE16_ROOT="{{ '~/.config/base16-shell' | expanduser}}"
+    set -e
+    eval "$("$BASE16_ROOT/profile_helper.sh")"
+    _base16 "$BASE16_ROOT/scripts/base16-{{theme}}.sh" {{theme}}
+
+  args:
+    executable: /bin/zsh
 
 - name: Install zsh
   package: name=zsh state=present
