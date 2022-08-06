@@ -25,6 +25,13 @@ packages:
   - python3-pip
   - vim
   - sqlite3
+  - mercurial
+
+linux_only_packages:
+  - binutils
+  - bison
+  - gcc
+macos_only_packages: []
 
 # remove_packages:
 #   - gnome-shell-extension-ubuntu-dock
