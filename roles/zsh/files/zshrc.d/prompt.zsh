@@ -40,7 +40,7 @@ PROMPT+='$GITSTATUS_PROMPT'
 PROMPT+='%(?..%K{9}%F{15})%(!.#.%%)%k%f ' # endsign
 
 KUBE_PS1_SYMBOL_ENABLE=false
-RPROMPT='$(kube_ps1)'
+RPROMPT='$(kube_ps1 2>/dev/null || echo "")'
 # RPROMPT='$GITSTATUS_PROMPT'
 
 PS2='%F{14}%_%F{15}>%f '

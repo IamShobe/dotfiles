@@ -93,10 +93,9 @@ export BASE16_SHELL="$HOME/.config/base16-shell/"
 # autosuggestion has a performance hit here, we know what we doing so we bind it ourself :)
 export ZSH_AUTOSUGGEST_MANUAL_REBIND=true
 
+if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 # this also loads fzf.. must be here
 [ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
-
-if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 # PLUGINS go here
 [ -f $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh ] && source $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh
 [ -f $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh ] && source $ZSH_DIR/plugins/per-directory-history/per-directory-history.zsh
