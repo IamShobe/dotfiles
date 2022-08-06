@@ -1,0 +1,28 @@
+- name: Install gvm
+  shell: "curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer | zsh"
+  args:
+    executable: /bin/zsh
+    chdir: "{{ dotfiles_user_home }}"
+    creates: "{{ gvm_root }}/scripts/gvm"
+
+- name: update gvm
+  shell: |
+    . {{ gvm_root }}/scripts/gvm && gvm update
+
+- name: install go {{item}}
+  shell: |
+    . {{ gvm_root }}/scripts/gvm && gvm install go{{item}} 
+  args:
+    creates: "{{ gvm_root }}/gos/go{{item}}/bin/go"
+  loop: "{{ go_versions }}"
+
+- name: use go {{go_global_version}} globally
+  shell: |
+    . {{ gvm_root }}/scripts/gvm && gvm use go{{go_global_version}} --default
+
+- name: "install package {{ item.name }}"
+  shell: |
+    go install {{item.path}}@{{item.version}}
+  args:
+    creates: "{{ gvm_root }}/pkgsets/go{{go_global_version}}/global/bin/{{item.name}}"
+  loop: "{{ go_packages }}"

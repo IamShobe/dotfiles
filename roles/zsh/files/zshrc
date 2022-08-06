@@ -89,6 +89,9 @@ source $ZSH_DIR/completions.zsh
 # autosuggestion has a performance hit here, we know what we doing so we bind it ourself :)
 export ZSH_AUTOSUGGEST_MANUAL_REBIND=true
 
+# this also loads fzf.. must be here
+[ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
+
 if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 # PLUGINS go here
 [ -f $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh ] && source $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh
@@ -169,9 +172,6 @@ fi
 # configure rust:
 [ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
 
-
-[ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
-
 export PATH="$HOME/.local/bin:$PATH"
 # kubectl krew
 [ -d "$HOME/.krew" ] && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
@@ -180,11 +180,10 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # Google cli rc file
 [ -f $HOME/.gcprc ] && source $HOME/.gcprc
-export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d:toggle-up --height 40% --layout=reverse --cycle --extended"
 # bindkey '^r' _histdb-isearch  # normal histdb search
 bindkey '^r' histdb-fzf-widget  # fzf histdb search 
 
-export PATH="$HOME/.nvm/versions/node/v16.14.2/bin/:$PATH"
+export PATH="$HOME/.nvm/versions/node/$(node --version)/bin/:$PATH"
 
 typeset -U PATH path
 

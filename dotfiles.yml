@@ -23,3 +23,5 @@
       tags: ['tmux']
     - role: 'rust'
       tags: ['rust']
+    - role: 'go'
+      tags: ['go']

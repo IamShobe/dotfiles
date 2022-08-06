@@ -1,0 +1,9 @@
+gvm_root: "{{ dotfiles_user_home }}/.gvm"
+go_versions:
+    - 1.18
+go_global_version: 1.18
+
+go_packages:
+  - name: golines
+    path: github.com/segmentio/golines
+    version: v0.10.0

@@ -20,7 +20,7 @@
     state: present
     create: yes
 
-- name: Install node
+- name: Install node {{item}}
   shell: "source {{ nvm_root }}/nvm.sh && nvm install {{item}}"
   args:
     executable: /bin/bash
