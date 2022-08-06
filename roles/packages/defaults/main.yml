@@ -16,7 +16,7 @@ packages:
   - tk-dev
   - libffi-dev
   - liblzma-dev
-  - python-openssl
+  - python3-openssl
   - git
   - apt-transport-https
   - ca-certificates

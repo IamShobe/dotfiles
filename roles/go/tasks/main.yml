@@ -15,6 +15,7 @@
 
 - name: install go versions
   shell: |
+    . {{ gvm_root }}/scripts/gvm
     gvm use go1.4
     export GOROOT_BOOTSTRAP=$GOROOT
     gvm install go{{item}}
