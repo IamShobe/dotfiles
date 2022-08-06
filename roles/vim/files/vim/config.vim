@@ -17,6 +17,12 @@ set smarttab
 set backspace=indent,eol,start
 
 let base16colorspace=256
+
+if !exists('g:airline_symbols')
+    let g:airline_symbols = {}
+endif
+
+silent! source $VIM_HOME/airline.vim
 silent! colorscheme base16-tomorrow-night
 let g:airline_theme="base16_tomorrow_night"
 
@@ -43,11 +49,6 @@ else
   call s:addUndodir($VIM_HOME."/undodir/")
 endif 
 
-if !exists('g:airline_symbols')
-    let g:airline_symbols = {} 
-endif
- 
-silent! source $VIM_HOME/airline.vim
 silent! source $VIM_HOME/autocomplete.vim
 let g:gitgutter_preview_win_floating = 1
 let g:gitgutter_highlight_linenrs = 1
