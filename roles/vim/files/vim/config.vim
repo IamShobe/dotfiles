@@ -16,12 +16,17 @@ set expandtab      " entering tab is translated to space
 set smarttab 
 set backspace=indent,eol,start
 
+let base16colorspace=256
+silent! colorscheme base16-tomorrow-night
+let g:airline_theme="base16_tomorrow_night"
+
 function! s:addSwapfiles(path)
     if !isdirectory(a:path)
         call mkdir(a:path, "", 0700)
     endif
     let &directory=a:path
 endfunction
+
 function! s:addUndodir(path)
     if !isdirectory(a:path)
         call mkdir(a:path, "", 0700)
@@ -29,6 +34,7 @@ function! s:addUndodir(path)
     let &undodir=a:path
     set undofile
 endfunction
+
 if has('nvim')
   call s:addSwapfiles($VIM_HOME."/nswapfiles/")
   call s:addUndodir($VIM_HOME."/nundodir/")
@@ -54,22 +60,12 @@ let g:NERDSpaceDelims = 1
 let g:NERDCommentEmptyLines = 1
 
 
-"let g:solarized_termcolors=256
-
-"let background=dark
-
-silent! colorscheme molokai
-
-let g:molokai_original = 1
 let g:rehash256 = 1
 let g:python_highlight_all = 1
 syntax enable
 
 
 source $VIM_HOME/shortcuts.vim
-
-let g:ycm_confirm_extra_conf = 0
-let g:loaded_youcompleteme = 1
 
 set secure
 let g:secure_modelines_allowed_items = [
@@ -91,5 +87,12 @@ let g:secure_modelines_allowed_items = [
     \ "spelllang"
     \ ]
 
-autocmd VimEnter * if has('nvim') && exists(':CocCommand') | source $VIM_HOME/coc_config.vim | endif 
+
+function! s:startup()
+    if has('nvim') && exists(':CocCommand')
+        source $VIM_HOME/coc_config.vim
+    endif
+endfunction
+
+autocmd VimEnter * call s:startup()
 

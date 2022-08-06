@@ -27,8 +27,10 @@ Plug 'tpope/vim-fugitive'
 Plug 'tomasr/molokai'
 Plug 'vim-python/python-syntax'
 Plug 'ypcrts/securemodelines'
+Plug 'chriskempson/base16-vim'
 if has('nvim')
  Plug 'neoclide/coc.nvim', {'branch': 'release'}
+ Plug 'chentoast/marks.nvim'
 endif
 
 " Initialize plugin system

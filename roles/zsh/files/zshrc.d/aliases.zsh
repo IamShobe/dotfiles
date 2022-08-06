@@ -9,7 +9,7 @@ alias ...='cd ../..'
 
 if command -v exa 2>&1 >/dev/null; then 
     alias l='exa -l'
-    alias ls='exa --icons -F --group-directories-first'
+    alias ls='exa -F --group-directories-first'
     alias ll='ls -a -l --time-style=long-iso --git'
 else
     alias ls='ls --color'

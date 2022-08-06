@@ -34,8 +34,18 @@ ZSH_CACHE="/tmp/.zsh-${USER}-${ZSH_VERSION}"
 mkdir -p $ZSH_CACHE
 chmod 700 $ZSH_CACHE
 
-export EDITOR=vim
-export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+if command -v nvim 2>&1 >/dev/null; then
+    export EDITOR=nvim
+else if command -v vim 2>&1 >/dev/null; then
+    export EDITOR=vim
+else if command -v code 2>&1 >/dev/null; then
+    export EDITOR=code
+fi
+
+if command -v bat 2>&1 >/dev/null; then
+    export MANPAGER="sh -c 'col -bx | bat -l man -p'"
+fi
+
 # bind +- key into ~ as well (OSX)
 hidutil property --set '{"UserKeyMapping": [{"HIDKeyboardModifierMappingSrc": 0x700000064, "HIDKeyboardModifierMappingDst": 0x700000035}, {"HIDKeyboardModifierMappingSrc": 0x700000035, "HIDKeyboardModifierMappingDst": 0x700000035}]}'  >/dev/null 2>&1
 export ZSH_DIR="$(realpath ~/.zshrc.d)"
@@ -75,6 +85,9 @@ HISTDB_FZF_DEFAULT_MODE=2
 
 source $ZSH_DIR/venv.zsh
 source $ZSH_DIR/completions.zsh
+
+# autosuggestion has a performance hit here, we know what we doing so we bind it ourself :)
+export ZSH_AUTOSUGGEST_MANUAL_REBIND=true
 
 if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 # PLUGINS go here
@@ -172,6 +185,8 @@ export FZF_DEFAULT_OPTS="--multi --bind tab:down,btab:up,alt-s:toggle-down,alt-d
 export VIM_HOME="$(realpath $HOME/.vim)"
 # bindkey '^r' _histdb-isearch  # normal histdb search
 bindkey '^r' histdb-fzf-widget  # fzf histdb search 
+
+export PATH="$HOME/.nvm/versions/node/v16.14.2/bin/:$PATH"
 
 typeset -U PATH path
 

@@ -23,6 +23,7 @@
   loop:
     - {src: "{{ vim_root }}/vimrc", dest: "{{ vim_path }}"}
     - {src: "{{ vim_root }}/vim", dest: "{{vim_directory_path}}"}
+    - {src: "{{ vim_root }}/nvim", dest: "{{ dotfiles_user_home }}/.config/nvim"}
   
 - name: "include vim directory in {{ zsh_setting_path }}"
   lineinfile: 
@@ -57,10 +58,3 @@
     - vim
     - nvim
 
-- name: "source neovim init file"
-  lineinfile: 
-    dest: "{{ dotfiles_user_home }}/.config/nvim/init.vim"
-    regexp: '^source {{vim_path}}'
-    line: 'source {{vim_path}}'
-    state: present
-    create: yes

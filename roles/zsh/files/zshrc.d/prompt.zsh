@@ -1,18 +1,36 @@
+source $ZSH_DIR/async.zsh
+async_init
+
+
 # Misc prompts
 ZCALCPROMPT='%F{48}%1v>%f '
 SPROMPT='zsh: correct '%F{166}%R%f' to '%F{76}%r%f' [nyae]? '
 
 autoload -Uz colors && colors
 
-function middle_prompt {
-    # overrideable function
+
+MIDDLE_PROMPT=""
+
+function on_middle_prompt_complete() {
+    MIDDLE_PROMPT=$3
+    zle reset-prompt
+    async_stop_worker middle_prompt_calculate
+}
+
+function _middle_prompt() {
+    if ! type middle_prompt >/dev/null; then return; fi # if "middle_prompt" function doesnt exists exit..
+    MIDDLE_PROMPT="" # reset middle prompt
+    async_flush_jobs middle_prompt_calculate
+    async_start_worker middle_prompt_calculate -n
+    async_register_callback middle_prompt_calculate on_middle_prompt_complete 
+    async_job middle_prompt_calculate middle_prompt
 }
 
 PROMPT=''
 PROMPT+='$(virtualenv_prompt_info)'  # venv
 PROMPT+='%(!.%{$fg[red]%}.%{$fg[green]%})%n'  # user
 PROMPT+='%{$fg[yellow]%}@%{$fg[blue]%}%M%f '  # domain
-PROMPT+='$(middle_prompt)'
+PROMPT+='$MIDDLE_PROMPT'
 PROMPT+='%{$fg[magenta]%}%(6~|%-1~/…/%4~|%5~)%f' # path
 # PROMPT+='$fg[magenta]%~%f' # path full
 PROMPT+=$'\n'
@@ -31,7 +49,7 @@ VIRTUAL_ENV_DISABLE_PROMPT=1
 
 # ZSH_GIT_PROMPT_FORCE_BLANK=1
 # ZSH_GIT_PROMPT_SHOW_STASH=1
-ZSH_GIT_PROMPT_NO_ASYNC=1
+#ZSH_GIT_PROMPT_NO_ASYNC=1
 ZSH_GIT_PROMPT_ENABLE_SECONDARY=1
 ZSH_GIT_PROMPT_SHOW_UPSTREAM="symbol"
 
@@ -82,6 +100,7 @@ setup() {
     }
     
     add-zsh-hook precmd _prompt_update_user
+    add-zsh-hook precmd _middle_prompt
     
     function fzf-redraw-prompt() {
         local precmd
@@ -91,5 +110,21 @@ setup() {
         zle reset-prompt
     }
     zle -N fzf-redraw-prompt
+
+    function redraw-prompt() {
+      emulate -L zsh
+      local chpwd=${1:-0} f
+      if (( chpwd )); then
+        for f in chpwd $chpwd_functions; do
+          (( $+functions[$f] )) && $f &>/dev/null
+        done
+      fi
+      for f in precmd $precmd_functions; do
+        (( $+functions[$f] )) && $f &>/dev/null
+      done
+      zle .reset-prompt && zle -R
+    }
+
+    zle -N redraw-prompt
 }
 setup
