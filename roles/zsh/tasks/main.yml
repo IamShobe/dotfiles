@@ -22,7 +22,7 @@
   shell: |
     BASE16_ROOT="{{ '~/.config/base16-shell' | expanduser}}"
     set -e
-    eval "$("$BASE16_ROOT/profile_helper.sh")"
+    source "$BASE16_ROOT/profile_helper.sh"
     _base16 "$BASE16_ROOT/scripts/base16-{{theme}}.sh" {{theme}}
   args:
     executable: /bin/zsh

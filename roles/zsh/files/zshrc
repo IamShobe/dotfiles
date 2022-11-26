@@ -88,7 +88,7 @@ source $ZSH_DIR/completions.zsh
 export BASE16_SHELL="$HOME/.config/base16-shell/"
 [ -n "$PS1" ] && \
     [ -s "$BASE16_SHELL/profile_helper.sh" ] && \
-        eval "$("$BASE16_SHELL/profile_helper.sh")"
+        source "$BASE16_SHELL/profile_helper.sh"
 
 # autosuggestion has a performance hit here, we know what we doing so we bind it ourself :)
 export ZSH_AUTOSUGGEST_MANUAL_REBIND=true
