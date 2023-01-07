@@ -1,6 +1,7 @@
 gvm_root: "{{ dotfiles_user_home }}/.gvm"
 go_versions:
     - 1.18
+    - 1.19
 go_global_version: 1.18
 
 go_packages:

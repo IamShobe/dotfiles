@@ -7,24 +7,42 @@
   environment:
     GVM_NO_UPDATE_PROFILE: "true"
 
-- name: install go bootstrapping
-  shell: |
-    . {{ gvm_root }}/scripts/gvm
-    gvm install go1.4 -B # adds bootstrapping
-  args:
-    executable: /bin/zsh
-    creates: "{{ gvm_root }}/gos/go1.4/bin/go"
+- name: install go - mac
+  when: ansible_distribution == "MacOSX"
+  block:
+    - name: install bootstrapping - mac
+      package:
+        name: go
+    - name: install versions - mac
+      shell: |
+        . {{ gvm_root }}/scripts/gvm
+        export GOROOT_BOOTSTRAP=$(brew --prefix golang)/libexec
+        gvm install go{{item}}
+      args:
+        executable: /bin/zsh
+        creates: "{{ gvm_root }}/gos/go{{item}}/bin/go"
+      loop: "{{ go_versions }}"
 
-- name: install go versions
-  shell: |
-    . {{ gvm_root }}/scripts/gvm
-    gvm use go1.4
-    export GOROOT_BOOTSTRAP=$GOROOT
-    gvm install go{{item}}
-  args:
-    executable: /bin/zsh
-    creates: "{{ gvm_root }}/gos/go{{item}}/bin/go"
-  loop: "{{ go_versions }}"
+- name: install go - linux
+  when: ansible_distribution != "MacOSX"
+  block:
+    - name: install bootstrapping - linux
+      shell: |
+        . {{ gvm_root }}/scripts/gvm
+        gvm install go1.4 -B # adds bootstrapping
+      args:
+        executable: /bin/zsh
+        creates: "{{ gvm_root }}/gos/go1.4/bin/go"
+    - name: install versions - linux
+      shell: |
+        . {{ gvm_root }}/scripts/gvm
+        gvm use go1.4
+        export GOROOT_BOOTSTRAP=$GOROOT
+        gvm install go{{item}}
+      args:
+        executable: /bin/zsh
+        creates: "{{ gvm_root }}/gos/go{{item}}/bin/go"
+      loop: "{{ go_versions }}"
 
 - name: use go {{go_global_version}} globally
   shell: |
