@@ -3,7 +3,7 @@
     repo: ppa:neovim-ppa/unstable
     state: present
   become: yes
-  when: '{{ansible_distribution != "MacOSX"}}'
+  when: ansible_distribution != "MacOSX"
 
 - name: Install vim and neovim
   package:

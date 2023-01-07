@@ -46,14 +46,5 @@ elif command -v noti 1>/dev/null 2>&1; then
   noti -t "dotfiles: Bootstrap complete" -m "Successfully set up environment."
 fi
 
-end_message() {
-    echo '# Installation finished successfully!!!'
-    echo '## Configure python global versions using:'
-    echo '- `pyenv versions` # list installed versions'
-    echo '- `pyenv global <version> [<version>]` # configure multiple versions as global'
-    echo '## Configure node global versions using:'
-    echo '- `nvm ls` # list versions available'
-    echo '- `nvm alias default <version>` # configure default node version globally'
-}
+cat ~/.dotfiles/post-install.md | gum format | gum pager
 
-end_message | gum format

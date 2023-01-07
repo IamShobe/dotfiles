@@ -128,10 +128,13 @@ _zsh_autosuggest_strategy_histdb_top() {
 
 ZSH_AUTOSUGGEST_STRATEGY=histdb_top
 
+[ -f $HOME/.dotfiles/bindings.sh ] && source $HOME/.dotfiles/bindings.sh
+
 source $ZSH_DIR/opts.zsh
 source $ZSH_DIR/binds.zsh
 source $ZSH_DIR/aliases.zsh
 source $ZSH_DIR/prompt.zsh
+
 
 autoload -Uz add-zsh-hook
 autoload -U edit-command-line

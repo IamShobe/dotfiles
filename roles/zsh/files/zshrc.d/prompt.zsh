@@ -8,9 +8,9 @@ SPROMPT='zsh: correct '%F{166}%R%f' to '%F{76}%r%f' [nyae]? '
 
 autoload -Uz colors && colors
 
-
-
+DOTFILES_PROMPT=""
 MIDDLE_PROMPT=""
+
 
 function on_middle_prompt_complete() {
     MIDDLE_PROMPT=$3
@@ -18,24 +18,44 @@ function on_middle_prompt_complete() {
     async_stop_worker middle_prompt_calculate
 }
 
-# this handler just a place holder because the checking if type of middle_prompt takes lots more time then expected...
-function trigger_middle_prompt() {}
-
-function on_middle_prompt_trigger_complete() {
-    if ! type middle_prompt >/dev/null; then return; fi # if "middle_prompt" function doesnt exists exit..
+function middle_prompt_start() {
 #    MIDDLE_PROMPT="" # reset middle prompt
+    if ! type middle_prompt >/dev/null; then return; fi # if "middle_prompt" function doesnt exists exit..
     async_flush_jobs middle_prompt_calculate
     async_start_worker middle_prompt_calculate -n
     async_register_callback middle_prompt_calculate on_middle_prompt_complete 
     async_job middle_prompt_calculate middle_prompt
-    async_stop_worker middle_prompt_trigger
 }
 
-function _middle_prompt() {
-    async_flush_jobs middle_prompt_trigger
-    async_start_worker middle_prompt_trigger -n
-    async_register_callback middle_prompt_trigger on_middle_prompt_trigger_complete
-    async_worker_eval middle_prompt_trigger trigger_middle_prompt
+function on_dotfiles_prompt_complete() {
+    DOTFILES_PROMPT=$3
+    zle reset-prompt
+    async_stop_worker dotfiles_prompt_calculate
+}
+
+function dotfiles_prompt_start() {
+    if ! type dotfiles_prompt >/dev/null; then return; fi
+    async_flush_jobs dotfiles_prompt_calculate
+    async_start_worker dotfiles_prompt_calculate -n
+    async_register_callback dotfiles_prompt_calculate on_dotfiles_prompt_complete 
+    async_job dotfiles_prompt_calculate dotfiles_prompt
+}
+
+# this handler just a place holder because the checking if type of middle_prompt takes lots more time then expected...
+function trigger_prompt() {}
+
+function on_prompt_trigger_complete() {
+    middle_prompt_start
+    dotfiles_prompt_start
+
+    async_stop_worker prompt_trigger
+}
+
+function _prompt_updater() {
+    async_flush_jobs prompt_trigger
+    async_start_worker prompt_trigger -n
+    async_register_callback prompt_trigger on_prompt_trigger_complete
+    async_worker_eval prompt_trigger trigger_prompt
 }
 
 PROMPT=''
@@ -44,6 +64,7 @@ PROMPT+='%(!.%{$fg[red]%}.%{$fg[green]%})%n'  # user
 PROMPT+='%{$fg[yellow]%}@%{$fg[blue]%}%M%f '  # domain
 PROMPT+='$MIDDLE_PROMPT'
 PROMPT+='%{$fg[magenta]%}%(6~|%-1~/…/%4~|%5~)%f' # path
+PROMPT+='$DOTFILES_PROMPT'
 # PROMPT+='$fg[magenta]%~%f' # path full
 PROMPT+=$'\n'
 PROMPT+='$GITSTATUS_PROMPT'
@@ -112,7 +133,7 @@ setup() {
     }
     
     add-zsh-hook precmd _prompt_update_user
-    add-zsh-hook precmd _middle_prompt
+    add-zsh-hook precmd _prompt_updater
     
     function fzf-redraw-prompt() {
         local precmd

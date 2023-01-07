@@ -12,3 +12,4 @@ Alternatively:
 ```bash
 ./install.sh
 ```
+
