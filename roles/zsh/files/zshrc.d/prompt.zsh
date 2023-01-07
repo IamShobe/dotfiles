@@ -1,12 +1,13 @@
 source $ZSH_DIR/async.zsh
-async_init
 
+async_init
 
 # Misc prompts
 ZCALCPROMPT='%F{48}%1v>%f '
 SPROMPT='zsh: correct '%F{166}%R%f' to '%F{76}%r%f' [nyae]? '
 
 autoload -Uz colors && colors
+
 
 
 MIDDLE_PROMPT=""
@@ -17,13 +18,24 @@ function on_middle_prompt_complete() {
     async_stop_worker middle_prompt_calculate
 }
 
-function _middle_prompt() {
+# this handler just a place holder because the checking if type of middle_prompt takes lots more time then expected...
+function trigger_middle_prompt() {}
+
+function on_middle_prompt_trigger_complete() {
     if ! type middle_prompt >/dev/null; then return; fi # if "middle_prompt" function doesnt exists exit..
 #    MIDDLE_PROMPT="" # reset middle prompt
     async_flush_jobs middle_prompt_calculate
     async_start_worker middle_prompt_calculate -n
     async_register_callback middle_prompt_calculate on_middle_prompt_complete 
     async_job middle_prompt_calculate middle_prompt
+    async_stop_worker middle_prompt_trigger
+}
+
+function _middle_prompt() {
+    async_flush_jobs middle_prompt_trigger
+    async_start_worker middle_prompt_trigger -n
+    async_register_callback middle_prompt_trigger on_middle_prompt_trigger_complete
+    async_worker_eval middle_prompt_trigger trigger_middle_prompt
 }
 
 PROMPT=''
@@ -110,7 +122,7 @@ setup() {
         zle reset-prompt
     }
     zle -N fzf-redraw-prompt
-
+    
     function redraw-prompt() {
       emulate -L zsh
       local chpwd=${1:-0} f
@@ -124,7 +136,7 @@ setup() {
       done
       zle .reset-prompt && zle -R
     }
-
+    
     zle -N redraw-prompt
 }
 setup
