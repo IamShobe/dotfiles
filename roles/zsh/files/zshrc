@@ -146,6 +146,7 @@ bindkey '^ ' autosuggest-accept
 umask 022
 
 [ -f $HOME/.aliases ] && source $HOME/.aliases
+[ -f $HOME/.secrets ] && source $HOME/.secrets
 
 _TITLE ()
 {
@@ -187,6 +188,9 @@ export PATH="$HOME/.local/bin:$PATH"
 bindkey '^r' histdb-fzf-widget  # fzf histdb search 
 
 export PATH="$HOME/.nvm/versions/node/$(node --version)/bin/:$PATH"
+
+OP_BIOMETRIC_UNLOCK_ENABLED=true
+[ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
 
 typeset -U PATH path
 
