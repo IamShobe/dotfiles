@@ -7,3 +7,6 @@ go_packages:
   - name: golines
     path: github.com/segmentio/golines
     version: v0.10.0
+  - name: gum
+    path: github.com/charmbracelet/gum
+    version: latest

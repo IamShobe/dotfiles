@@ -4,8 +4,8 @@
     executable: /bin/zsh
     chdir: "{{ dotfiles_user_home }}"
     creates: "{{ gvm_root }}/scripts/gvm"
-    environment:
-      GVM_NO_UPDATE_PROFILE: "true"
+  environment:
+    GVM_NO_UPDATE_PROFILE: "true"
 
 - name: install go bootstrapping
   shell: |

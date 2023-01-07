@@ -1,3 +1,5 @@
+rustup_default_version: stable
+
 rust_packages:
     - bat
     - du-dust

@@ -1,7 +1,7 @@
 # defaults file for pyenv
 pyenv_path: "{{ dotfiles_user_home }}/.pyenv"
 pyenv_python_versions:
-  - 3.9.7
+  - 3.11.1
   - 2.7.18
 
 # additional options for the build process, e.g "--enable-shared"
