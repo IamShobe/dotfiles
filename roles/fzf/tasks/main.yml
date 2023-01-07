@@ -5,7 +5,7 @@
     version: master
 
 - name: install fzf
-  shell: "{{fzf_path}}/install"
+  shell: "{{fzf_path}}/install --no-zsh" # binding is already done automatically by zshrc
   args:
     executable: /bin/bash
     chdir: "{{fzf_path}}"
