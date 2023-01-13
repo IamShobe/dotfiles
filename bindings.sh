@@ -38,11 +38,3 @@ dotfiles_check_updates() {
     fi
 }
 
-init() {
-     STATUS=$(dotfiles_check_updates)
-     if [ "$STATUS" = "Need to pull" ]; then
-         echo "dotfiles update available!! run 'dotfiles-update'"
-     fi
-}
-
-init
