@@ -35,6 +35,10 @@ elif [ $machine = Linux ]; then
 fi
 pip3 install pipx
 pipx install ansible --include-deps
+
+# ansible plugins
+ansible-galaxy collection install community.general
+
 set -e
 [[ ! -e ~/.dotfiles ]] && git clone https://github.com/IamShobe/dotfiles ~/.dotfiles
 export PATH=$HOME/.local/bin:$PATH

@@ -1,9 +1,10 @@
 rustup_default_version: stable
 
 rust_packages:
-    - bat
-    - du-dust
-    - exa
-    - fd-find
-    - ripgrep
-    - tealdeer
+  - bat
+  - du-dust
+  - exa
+  - fd-find
+  - ripgrep
+  - tealdeer
+  - tree-sitter-cli

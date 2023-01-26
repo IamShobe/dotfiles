@@ -4,5 +4,8 @@ pyenv_python_versions:
   - 3.11.1
   - 2.7.18
 
+pipx_packages:
+  - ruff-lsp
+
 # additional options for the build process, e.g "--enable-shared"
 pyenv_python_configure_opts: "--enable-shared"

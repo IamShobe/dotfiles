@@ -12,6 +12,7 @@ dotfiles_prompt() {
 }
 
 dotfiles_update() {
+    dotfiles_check_updates
     set -e
     cd ~/.dotfiles 
     git pull

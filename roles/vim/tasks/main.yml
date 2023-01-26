@@ -44,16 +44,11 @@
         command: "curl -fLo {{vim_directory_path | expanduser}}/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim",
         creates: "{{vim_directory_path | expanduser}}/autoload/plug.vim" 
       }
-    - {
-        name: neovim,
-        command: "sh -c 'curl -fLo ~/.local/share/nvim/site/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'",
-        creates: "{{dotfiles_user_home | expanduser}}/.local/share/nvim/site/autoload/plug.vim"
-      }
 
-- name: install plugins
-  shell: "{{item}} +PlugInstall +PlugUpdate +qall"
+- name: install vim plugins
+  shell: "vim +PlugInstall +PlugUpdate +qall"
   environment:
       VIM_HOME: "{{ vim_directory_path | expanduser }}"
-  loop:
-    - vim
-    - nvim
+
+- name: install neovim plugins
+  shell: "nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'"
