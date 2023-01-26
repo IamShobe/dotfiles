@@ -39,7 +39,6 @@ pipx install ansible --include-deps
 # ansible plugins
 ansible-galaxy collection install community.general
 
-set -e
 [[ ! -e ~/.dotfiles ]] && git clone https://github.com/IamShobe/dotfiles ~/.dotfiles
 export PATH=$HOME/.local/bin:$PATH
 ansible-playbook -i ~/.dotfiles/hosts ~/.dotfiles/dotfiles.yml --ask-become-pass $@
@@ -50,5 +49,9 @@ elif command -v noti 1>/dev/null 2>&1; then
   noti -t "dotfiles: Bootstrap complete" -m "Successfully set up environment."
 fi
 
-cat ~/.dotfiles/post-install.md | gum format | gum pager
+if command -v gum 1>/dev/null 2>&1; then
+  cat ~/.dotfiles/post-install.md | gum format | gum pager
+else
+  cat ~/.dotfiles/post-install.md | less
+fi
 
