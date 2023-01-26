@@ -41,7 +41,10 @@ ansible-galaxy collection install community.general
 
 [[ ! -e ~/.dotfiles ]] && git clone https://github.com/IamShobe/dotfiles ~/.dotfiles
 export PATH=$HOME/.local/bin:$PATH
-ansible-playbook -i ~/.dotfiles/hosts ~/.dotfiles/dotfiles.yml --ask-become-pass $@
+if ! ansible-playbook -i ~/.dotfiles/hosts ~/.dotfiles/dotfiles.yml --ask-become-pass $@ ; then
+  echo "failed installing... please try fixing the error and try again"  
+  return 1
+fi
 
 if command -v terminal-notifier 1>/dev/null 2>&1; then
   terminal-notifier -title "dotfiles: Bootstrap complete" -message "Successfully set up environment."

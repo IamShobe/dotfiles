@@ -26,12 +26,12 @@ packages:
   - vim
   - sqlite3
   - mercurial
+  - unzip
 
 linux_only_packages:
   - binutils
   - bison
   - gcc
 macos_only_packages: []
-
 # remove_packages:
 #   - gnome-shell-extension-ubuntu-dock

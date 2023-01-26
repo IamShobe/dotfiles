@@ -27,7 +27,21 @@
     creates: "{{ pyenv_path }}/versions/{{ item }}/bin/python"
   with_items: "{{ pyenv_python_versions }}"
 
+- name: Get active pipx path
+  block:
+    - name: Get active pipx path
+      shell:
+        cmd: "which pipx"
+      register: pipx_default_output
+    - name: Print current / active pipx path
+      ansible.builtin.debug:
+        msg: "{{ pipx_default_output.stdout_lines[0] }}"
+    - name: Set active_pipx_path as fact
+      ansible.builtin.set_fact:
+        active_pipx_path: "{{ pipx_default_output.stdout_lines[0] }}"
+
 - name: "Install pipx packages"
   community.general.pipx:
+    executable: "{{ active_pipx_path }}"
     name: "{{ item }}"
   with_items: "{{ pipx_packages }}"
