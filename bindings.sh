@@ -16,7 +16,7 @@ dotfiles_update() {
     set -e
     cd ~/.dotfiles 
     git pull
-    ./install.sh
+    bash ./install.sh
 }
 
 
