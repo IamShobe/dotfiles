@@ -47,4 +47,4 @@
     VIM_HOME: "{{ vim_directory_path | expanduser }}"
 
 - name: install neovim plugins
-  shell: "nvim --headless -c 'autocmd User PackerComplete quitall' -c 'PackerSync'"
+  shell: "nvim -c 'autocmd User PackerComplete quitall' -c 'PackerSync'"

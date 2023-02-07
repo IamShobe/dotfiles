@@ -19,3 +19,10 @@ require("common.plugins.gitsigns")
 require("common.plugins.neoclip")
 require("common.plugins.illuminate")
 require("common.plugins.leap")
+
+local function script_path()
+  local str = debug.getinfo(1).source:sub(2)
+  return str:match("(.*/)")
+end
+
+vim.cmd("source " .. script_path() .. "/setup.vim")

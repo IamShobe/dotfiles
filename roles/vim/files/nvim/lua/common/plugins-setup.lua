@@ -37,7 +37,7 @@ return packer.startup(function(use)
   use("chriskempson/base16-vim")
   -- use("bluz71/vim-nightfly-guicolors") -- preferred colorscheme
 
-  use("christoomey/vim-tmux-navigator") -- tmux & split window navigation
+  -- use("christoomey/vim-tmux-navigator") -- tmux & split window navigation
 
   use("szw/vim-maximizer") -- maximizes and restores current window
 
@@ -118,6 +118,8 @@ return packer.startup(function(use)
   -- navigation
   use("tpope/vim-repeat")
   use("ggandor/leap.nvim")
+
+  use("matze/vim-move")
 
   if packer_bootstrap then
     require("packer").sync()
