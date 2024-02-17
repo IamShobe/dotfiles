@@ -17,11 +17,10 @@ case "${unameOut}" in
     *)          machine="UNKNOWN:${unameOut}"
 esac
 
-export LC_ALL=en_US.UTF-8
-export LANG=en_US.UTF-8
-
 if [ $machine = 'Mac' ]; then
     export CFLAGS="-Wno-error=implicit-function-declaration"
+    export LC_ALL=en_US.UTF-8
+    export LANG=en_US.UTF-8
     if [ -x "$(command -v xcrun)" ]; then
         export SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
     fi
@@ -89,7 +88,7 @@ source $ZSH_DIR/completions.zsh
 export BASE16_SHELL="$HOME/.config/base16-shell/"
 [ -n "$PS1" ] && \
     [ -s "$BASE16_SHELL/profile_helper.sh" ] && \
-        eval "$("$BASE16_SHELL/profile_helper.sh")"
+        source "$BASE16_SHELL/profile_helper.sh"
 
 # autosuggestion has a performance hit here, we know what we doing so we bind it ourself :)
 export ZSH_AUTOSUGGEST_MANUAL_REBIND=true
@@ -129,10 +128,13 @@ _zsh_autosuggest_strategy_histdb_top() {
 
 ZSH_AUTOSUGGEST_STRATEGY=histdb_top
 
+[ -f $HOME/.dotfiles/bindings.sh ] && source $HOME/.dotfiles/bindings.sh
+
 source $ZSH_DIR/opts.zsh
 source $ZSH_DIR/binds.zsh
 source $ZSH_DIR/aliases.zsh
 source $ZSH_DIR/prompt.zsh
+
 
 autoload -Uz add-zsh-hook
 autoload -U edit-command-line
@@ -147,6 +149,7 @@ bindkey '^ ' autosuggest-accept
 umask 022
 
 [ -f $HOME/.aliases ] && source $HOME/.aliases
+[ -f $HOME/.secrets ] && source $HOME/.secrets
 
 _TITLE ()
 {
@@ -188,6 +191,9 @@ export PATH="$HOME/.local/bin:$PATH"
 bindkey '^r' histdb-fzf-widget  # fzf histdb search 
 
 export PATH="$HOME/.nvm/versions/node/$(node --version)/bin/:$PATH"
+
+OP_BIOMETRIC_UNLOCK_ENABLED=true
+[ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
 
 typeset -U PATH path
 

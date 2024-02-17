@@ -15,6 +15,9 @@ set shiftwidth=4   " using shift+> will move given value amount spaces
 set expandtab      " entering tab is translated to space
 set smarttab 
 set backspace=indent,eol,start
+if !has('nvim')
+  set ttymouse=xterm2
+endif
 set mouse=a
 
 let base16colorspace=256
@@ -92,7 +95,7 @@ let g:secure_modelines_allowed_items = [
 
 function! s:startup()
     if has('nvim') && exists(':CocCommand')
-       source $VIM_HOME/coc_config.vim
+        source $VIM_HOME/coc_config.vim
     endif
 endfunction
 
