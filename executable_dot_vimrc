@@ -1,5 +1,4 @@
 set nocompatible
-
 filetype off
 
 if !isdirectory($VIM_HOME)
@@ -39,6 +38,4 @@ call plug#end()
 filetype plugin indent on
 
 source $VIM_HOME/config.vim
-
-" autocmd BufWritePost ~/.local/share/chezmoi/* ! chezmoi apply --source-path "%"
 

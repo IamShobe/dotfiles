@@ -1,10 +1,5 @@
 #!/bin/sh
 
-if command -v nvim >/dev/null 2>&1; then
-  echo "Bootstraping NeoVim"
-  nvim '+PlugUpdate' '+qall'
-fi
-
 if command -v vim >/dev/null 2>&1; then
   echo "Bootstraping Vim"
   vim '+PlugUpdate' '+qall'
