@@ -7,6 +7,9 @@
 # current file directory
 #_custom_zsh_config_base="${${(%):-%x}:A:h}"
 #
+#
+# performance debugging
+# zmodload zsh/zprof
 
 unameOut="$(uname -s)"
 case "${unameOut}" in
@@ -190,10 +193,10 @@ export PATH="$HOME/.local/bin:$PATH"
 # bindkey '^r' _histdb-isearch  # normal histdb search
 bindkey '^r' histdb-fzf-widget  # fzf histdb search 
 
-export PATH="$HOME/.nvm/versions/node/$(node --version)/bin/:$PATH"
-
 OP_BIOMETRIC_UNLOCK_ENABLED=true
 [ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
 
 typeset -U PATH path
 
+# performance debugging
+# zprof
