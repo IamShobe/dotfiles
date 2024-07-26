@@ -1,3 +1,0 @@
-nvm_root: "{{ dotfiles_user_home }}/.nvm"
-node_versions:
-    - 16.13.2
