@@ -19,6 +19,6 @@ elif [ $machine = Linux ]; then
   sh <(curl -L https://nixos.org/nix/install) --daemon --yes
 fi
 
-curl -fsSL https://get.jetify.com/devbox | bash
+curl -fsSL https://get.jetify.com/devbox | bash -f
 eval "$(devbox global shellenv)"
 
