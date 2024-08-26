@@ -41,8 +41,11 @@
     "zsh":         "latest",
     "gnumake":     "latest",
     "gcc":         "latest",
-    "busybox":     "latest",
-    "atuin":       "latest"
+    "busybox": {
+      "version":            "latest",
+      "excluded_platforms": ["aarch64-darwin"]
+    },
+    "atuin": "latest"
   },
   "shell": {
     "init_hook": [
