@@ -1,12 +1,5 @@
 #!/bin/zsh
-# Set up the prompt
-#autoload -Uz promptinit
-#promptinit
-#prompt adam1
-
-# current file directory
-#_custom_zsh_config_base="${${(%):-%x}:A:h}"
-#
+# vim: set filetype=zsh:
 
 if [ -n "${ZSH_DEBUGRC+1}" ]; then
   zmodload zsh/zprof
@@ -34,8 +27,10 @@ fi
 bindkey -e
 
 ZSH_CACHE="/tmp/.zsh-${USER}-${ZSH_VERSION}"
-mkdir -p $ZSH_CACHE
-chmod 700 $ZSH_CACHE
+# check that folder not exists
+if [ ! -d $ZSH_CACHE ]; then
+  mkdir -p $ZSH_CACHE && chmod 700 $ZSH_CACHE
+fi
 
 if command -v nvim 2>&1 >/dev/null; then
     export EDITOR=nvim
@@ -51,7 +46,7 @@ fi
 
 # bind +- key into ~ as well (OSX)
 hidutil property --set '{"UserKeyMapping": [{"HIDKeyboardModifierMappingSrc": 0x700000064, "HIDKeyboardModifierMappingDst": 0x700000035}, {"HIDKeyboardModifierMappingSrc": 0x700000035, "HIDKeyboardModifierMappingDst": 0x700000035}]}'  >/dev/null 2>&1
-export ZSH_DIR="$(realpath ~/.zshrc.d)"
+export ZSH_DIR="{{ .chezmoi.homeDir }}/.zshrc.d"
 fpath=(
     ~/.zfunc
     ~/.zfunc/**/*~*/(CVS)#(/N)
@@ -73,10 +68,10 @@ else
     export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
 fi
 
-[ -f $ZSH_DIR/plugins/zsh-defer/zsh-defer.plugin.zsh ] && source $ZSH_DIR/plugins/zsh-defer/zsh-defer.plugin.zsh
+source $ZSH_DIR/plugins/zsh-defer/zsh-defer.plugin.zsh
 
 source $ZSH_DIR/venv.zsh
-source $ZSH_DIR/completions.zsh
+zsh-defer source $ZSH_DIR/completions.zsh
 
 # Base16 Shell
 export BASE16_SHELL="$HOME/.config/base16-shell/"
@@ -88,16 +83,22 @@ export BASE16_SHELL="$HOME/.config/base16-shell/"
 export ZSH_AUTOSUGGEST_MANUAL_REBIND=true
 
 if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
-# this also loads fzf.. must be here
-[ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
-# PLUGINS go here
-[ -f $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh ] && zsh-defer source $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh
-[ -f $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh ] && source $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
-[ -f $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && source $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
-# source $ZSH_DIR/plugins/fzf-zsh-completion.sh
-# source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
-# PLUGINS END
-ZSH_PLUGINS_LOADED=1  # dont reload plugins on shell "reload" alias
+  # this also loads fzf.. must be here
+  [ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
+  # PLUGINS go here
+  plugins=(
+    $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh
+    $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
+    $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
+  )
+
+  for plugin ($plugins); do
+    if [ -f $plugin ]; then
+      zsh-defer source $plugin
+    fi
+  done
+  # PLUGINS END
+  ZSH_PLUGINS_LOADED=1  # dont reload plugins on shell "reload" alias
 fi
 
 [ -f $HOME/.dotfiles/bindings.sh ] && source $HOME/.dotfiles/bindings.sh
@@ -144,32 +145,34 @@ preexec () {
 }
 title() { export TITLE="$*" }
 
-if [ -n "$SSH_CLIENT" ]; then
-    export DISPLAY=`echo $SSH_CLIENT | cut -d" " -f1`:0
-fi
-
-# configure rust:
-[ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
-
 export PATH="$HOME/.local/bin:$PATH"
-# kubectl krew
-[ -d "$HOME/.krew" ] && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-
-# Google cli rc file
-[ -f $HOME/.gcprc ] && source $HOME/.gcprc
-
-OP_BIOMETRIC_UNLOCK_ENABLED=true
-[ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
-
 typeset -U PATH path
 
-if command -v devbox 2>&1 >/dev/null; then 
-   eval "$(devbox global shellenv)"
-fi
+function startup {
+  if command -v devbox 2>&1 >/dev/null; then 
+    eval "$(devbox global shellenv --init-hook)"
+  fi
 
-if command -v atuin 2>&1 >/dev/null; then 
-  eval "$(atuin init zsh --disable-up-arrow)"
-fi
+  if [ -n "$SSH_CLIENT" ]; then
+      export DISPLAY=`echo $SSH_CLIENT | cut -d" " -f1`:0
+  fi
+
+  # configure rust:
+  [ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
+  # kubectl krew
+  [ -d "$HOME/.krew" ] && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+
+  # Google cli rc file
+  [ -f $HOME/.gcprc ] && source $HOME/.gcprc
+
+  [ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
+  
+  if command -v atuin 2>&1 >/dev/null; then 
+    eval "$(atuin init zsh --disable-up-arrow)"
+  fi
+}
+
+zsh-defer startup
 
 # debug using - time ZSH_DEBUGRC=1 zsh -i -c exit
 if [ -n "${ZSH_DEBUGRC+1}" ]; then
