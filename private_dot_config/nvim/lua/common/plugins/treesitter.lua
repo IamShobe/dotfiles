@@ -33,7 +33,6 @@ treesitter.setup({
     "gitignore",
     "python",
     "go",
-    "bash",
     "regex",
     "hcl", -- terraform
   },
