@@ -15,4 +15,8 @@ kube-ps1/:
   type: git-repo
   url: https://github.com/jonmosco/kube-ps1.git
   refreshPeriod: 168h
+zsh-defer/:
+  type: git-repo
+  url: https://github.com/romkatv/zsh-defer.git
+  refreshPeriod: 168h
 
