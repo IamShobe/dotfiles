@@ -13,11 +13,16 @@ case "${unameOut}" in
     *)          machine="UNKNOWN:${unameOut}"
 esac
 
+
 if [ $machine = Mac ]; then
   sh <(curl -L https://nixos.org/nix/install) --yes
 elif [ $machine = Linux ]; then
-  sh <(curl -L https://nixos.org/nix/install) --no-daemon --yes
-  $run_as chown -R $USER /nix/
+  if [ $USER = root ]; then
+    echo "script running as root!"
+    sh <(curl -L https://nixos.org/nix/install) --daemon --yes
+  else
+    sh <(curl -L https://nixos.org/nix/install) --no-daemon --yes
+  fi
 fi
 
 curl -fsSL https://get.jetify.com/devbox | bash -s -- -f
