@@ -163,5 +163,5 @@ if command -v devbox 2>&1 >/dev/null; then
 fi
 
 if command -v atuin 2>&1 >/dev/null; then 
-  eval "$(atuin init zsh)"
+  eval "$(atuin init zsh --disable-up-arrow)"
 fi
