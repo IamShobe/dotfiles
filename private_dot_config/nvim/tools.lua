@@ -8,8 +8,8 @@ local scopes = { o = vim.o, b = vim.bo, w = vim.wo, g = vim.g }
 -- vim set helper
 function M.opt(scope, key, value)
   scopes[scope][key] = value
-  if scope ~= 'o' then
-    scopes['o'][key] = value
+  if scope ~= "o" then
+    scopes["o"][key] = value
   end
 end
 
@@ -19,34 +19,34 @@ function M.map(mode, lhs, rhs, opts)
   local options = { noremap = true }
 
   if opts then
-    options = vim.tbl_extend('force', options, opts)
+    options = vim.tbl_extend("force", options, opts)
   end
   api.nvim_set_keymap(mode, lhs, rhs, options)
 end
 
 -- create auto groups
 function M.createAugroup(autocmds, name)
-  cmd('augroup ' .. name)
-  cmd('autocmd!')
+  cmd("augroup " .. name)
+  cmd("autocmd!")
   for _, autocmd in ipairs(autocmds) do
-    cmd('autocmd ' .. table.concat(autocmd, ' '))
+    cmd("autocmd " .. table.concat(autocmd, " "))
   end
-  cmd('augroup END')
+  cmd("augroup END")
 end
 
 function M.hi(groupName, params)
   params = params or {}
-  local highlightString = ''
+  local highlightString = ""
 
   for k, v in pairs(params) do
-    highlightString = highlightString .. string.format('  %s=%s', k, v)
+    highlightString = highlightString .. string.format("  %s=%s", k, v)
   end
 
-  exec('hi ' .. groupName .. highlightString, false)
+  exec("hi " .. groupName .. highlightString, false)
 end
 
 function M.hiLink(groupFrom, groupTo)
-  exec('hi! link ' .. groupFrom .. ' ' .. groupTo, false)
+  exec("hi! link " .. groupFrom .. " " .. groupTo, false)
 end
 
 return M

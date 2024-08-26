@@ -20,7 +20,16 @@ fi
 if command -v nvim 2>&1 >/dev/null; then
    ovim=`which vim`
    alias ovim=$ovim
-   alias vim='nvim'
+
+   function vim() {
+      if [ $# -eq 0 ]; then
+        nvim
+        return
+      fi
+
+      # Added "--hardlink=false" option to get neovim undo available.
+      chezmoi verify $1 > /dev/null 2>&1 && chezmoi edit --watch --hardlink=false $1 || nvim $@
+    }
 fi
 
 

@@ -19,4 +19,3 @@ require("common.plugins.treesitter")
 require("common.plugins.neoclip")
 require("common.plugins.illuminate")
 require("common.plugins.leap")
-
