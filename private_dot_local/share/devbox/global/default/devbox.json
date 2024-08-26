@@ -1,7 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.12.0/.schema/devbox.schema.json",
   "packages": [
-    "chezmoi@latest",
     "fzf@latest",
     "neovim@latest",
     "nodejs@latest",
@@ -17,7 +16,11 @@
     "tealdeer@latest",
     "tree-sitter@latest",
     "gum@latest",
-    "docker@latest"
+    "docker@latest",
+    "zsh@latest",
+    "gnumake@latest",
+    "gcc@latest",
+    "busybox@latest"
   ],
   "shell": {
     "init_hook": [
