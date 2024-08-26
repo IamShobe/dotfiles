@@ -1,6 +1,7 @@
 README.md
 .gitignore
 ./bootstrap.sh
+./bindings.sh
 
 # TODO: delete this after full migration:
 ./Dockerfile

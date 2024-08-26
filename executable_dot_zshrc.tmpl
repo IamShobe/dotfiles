@@ -101,7 +101,7 @@ if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
   ZSH_PLUGINS_LOADED=1  # dont reload plugins on shell "reload" alias
 fi
 
-[ -f $HOME/.dotfiles/bindings.sh ] && source $HOME/.dotfiles/bindings.sh
+source "{{.chezmoi.sourceDir}}/bindings.sh"
 
 source $ZSH_DIR/opts.zsh
 source $ZSH_DIR/binds.zsh
