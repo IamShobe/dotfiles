@@ -7,8 +7,10 @@
 # current file directory
 #_custom_zsh_config_base="${${(%):-%x}:A:h}"
 #
-#
-# zmodload zsh/zprof
+
+if [ -n "${ZSH_DEBUGRC+1}" ]; then
+  zmodload zsh/zprof
+fi
 
 unameOut="$(uname -s)"
 case "${unameOut}" in
@@ -71,8 +73,10 @@ else
     export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
 fi
 
+[ -f $ZSH_DIR/plugins/zsh-defer/zsh-defer.plugin.zsh ] && source $ZSH_DIR/plugins/zsh-defer/zsh-defer.plugin.zsh
+
 source $ZSH_DIR/venv.zsh
-source $ZSH_DIR/completions.zsh
+zsh-defer source $ZSH_DIR/completions.zsh
 
 # Base16 Shell
 export BASE16_SHELL="$HOME/.config/base16-shell/"
@@ -88,9 +92,8 @@ if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 [ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
 # PLUGINS go here
 [ -f $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh ] && source $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh
-[ -f $ZSH_DIR/plugins/gitstatus/gitstatus.prompt.zsh ] && source $ZSH_DIR/plugins/gitstatus/gitstatus.prompt.zsh
-[ -f $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh ] && source $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
-[ -f $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && source $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
+[ -f $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh ] && zsh-defer source $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
+[ -f $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && zsh-defer source $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
 # source $ZSH_DIR/plugins/fzf-zsh-completion.sh
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
 # PLUGINS END
@@ -168,4 +171,8 @@ if command -v atuin 2>&1 >/dev/null; then
   eval "$(atuin init zsh --disable-up-arrow)"
 fi
 
-# zprof
+# debug using - time ZSH_DEBUGRC=1 zsh -i -c exit
+if [ -n "${ZSH_DEBUGRC+1}" ]; then
+  zprof
+fi
+

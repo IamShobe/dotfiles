@@ -52,3 +52,5 @@ if command -v tmux 2>&1 >/dev/null; then
     alias rtmux="tmux attach -t base || tmux new -s base"
 fi
 
+alias debug_trach="zsh -l --sourcetrace"
+alias debug_startup_time="time ZSH_DEBUGRC=1 zsh -i -c exit"

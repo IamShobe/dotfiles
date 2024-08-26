@@ -1,7 +1,11 @@
 # vim: ts=4 sw=4
 # Initialize completion
 autoload -Uz compinit
-compinit -d "$ZSH_CACHE/zcompdump"
+for dump in ~/.zcompdump(N.mh+24); do
+  compinit
+done
+compinit -C
+
 _comp_options+=(globdots) # add dot files to autocomplete
 # # zstyle ':completion:*' accept-exact '*(N)'
 # zstyle ':completion:*' use-cache on

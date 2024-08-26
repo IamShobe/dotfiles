@@ -8,6 +8,8 @@ SPROMPT='zsh: correct '%F{166}%R%f' to '%F{76}%r%f' [nyae]? '
 
 autoload -Uz colors && colors
 
+zsh-defer source $ZSH_DIR/git-prompt.zsh
+
 DOTFILES_PROMPT=""
 MIDDLE_PROMPT=""
 
@@ -116,7 +118,6 @@ setup() {
     
 
     function _prompt_update_user() {
-    
         integer _prompt_next_command _prompt_last_command
 
         function _prompt_preexec() {
