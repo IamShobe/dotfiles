@@ -22,3 +22,10 @@ chezmoi apply # updates your dotfiles from the source directory.
 chezmoi edit --apply $FILE # is like chezmoi edit $FILE but also runs chezmoi apply $FILE afterwards.
 chezmoi cd # opens a subshell in the source directory.
 ```
+
+## Update global devbox package
+```bash
+devbox global add <package>
+chezmoi re-add ~/.local/share/devbox/  # refresh it to sync with the rest
+```
+

@@ -182,18 +182,18 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 # kubectl krew
 [ -d "$HOME/.krew" ] && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-# GOLang
-[[ -s "$HOME/.gvm/scripts/gvm" ]] && source "$HOME/.gvm/scripts/gvm"
 
 # Google cli rc file
 [ -f $HOME/.gcprc ] && source $HOME/.gcprc
 # bindkey '^r' _histdb-isearch  # normal histdb search
 bindkey '^r' histdb-fzf-widget  # fzf histdb search 
 
-export PATH="$HOME/.nvm/versions/node/$(node --version)/bin/:$PATH"
-
 OP_BIOMETRIC_UNLOCK_ENABLED=true
 [ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
 
 typeset -U PATH path
+
+if command -v devbox 2>&1 >/dev/null; then 
+   eval "$(devbox global shellenv)"
+fi
 
