@@ -76,7 +76,7 @@ fi
 [ -f $ZSH_DIR/plugins/zsh-defer/zsh-defer.plugin.zsh ] && source $ZSH_DIR/plugins/zsh-defer/zsh-defer.plugin.zsh
 
 source $ZSH_DIR/venv.zsh
-zsh-defer source $ZSH_DIR/completions.zsh
+source $ZSH_DIR/completions.zsh
 
 # Base16 Shell
 export BASE16_SHELL="$HOME/.config/base16-shell/"
@@ -92,8 +92,8 @@ if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
 [ -f $HOME/.zshrc.pathbindings.zsh ] && source $HOME/.zshrc.pathbindings.zsh
 # PLUGINS go here
 [ -f $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh ] && zsh-defer source $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh
-[ -f $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh ] && zsh-defer source $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
-[ -f $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && zsh-defer source $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
+[ -f $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh ] && source $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
+[ -f $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh ] && source $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
 # source $ZSH_DIR/plugins/fzf-zsh-completion.sh
 # source ~/.zshrc.d/plugins/zsh-syntax-highlighting.zsh
 # PLUGINS END
