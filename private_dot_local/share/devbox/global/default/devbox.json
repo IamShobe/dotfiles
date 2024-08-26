@@ -46,7 +46,15 @@
       "excluded_platforms": ["aarch64-darwin"]
     },
     "atuin":     "latest",
-    "alacritty": "latest"
+    "alacritty": "latest",
+    "iproute2": {
+      "version":         "latest",
+      "excluded_platforms": ["aarch64-darwin"]
+    },
+    "darwin.iproute2mac": {
+      "version":         "",
+      "platforms": ["aarch64-darwin"]
+    }
   },
   "shell": {
     "init_hook": [
