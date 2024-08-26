@@ -54,3 +54,4 @@ fi
 
 alias debug_trach="zsh -l --sourcetrace"
 alias debug_startup_time="time ZSH_DEBUGRC=1 zsh -i -c exit"
+alias debug_startup_time_bench="for i ({1..10}) time zsh -ilc echo &>/dev/null"

@@ -1,5 +1,6 @@
 # vim: ts=4 sw=4
 # Initialize completion
+
 autoload -Uz compinit
 for dump in ~/.zcompdump(N.mh+24); do
   compinit
