@@ -20,7 +20,8 @@
     "zsh@latest",
     "gnumake@latest",
     "gcc@latest",
-    "busybox@latest"
+    "busybox@latest",
+    "atuin@latest"
   ],
   "shell": {
     "init_hook": [

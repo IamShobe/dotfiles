@@ -1,4 +1,4 @@
-GREP_OPTS='--color=auto --exclude-dir={.git,.hg,.svn}'
+GREP_OPTS='--color=auto'
 alias grep="grep $GREP_OPTS"
 alias egrep="egrep $GREP_OPTS"
 alias fgrep="fgrep $GREP_OPTS"
