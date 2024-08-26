@@ -64,5 +64,5 @@ elif [ $machine = Linux ]; then
     ensure_apt_package git git
 fi
 
-sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply IamShobe --branch chezmoi
+sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply IamShobe
 
