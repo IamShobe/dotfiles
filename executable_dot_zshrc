@@ -7,6 +7,8 @@
 # current file directory
 #_custom_zsh_config_base="${${(%):-%x}:A:h}"
 #
+#
+# zmodload zsh/zprof
 
 unameOut="$(uname -s)"
 case "${unameOut}" in
@@ -166,3 +168,4 @@ if command -v atuin 2>&1 >/dev/null; then
   eval "$(atuin init zsh --disable-up-arrow)"
 fi
 
+# zprof
