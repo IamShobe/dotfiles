@@ -12,6 +12,31 @@ case "${unameOut}" in
     *)          machine="UNKNOWN:${unameOut}"
 esac
 
+set -e
+
+ensure_brew_package ()
+{
+  BINARY=$1
+  PACKAGE=$2
+
+  if ! [ -x "$(command -v $BINARY)" ]; then
+    echo "Command $BINARY not found attempting to install it"
+    brew install $PACKAGE
+  fi
+}
+
+
+ensure_apt_package ()
+{
+  BINARY=$1
+  PACKAGE=$2
+
+  if ! [ -x "$(command -v $BINARY)" ]; then
+    echo "Command $BINARY not found attempting to install it"
+    apt install -y $PACKAGE
+  fi
+}
+
 
 if [ $machine = Mac ]; then
     echo "Detected macos machine!"
@@ -22,6 +47,8 @@ if [ $machine = Mac ]; then
         echo "brew was detected!"
         # required for realpath
         # brew install coreutils noti
+
+        ensure_brew_package git git
     fi
 
 elif [ $machine = Linux ]; then
@@ -30,6 +57,11 @@ elif [ $machine = Linux ]; then
         echo "Currently only debian based distros are supported!"
         exit 1
     fi
+
+
+    apt update
+    ensure_apt_package xz xz-utils
+    ensure_apt_package git git
 fi
 
 sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin init --apply IamShobe --branch chezmoi

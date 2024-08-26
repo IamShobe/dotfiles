@@ -1,5 +1,18 @@
 #!/bin/sh
 
-curl -fsSL https://get.jetify.com/devbox | bash
+export run_as=""
+if [ -x "$(command -v sudo)" ]; then
+    export run_as="sudo"
+fi
+unameOut="$(uname -s)"
+case "${unameOut}" in
+    Linux*)     machine=Linux;;
+    Darwin*)    machine=Mac;;
+    CYGWIN*)    machine=Cygwin;;
+    MINGW*)     machine=MinGw;;
+    *)          machine="UNKNOWN:${unameOut}"
+esac
 
+curl -fsSL https://get.jetify.com/devbox | bash
+eval "$(devbox global shellenv)"
 
