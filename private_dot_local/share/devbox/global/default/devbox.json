@@ -1,28 +1,49 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.12.0/.schema/devbox.schema.json",
-  "packages": [
-    "fzf@latest",
-    "neovim@latest",
-    "nodejs@latest",
-    "python@latest",
-    "tmux@latest",
-    "git@latest",
-    "sqlite@latest",
-    "bat@latest",
-    "dust@latest",
-    "exa@latest",
-    "fd@latest",
-    "ripgrep@latest",
-    "tealdeer@latest",
-    "tree-sitter@latest",
-    "gum@latest",
-    "docker@latest",
-    "zsh@latest",
-    "gnumake@latest",
-    "gcc@latest",
-    "busybox@latest",
-    "atuin@latest"
-  ],
+  "packages": {
+    "fzf": {
+      "version":        "latest",
+      "disable_plugin": true
+    },
+    "neovim": {
+      "version":        "latest",
+      "disable_plugin": true
+    },
+    "nodejs": {
+      "version":        "latest",
+      "disable_plugin": true
+    },
+    "python": {
+      "version":        "latest",
+      "disable_plugin": true
+    },
+    "tmux": {
+      "version":        "latest",
+      "disable_plugin": true
+    },
+    "git": {
+      "version":        "latest",
+      "disable_plugin": true
+    },
+    "sqlite": {
+      "version":        "latest",
+      "disable_plugin": true
+    },
+    "bat":         "latest",
+    "dust":        "latest",
+    "exa":         "latest",
+    "fd":          "latest",
+    "ripgrep":     "latest",
+    "tealdeer":    "latest",
+    "tree-sitter": "latest",
+    "gum":         "latest",
+    "docker":      "latest",
+    "zsh":         "latest",
+    "gnumake":     "latest",
+    "gcc":         "latest",
+    "busybox":     "latest",
+    "atuin":       "latest"
+  },
   "shell": {
     "init_hook": [
       "echo 'Welcome to devbox!' > /dev/null"
