@@ -1,6 +1,54 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "atuin@latest": {
+      "last_modified": "2024-08-14T11:41:26Z",
+      "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#atuin",
+      "source": "devbox-search",
+      "version": "18.3.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/imgh8mjpck0xadj64h9q4gqrjaj9pbn7-atuin-18.3.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/imgh8mjpck0xadj64h9q4gqrjaj9pbn7-atuin-18.3.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/dgij2qjbv5x457svamgbfpx6jxcrxgyz-atuin-18.3.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/dgij2qjbv5x457svamgbfpx6jxcrxgyz-atuin-18.3.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/dskbwzzg5jmqh7n6y0zrnfi851yfzhss-atuin-18.3.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/dskbwzzg5jmqh7n6y0zrnfi851yfzhss-atuin-18.3.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ia0razxa5fyr1p9xqa1vqxxk82qymah0-atuin-18.3.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ia0razxa5fyr1p9xqa1vqxxk82qymah0-atuin-18.3.0"
+        }
+      }
+    },
     "bat@latest": {
       "last_modified": "2024-08-14T11:41:26Z",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#bat",
