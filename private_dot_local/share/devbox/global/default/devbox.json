@@ -45,7 +45,8 @@
       "version":            "latest",
       "excluded_platforms": ["aarch64-darwin"]
     },
-    "atuin": "latest"
+    "atuin":     "latest",
+    "alacritty": "latest"
   },
   "shell": {
     "init_hook": [
