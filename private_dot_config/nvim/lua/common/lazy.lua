@@ -108,5 +108,7 @@ lazy.setup({
     { "tpope/vim-repeat" },
     { "ggandor/leap.nvim" },
     { "matze/vim-move" },
+
+    { "github/copilot.vim" },
   },
 })
