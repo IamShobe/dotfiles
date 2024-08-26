@@ -1,6 +1,70 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "alacritty@latest": {
+      "last_modified": "2024-08-14T11:41:26Z",
+      "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#alacritty",
+      "source": "devbox-search",
+      "version": "0.13.2",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/pmc99pnl7advgw36c4xnsh98942lb6ka-alacritty-0.13.2",
+              "default": true
+            },
+            {
+              "name": "terminfo",
+              "path": "/nix/store/3334jm1ds5zhfj6kihxal8anic6cdssl-alacritty-0.13.2-terminfo"
+            }
+          ],
+          "store_path": "/nix/store/pmc99pnl7advgw36c4xnsh98942lb6ka-alacritty-0.13.2"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/2mxb7in99vlnn53dh7x0p4j8m2yvnr88-alacritty-0.13.2",
+              "default": true
+            },
+            {
+              "name": "terminfo",
+              "path": "/nix/store/pjdbw1wmyhkhswbdpjyk6drxsr6c0hg4-alacritty-0.13.2-terminfo"
+            }
+          ],
+          "store_path": "/nix/store/2mxb7in99vlnn53dh7x0p4j8m2yvnr88-alacritty-0.13.2"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/s9np77q43h34k9bkm06n25473mnaaya2-alacritty-0.13.2",
+              "default": true
+            },
+            {
+              "name": "terminfo",
+              "path": "/nix/store/h332dxvz7gxjl3i8v4i7zcwj9066ahsr-alacritty-0.13.2-terminfo"
+            }
+          ],
+          "store_path": "/nix/store/s9np77q43h34k9bkm06n25473mnaaya2-alacritty-0.13.2"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/11i1fcdbrkjbsv17728frqyfz8w43r01-alacritty-0.13.2",
+              "default": true
+            },
+            {
+              "name": "terminfo",
+              "path": "/nix/store/5f4xfng3f1mjgir0dj2awa8k4rscnjzg-alacritty-0.13.2-terminfo"
+            }
+          ],
+          "store_path": "/nix/store/11i1fcdbrkjbsv17728frqyfz8w43r01-alacritty-0.13.2"
+        }
+      }
+    },
     "atuin@latest": {
       "last_modified": "2024-08-14T11:41:26Z",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#atuin",
