@@ -2,6 +2,12 @@ DOTFILES
 ========
 
 ## How to start?
+Bootstrap:
+```bash
+curl https://raw.githubusercontent.com/IamShobe/dotfiles/chezmoi/bootstrap.sh | bash
+```
+
+OR:
 
 ```bash
 chezmoi init IamShobe --apply
