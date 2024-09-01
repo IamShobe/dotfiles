@@ -55,7 +55,8 @@
       "version":   "",
       "platforms": ["aarch64-darwin"]
     },
-    "gh": "latest"
+    "gh":         "latest",
+    "gnupg1orig": "latest"
   },
   "shell": {
     "init_hook": [
