@@ -167,3 +167,6 @@ unsetopt	SINGLE_LINE_ZLE
 unsetopt	VI
 setopt		ZLE
 
+setopt clobber
+setopt append_create
+
