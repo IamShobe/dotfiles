@@ -777,6 +777,54 @@
         }
       }
     },
+    "gnupg1orig@latest": {
+      "last_modified": "2024-08-14T11:41:26Z",
+      "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#gnupg1orig",
+      "source": "devbox-search",
+      "version": "1.4.23",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/9rgll1j9bfqb6pkyqf75hikyab7n5ih3-gnupg-1.4.23",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/9rgll1j9bfqb6pkyqf75hikyab7n5ih3-gnupg-1.4.23"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/mrfn0spipn322dcm0dvv07rs9wqn8j7h-gnupg-1.4.23",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/mrfn0spipn322dcm0dvv07rs9wqn8j7h-gnupg-1.4.23"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/d0h6llm8bqp9xvrnsvjcivip05wkkvbk-gnupg-1.4.23",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/d0h6llm8bqp9xvrnsvjcivip05wkkvbk-gnupg-1.4.23"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/rhpl100126igq0r633gila0djkrs0hvr-gnupg-1.4.23",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/rhpl100126igq0r633gila0djkrs0hvr-gnupg-1.4.23"
+        }
+      }
+    },
     "gum@latest": {
       "last_modified": "2024-08-14T11:41:26Z",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#gum",
