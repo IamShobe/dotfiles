@@ -57,7 +57,8 @@
     },
     "gh":         "latest",
     "gnupg1orig": "latest",
-    "sops":       "latest"
+    "sops":       "latest",
+    "age":        "latest"
   },
   "shell": {
     "init_hook": [
