@@ -21,7 +21,7 @@ if command -v nvim 2>&1 >/dev/null; then
    ovim=`which vim`
    alias ovim=$ovim
 
-   function vim() {
+   vim() {
       if [ $# -eq 0 ]; then
         nvim
         return
