@@ -921,6 +921,42 @@
         }
       }
     },
+    "iproute2@latest": {
+      "last_modified": "2024-08-31T10:12:23Z",
+      "resolved": "github:NixOS/nixpkgs/5629520edecb69630a3f4d17d3d33fc96c13f6fe#iproute2",
+      "source": "devbox-search",
+      "version": "6.10.0",
+      "systems": {
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/silj45w4i004g2h979msra1ah22qil23-iproute2-6.10.0",
+              "default": true
+            },
+            {
+              "name": "dev",
+              "path": "/nix/store/s4zyv3hx7i7bzkwp7xgilavq7h99c4z1-iproute2-6.10.0-dev"
+            }
+          ],
+          "store_path": "/nix/store/silj45w4i004g2h979msra1ah22qil23-iproute2-6.10.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/f6n5dhi23iii79004m36p7h5bkh578v3-iproute2-6.10.0",
+              "default": true
+            },
+            {
+              "name": "dev",
+              "path": "/nix/store/xbbcn44s9ccpw7w9shamxc5x6nyi6aph-iproute2-6.10.0-dev"
+            }
+          ],
+          "store_path": "/nix/store/f6n5dhi23iii79004m36p7h5bkh578v3-iproute2-6.10.0"
+        }
+      }
+    },
     "neovim@latest": {
       "last_modified": "2024-08-14T11:41:26Z",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#neovim",
