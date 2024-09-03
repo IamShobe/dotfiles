@@ -53,8 +53,7 @@
     "gh":         "latest",
     "gnupg1orig": "latest",
     "sops":       "latest",
-    "age":        "latest",
-    "busybox":    "latest"
+    "age":        "latest"
   },
   "shell": {
     "init_hook": [
