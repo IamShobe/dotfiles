@@ -33,7 +33,7 @@ ensure_apt_package ()
 
   if ! [ -x "$(command -v $BINARY)" ]; then
     echo "Command $BINARY not found attempting to install it"
-    apt install -y $PACKAGE
+    $run_as apt install -y $PACKAGE
   fi
 }
 
@@ -59,7 +59,7 @@ elif [ $machine = Linux ]; then
     fi
 
 
-    apt update
+    $run_as apt update
     ensure_apt_package xz xz-utils
     ensure_apt_package git git
 fi
