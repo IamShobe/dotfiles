@@ -38,7 +38,6 @@
     "tree-sitter": "latest",
     "gum":         "latest",
     "docker":      "latest",
-    "zsh":         "latest",
     "gnumake":     "latest",
     "gcc":         "latest",
     "busybox": {
