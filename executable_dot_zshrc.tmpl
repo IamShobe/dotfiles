@@ -105,7 +105,6 @@ source "{{.chezmoi.sourceDir}}/bindings.sh"
 
 source $ZSH_DIR/opts.zsh
 source $ZSH_DIR/binds.zsh
-source $ZSH_DIR/aliases.zsh
 source $ZSH_DIR/prompt.zsh
 
 
@@ -120,9 +119,6 @@ bindkey '^ ' autosuggest-accept
 
 
 umask 022
-
-[ -f $HOME/.aliases ] && source $HOME/.aliases
-[ -f $HOME/.secrets ] && source $HOME/.secrets
 
 _TITLE ()
 {
@@ -170,6 +166,10 @@ function startup {
   if command -v atuin 2>&1 >/dev/null; then 
     eval "$(atuin init zsh --disable-up-arrow)"
   fi
+
+  source $ZSH_DIR/aliases.zsh
+  [ -f $HOME/.aliases ] && source $HOME/.aliases
+  [ -f $HOME/.secrets ] && source $HOME/.secrets
 }
 
 zsh-defer startup
