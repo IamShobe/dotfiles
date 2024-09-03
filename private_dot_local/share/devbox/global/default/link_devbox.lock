@@ -209,6 +209,42 @@
         }
       }
     },
+    "busybox@latest": {
+      "last_modified": "2024-08-31T10:12:23Z",
+      "resolved": "github:NixOS/nixpkgs/5629520edecb69630a3f4d17d3d33fc96c13f6fe#busybox",
+      "source": "devbox-search",
+      "version": "1.36.1",
+      "systems": {
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/9clinl0rl8p5d04fyj1gdi0sii4sz8ys-busybox-1.36.1",
+              "default": true
+            },
+            {
+              "name": "debug",
+              "path": "/nix/store/x0y871615wsyi08sw2pimzk54j93w8lh-busybox-1.36.1-debug"
+            }
+          ],
+          "store_path": "/nix/store/9clinl0rl8p5d04fyj1gdi0sii4sz8ys-busybox-1.36.1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/6723i29mnr4gib2qp5vahfr7xv7h8ad8-busybox-1.36.1",
+              "default": true
+            },
+            {
+              "name": "debug",
+              "path": "/nix/store/jvw3ngk9cv0pmzz9ncmbxh2k298lb2yf-busybox-1.36.1-debug"
+            }
+          ],
+          "store_path": "/nix/store/6723i29mnr4gib2qp5vahfr7xv7h8ad8-busybox-1.36.1"
+        }
+      }
+    },
     "darwin.iproute2mac": {
       "resolved": "github:NixOS/nixpkgs/75a52265bda7fd25e06e3a67dee3f0354e73243c#darwin.iproute2mac",
       "source": "nixpkg"
