@@ -40,12 +40,8 @@
     "docker":      "latest",
     "gnumake":     "latest",
     "gcc":         "latest",
-    "busybox": {
-      "version":            "latest",
-      "excluded_platforms": ["aarch64-darwin"]
-    },
-    "atuin":     "latest",
-    "alacritty": "latest",
+    "atuin":       "latest",
+    "alacritty":   "latest",
     "iproute2": {
       "version":            "latest",
       "excluded_platforms": ["aarch64-darwin"]
