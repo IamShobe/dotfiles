@@ -1,4 +1,0 @@
-#!/bin/sh
-
-eval "$(devbox global shellenv --recompute)"
-
