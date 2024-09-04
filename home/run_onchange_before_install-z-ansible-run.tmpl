@@ -2,7 +2,7 @@
 # vim: set filetype=bash:
 # {{ $watchedLocation := joinPath .chezmoi.sourceDir ".." "ansible"}}
 # watching location: {{ $watchedLocation }} 
-# location hash: {{ output "nix-hash" $watchedLocation | trim }}
+# location hash: {{ output "devbox" "global" "run" "nix-hash" $watchedLocation | trim }}
 
 echo "Detected a change that is required in global machine, running ansible..."
 ansible-playbook -i {{$watchedLocation}}/hosts {{$watchedLocation}}/playbook.yml --ask-become-pass
