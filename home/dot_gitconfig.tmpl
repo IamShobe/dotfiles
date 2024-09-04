@@ -1,8 +1,8 @@
 # vim: set filetype=gitconfig:
 #
-
-[include]
-  path = {{ .chezmoi.homeDir }}/.gitconfig.local
+#
+# WARNING: This file is managed by Chezmoi. Do not edit it directly.
+# Instead use ~/.gitconfig.local to override settings.
 
 [user]
 	name = {{ .gitUser }}
@@ -13,4 +13,7 @@
 
 [init]
 	defaultBranch = main
+
+[include]
+  path = {{ .chezmoi.homeDir }}/.gitconfig.local
 
