@@ -1,0 +1,12 @@
+- name: Install zsh
+  package: name=zsh state=present
+  become: '{{ansible_distribution != "MacOSX"}}'
+  become_user: root
+  become_method: sudo
+
+- name: change user shell to zsh
+  become: yes
+  user:
+    name: "{{ ansible_user_id }}"
+    shell: /bin/zsh
+  when: ansible_distribution != 'MacOSX'

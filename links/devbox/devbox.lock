@@ -113,6 +113,70 @@
         }
       }
     },
+    "ansible@latest": {
+      "last_modified": "2024-08-31T10:12:23Z",
+      "resolved": "github:NixOS/nixpkgs/5629520edecb69630a3f4d17d3d33fc96c13f6fe#ansible",
+      "source": "devbox-search",
+      "version": "2.17.3",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/mf7rm2iwq0f6dx1vifycs2n44n71r979-python3.12-ansible-core-2.17.3",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/3k8iwlrf6db888dydy62x4bfy3aacawh-python3.12-ansible-core-2.17.3-dist"
+            }
+          ],
+          "store_path": "/nix/store/mf7rm2iwq0f6dx1vifycs2n44n71r979-python3.12-ansible-core-2.17.3"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/59ssx8khw5zlwyh750rhbssv2kvr6j51-python3.12-ansible-core-2.17.3",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/qvlilm7qzipl52ylm7nab484ig9hld3f-python3.12-ansible-core-2.17.3-dist"
+            }
+          ],
+          "store_path": "/nix/store/59ssx8khw5zlwyh750rhbssv2kvr6j51-python3.12-ansible-core-2.17.3"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/5j7i3a46dhf61zdpf4ca3fp560dbi7fn-python3.12-ansible-core-2.17.3",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/i6zvcwm4mi94z2797n6mz85s835xp71z-python3.12-ansible-core-2.17.3-dist"
+            }
+          ],
+          "store_path": "/nix/store/5j7i3a46dhf61zdpf4ca3fp560dbi7fn-python3.12-ansible-core-2.17.3"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/zsg029zz3z3fxm2p776d4c91dj0g5dzc-python3.12-ansible-core-2.17.3",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/8basr79bm6flz9k8cs5c6vraxn8v8s3g-python3.12-ansible-core-2.17.3-dist"
+            }
+          ],
+          "store_path": "/nix/store/zsg029zz3z3fxm2p776d4c91dj0g5dzc-python3.12-ansible-core-2.17.3"
+        }
+      }
+    },
     "atuin@latest": {
       "last_modified": "2024-08-14T11:41:26Z",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#atuin",
@@ -885,6 +949,54 @@
         }
       }
     },
+    "hashdeep@latest": {
+      "last_modified": "2024-08-31T10:12:23Z",
+      "resolved": "github:NixOS/nixpkgs/5629520edecb69630a3f4d17d3d33fc96c13f6fe#hashdeep",
+      "source": "devbox-search",
+      "version": "4.4",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/2hyy1pkzhqgqb5mwca9fmnlvc60v9viz-hashdeep-4.4",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/2hyy1pkzhqgqb5mwca9fmnlvc60v9viz-hashdeep-4.4"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/cppll5c4yjfrfcvj2480l80dcmq5qjln-hashdeep-4.4",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/cppll5c4yjfrfcvj2480l80dcmq5qjln-hashdeep-4.4"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ffbvvss3ayaalap0j5nj9gxzhcrz31ib-hashdeep-4.4",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ffbvvss3ayaalap0j5nj9gxzhcrz31ib-hashdeep-4.4"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/0py6ka3vc11nm5jhas30vf3v009hwriz-hashdeep-4.4",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/0py6ka3vc11nm5jhas30vf3v009hwriz-hashdeep-4.4"
+        }
+      }
+    },
     "iproute2@latest": {
       "last_modified": "2024-08-31T10:12:23Z",
       "resolved": "github:NixOS/nixpkgs/5629520edecb69630a3f4d17d3d33fc96c13f6fe#iproute2",
@@ -1031,6 +1143,70 @@
             }
           ],
           "store_path": "/nix/store/kxy4210mqs50ribr9dj2y6r03mbmjifj-nodejs-22.5.1"
+        }
+      }
+    },
+    "pipx@latest": {
+      "last_modified": "2024-08-31T10:12:23Z",
+      "resolved": "github:NixOS/nixpkgs/5629520edecb69630a3f4d17d3d33fc96c13f6fe#pipx",
+      "source": "devbox-search",
+      "version": "1.7.1",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/yydcc210g0b5jfvi6lqx8wijmf7kky3i-python3.12-pipx-1.7.1",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/qff46757gc9q9wlnc3qr0klayxnrlsp1-python3.12-pipx-1.7.1-dist"
+            }
+          ],
+          "store_path": "/nix/store/yydcc210g0b5jfvi6lqx8wijmf7kky3i-python3.12-pipx-1.7.1"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/pjpmjgl6bc9gcv9xdb3bkwf1q3wmrv73-python3.12-pipx-1.7.1",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/iqlvp9qyiwlb1zbhip7sxdqbsnm8bd5p-python3.12-pipx-1.7.1-dist"
+            }
+          ],
+          "store_path": "/nix/store/pjpmjgl6bc9gcv9xdb3bkwf1q3wmrv73-python3.12-pipx-1.7.1"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/gagjd955z14w620qnjm4wl4g1xmvqfd0-python3.12-pipx-1.7.1",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/5bnygp2nrcnlmvjwc3g6cgxc5s08gzkj-python3.12-pipx-1.7.1-dist"
+            }
+          ],
+          "store_path": "/nix/store/gagjd955z14w620qnjm4wl4g1xmvqfd0-python3.12-pipx-1.7.1"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/m2dc7kmpqi02786szg61lq0mjc6l4zjy-python3.12-pipx-1.7.1",
+              "default": true
+            },
+            {
+              "name": "dist",
+              "path": "/nix/store/xfyl1vfkbajhnkkq5cd4x8s01rwsj2g8-python3.12-pipx-1.7.1-dist"
+            }
+          ],
+          "store_path": "/nix/store/m2dc7kmpqi02786szg61lq0mjc6l4zjy-python3.12-pipx-1.7.1"
         }
       }
     },

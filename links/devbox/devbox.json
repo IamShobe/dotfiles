@@ -53,7 +53,10 @@
     "gh":         "latest",
     "gnupg1orig": "latest",
     "sops":       "latest",
-    "age":        "latest"
+    "age":        "latest",
+    "hashdeep":   "latest",
+    "ansible":    "latest",
+    "pipx":       "latest"
   },
   "shell": {
     "init_hook": [
