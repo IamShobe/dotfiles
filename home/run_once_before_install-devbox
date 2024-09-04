@@ -29,5 +29,3 @@ if ! nix-build --version; then
   fi
   curl -fsSL https://get.jetify.com/devbox | bash -s -- -f
 fi
-
-eval "$(devbox global shellenv --recompute)"
