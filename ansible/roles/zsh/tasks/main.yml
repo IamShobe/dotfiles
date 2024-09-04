@@ -1,3 +1,4 @@
+---
 - name: Install zsh
   package: name=zsh state=present
   become: '{{ansible_distribution != "MacOSX"}}'

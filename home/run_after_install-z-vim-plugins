@@ -1,7 +1,0 @@
-#!/bin/sh
-
-if command -v vim >/dev/null 2>&1; then
-  echo "Bootstraping Vim"
-  vim '+PlugUpdate' '+qall' > /dev/null 2&>1
-fi
-

@@ -1,0 +1,6 @@
+---
+- name: Run PlugInstall
+  shell: vim +PlugInstall +qall
+
+- name: Run PluginClean
+  shell: vim '+PlugClean!' +qall
