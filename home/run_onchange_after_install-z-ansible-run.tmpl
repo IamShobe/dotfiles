@@ -5,4 +5,4 @@
 # location hash: {{ output "devbox" "global" "run" "nix-hash" $watchedLocation | trim }}
 
 echo "Detected a change that is required in global machine, running ansible..."
-devbox global run ansible-playbook -i {{$watchedLocation}}/hosts {{$watchedLocation}}/playbook.yml --ask-become-pass
+devbox global run -- ansible-playbook -i {{$watchedLocation}}/hosts {{$watchedLocation}}/playbook.yml --ask-become-pass
