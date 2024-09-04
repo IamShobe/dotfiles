@@ -1,6 +1,9 @@
 # vim: set filetype=gitconfig:
 #
 
+[include]
+  path = {{ .chezmoi.userDir }}/.gitconfig.local
+
 [user]
 	name = {{ .gitUser }}
 	email = {{ .gitEmail }}
