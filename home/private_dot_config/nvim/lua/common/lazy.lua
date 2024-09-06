@@ -35,6 +35,11 @@ lazy.setup({
       "lewis6991/gitsigns.nvim",
       dependencies = { "nvim-lua/plenary.nvim", "kyazdani42/nvim-web-devicons" },
     }, -- show line modifications on left hand side
+    {
+      "MeanderingProgrammer/render-markdown.nvim",
+      opts = {},
+      dependencies = { "nvim-treesitter/nvim-treesitter", "nvim-tree/nvim-web-devicons" },
+    },
 
     { "nvim-lua/plenary.nvim" }, -- lua functions that many plugins use
 
