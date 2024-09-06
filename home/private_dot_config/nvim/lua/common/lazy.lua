@@ -62,11 +62,11 @@ lazy.setup({
     },
 
     -- managing & installing lsp servers, linters & formatters
-    { "williamboman/mason.nvim" }, -- in charge of managing lsp servers, linters & formatters
-    { "williamboman/mason-lspconfig.nvim" }, -- bridges gap b/w mason & lspconfig
+    { "williamboman/mason.nvim", branch = "main" }, -- in charge of managing lsp servers, linters & formatters
+    { "williamboman/mason-lspconfig.nvim", branch = "main" }, -- bridges gap b/w mason & lspconfig
 
     -- configuring lsp servers
-    { "neovim/nvim-lspconfig" }, -- easily configure language servers
+    { "neovim/nvim-lspconfig", branch = "main" }, -- easily configure language servers
     { "hrsh7th/cmp-nvim-lsp" }, -- for autocomplete
     { "glepnir/lspsaga.nvim", branch = "main" }, -- enhanced lsp uis
     { "jose-elias-alvarez/typescript.nvim" }, -- additional functionality for typescript server (e.g. rename file & update imports)
