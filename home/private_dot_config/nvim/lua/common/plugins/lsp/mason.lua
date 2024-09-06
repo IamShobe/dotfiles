@@ -32,13 +32,6 @@ mason_lspconfig.setup({
     "terraformls",
     "ruff_lsp",
   },
-  handlers = {
-    function(server_name)
-      if server_name == "tsserver" then
-        server_name = "ts_ls"
-      end
-    end,
-  },
   -- auto-install configured servers (with lspconfig)
   automatic_installation = true, -- not the same as ensure_installed
 })
