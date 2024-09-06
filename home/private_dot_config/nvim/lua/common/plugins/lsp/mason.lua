@@ -22,7 +22,7 @@ mason.setup()
 mason_lspconfig.setup({
   -- list of servers for mason to install
   ensure_installed = {
-    "ts_ls",
+    "tsserver",
     "html",
     "cssls",
     "tailwindcss",
@@ -31,6 +31,13 @@ mason_lspconfig.setup({
     "jedi_language_server",
     "terraformls",
     "ruff_lsp",
+  },
+  handlers = {
+    function(server_name)
+      if server_name == "tsserver" then
+        server_name = "ts_ls"
+      end
+    end,
   },
   -- auto-install configured servers (with lspconfig)
   automatic_installation = true, -- not the same as ensure_installed
