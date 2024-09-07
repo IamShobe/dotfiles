@@ -173,7 +173,7 @@ function startup {
   eval "$(direnv hook zsh)"
 }
 
-zsh-defer startup
+startup
 
 # debug using - time ZSH_DEBUGRC=1 zsh -i -c exit
 if [ -n "${ZSH_DEBUGRC+1}" ]; then
