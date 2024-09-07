@@ -170,6 +170,7 @@ function startup {
   source $ZSH_DIR/aliases.zsh
   [ -f $HOME/.aliases ] && source $HOME/.aliases
   [ -f $HOME/.secrets ] && source $HOME/.secrets
+  eval "$(direnv hook zsh)"
 }
 
 zsh-defer startup

@@ -56,7 +56,8 @@
     "age":        "latest",
     "hashdeep":   "latest",
     "ansible":    "latest",
-    "pipx":       "latest"
+    "pipx":       "latest",
+    "direnv":     "latest"
   },
   "shell": {
     "init_hook": [
