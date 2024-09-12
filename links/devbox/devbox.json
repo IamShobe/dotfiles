@@ -57,7 +57,8 @@
     "hashdeep":   "latest",
     "ansible":    "latest",
     "pipx":       "latest",
-    "direnv":     "latest"
+    "direnv":     "latest",
+    "unzip":      "latest"
   },
   "shell": {
     "init_hook": [
