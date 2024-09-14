@@ -58,7 +58,8 @@
     "ansible":    "latest",
     "pipx":       "latest",
     "direnv":     "latest",
-    "unzip":      "latest"
+    "unzip":      "latest",
+    "_1password": "latest"
   },
   "shell": {
     "init_hook": [

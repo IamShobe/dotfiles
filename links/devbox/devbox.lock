@@ -1,6 +1,54 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "_1password@latest": {
+      "last_modified": "2024-09-10T15:01:03Z",
+      "resolved": "github:NixOS/nixpkgs/5ed627539ac84809c78b2dd6d26a5cebeb5ae269#_1password",
+      "source": "devbox-search",
+      "version": "2.29.0",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/vv92h0zsxvcr3gj6lp2ifyn0y9sqzpfq-1password-cli-2.29.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/vv92h0zsxvcr3gj6lp2ifyn0y9sqzpfq-1password-cli-2.29.0"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/vknmimn4d1g1l853y10wa73qyhbcky1f-1password-cli-2.29.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/vknmimn4d1g1l853y10wa73qyhbcky1f-1password-cli-2.29.0"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/1d2wih9maxxj4xxclbyx076rmfrb9hbc-1password-cli-2.29.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/1d2wih9maxxj4xxclbyx076rmfrb9hbc-1password-cli-2.29.0"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/nij8g3w1s5989r92ap7dcbgl6n9q3lk8-1password-cli-2.29.0",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/nij8g3w1s5989r92ap7dcbgl6n9q3lk8-1password-cli-2.29.0"
+        }
+      }
+    },
     "age@latest": {
       "last_modified": "2024-08-14T11:41:26Z",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#age",
