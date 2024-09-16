@@ -144,6 +144,17 @@ title() { export TITLE="$*" }
 export PATH="$HOME/.local/bin:$PATH"
 typeset -U PATH path
 
+
+if [ $machine = 'Mac' ]; then
+  # pnpm
+  export PNPM_HOME="{{ .chezmoi.homeDir }}/Library/pnpm"
+  case ":$PATH:" in
+    *":$PNPM_HOME:"*) ;;
+    *) export PATH="$PNPM_HOME:$PATH" ;;
+  esac
+  # pnpm end
+fi
+
 function startup {
   if command -v devbox 2>&1 >/dev/null; then 
     eval "$(devbox global shellenv --init-hook)"
