@@ -156,6 +156,9 @@ if [ $machine = 'Mac' ]; then
 fi
 
 function startup {
+  # Google cli rc file
+  [ -f $HOME/.gcprc ] && source $HOME/.gcprc
+
   if command -v devbox 2>&1 >/dev/null; then 
     eval "$(devbox global shellenv --init-hook)"
   fi
@@ -168,9 +171,6 @@ function startup {
   [ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
   # kubectl krew
   [ -d "$HOME/.krew" ] && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-
-  # Google cli rc file
-  [ -f $HOME/.gcprc ] && source $HOME/.gcprc
 
   [ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
   
