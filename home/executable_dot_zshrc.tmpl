@@ -173,6 +173,8 @@ function startup {
   [ -d "$HOME/.krew" ] && export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
 
   [ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
+
+  [ -d "$HOME/go/bin" ] && export PATH="$HOME/go/bin:$PATH"
   
   if command -v atuin 2>&1 >/dev/null; then 
     eval "$(atuin init zsh --disable-up-arrow)"
