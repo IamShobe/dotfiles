@@ -65,7 +65,9 @@
     "k9s":         "latest",
     "cloudflared": "latest",
     "awscli2":     "latest",
-    "go-task":     "latest"
+    "go-task":     "latest",
+    "kubectx":     "latest",
+    "jq":          "latest"
   },
   "shell": {
     "init_hook": [
