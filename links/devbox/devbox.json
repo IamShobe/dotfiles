@@ -67,7 +67,8 @@
     "awscli2":     "latest",
     "go-task":     "latest",
     "kubectx":     "latest",
-    "jq":          "latest"
+    "jq":          "latest",
+    "carapace":    "latest"
   },
   "shell": {
     "init_hook": [

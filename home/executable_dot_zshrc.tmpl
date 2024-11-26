@@ -184,6 +184,10 @@ function startup {
   [ -f $HOME/.aliases ] && source $HOME/.aliases
   [ -f $HOME/.secrets ] && source $HOME/.secrets
   eval "$(direnv hook zsh)"
+
+  export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense' # optional
+  zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
+  zsh-defer source <(carapace _carapace)
 }
 
 startup
