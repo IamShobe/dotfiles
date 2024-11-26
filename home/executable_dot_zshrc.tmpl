@@ -71,7 +71,8 @@ fi
 source $ZSH_DIR/plugins/zsh-defer/zsh-defer.plugin.zsh
 
 source $ZSH_DIR/venv.zsh
-zsh-defer source $ZSH_DIR/completions.zsh
+source $ZSH_DIR/completions.zsh
+source $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
 
 # Base16 Shell
 export BASE16_SHELL="$HOME/.config/base16-shell/"
@@ -88,7 +89,6 @@ if [ -z $ZSH_PLUGINS_LOADED ]; then  # variable not set yet
   # PLUGINS go here
   plugins=(
     $ZSH_DIR/plugins/kube-ps1/kube-ps1.sh
-    $ZSH_DIR/plugins/fzf-tab/fzf-tab.zsh
     $ZSH_DIR/plugins/zsh-auto-suggestions/zsh-autosuggestions.zsh
   )
 
@@ -186,8 +186,8 @@ function startup {
   eval "$(direnv hook zsh)"
 
   export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense' # optional
-  zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
-  zsh-defer source <(carapace _carapace)
+  zstyle ':fzf-tab:*' query-string prefix first
+  source <(carapace _carapace zsh)
 }
 
 startup
