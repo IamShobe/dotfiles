@@ -184,10 +184,6 @@ function startup {
   [ -f $HOME/.aliases ] && source $HOME/.aliases
   [ -f $HOME/.secrets ] && source $HOME/.secrets
   eval "$(direnv hook zsh)"
-
-  export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense' # optional
-  zstyle ':fzf-tab:*' query-string prefix first
-  source <(carapace _carapace zsh)
 }
 
 startup
