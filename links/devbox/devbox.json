@@ -50,7 +50,6 @@
       "platforms": ["aarch64-darwin"]
     },
     "gh":                              "latest",
-    "gnupg1orig":                      "latest",
     "sops":                            "latest",
     "age":                             "latest",
     "hashdeep":                        "latest",
@@ -68,7 +67,8 @@
     "kubectx":                         "latest",
     "jq":                              "latest",
     "carapace":                        "latest",
-    "nodePackages_latest.localtunnel": "latest"
+    "nodePackages_latest.localtunnel": "latest",
+    "gnupg":                           "latest"
   },
   "shell": {
     "init_hook": [

@@ -1064,51 +1064,51 @@
         }
       }
     },
-    "gnupg1orig@latest": {
-      "last_modified": "2024-08-14T11:41:26Z",
-      "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#gnupg1orig",
+    "gnupg@latest": {
+      "last_modified": "2025-05-16T20:19:48Z",
+      "resolved": "github:NixOS/nixpkgs/12a55407652e04dcf2309436eb06fef0d3713ef3#gnupg",
       "source": "devbox-search",
-      "version": "1.4.23",
+      "version": "2.4.7",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/9rgll1j9bfqb6pkyqf75hikyab7n5ih3-gnupg-1.4.23",
+              "path": "/nix/store/ixxj0797zh8hylvsjrk6mbsm1pb55y6c-gnupg-2.4.7",
               "default": true
             }
           ],
-          "store_path": "/nix/store/9rgll1j9bfqb6pkyqf75hikyab7n5ih3-gnupg-1.4.23"
+          "store_path": "/nix/store/ixxj0797zh8hylvsjrk6mbsm1pb55y6c-gnupg-2.4.7"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/mrfn0spipn322dcm0dvv07rs9wqn8j7h-gnupg-1.4.23",
+              "path": "/nix/store/7sabm0ks2csrhcfrgabmhxlxpxsbyhm2-gnupg-2.4.7",
               "default": true
             }
           ],
-          "store_path": "/nix/store/mrfn0spipn322dcm0dvv07rs9wqn8j7h-gnupg-1.4.23"
+          "store_path": "/nix/store/7sabm0ks2csrhcfrgabmhxlxpxsbyhm2-gnupg-2.4.7"
         },
         "x86_64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/d0h6llm8bqp9xvrnsvjcivip05wkkvbk-gnupg-1.4.23",
+              "path": "/nix/store/viw9i2i7lvh9lvr903la1x1s52rxa30i-gnupg-2.4.7",
               "default": true
             }
           ],
-          "store_path": "/nix/store/d0h6llm8bqp9xvrnsvjcivip05wkkvbk-gnupg-1.4.23"
+          "store_path": "/nix/store/viw9i2i7lvh9lvr903la1x1s52rxa30i-gnupg-2.4.7"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/rhpl100126igq0r633gila0djkrs0hvr-gnupg-1.4.23",
+              "path": "/nix/store/zf12chbmsxmkidrgafqwf8pw4ldlpdch-gnupg-2.4.7",
               "default": true
             }
           ],
-          "store_path": "/nix/store/rhpl100126igq0r633gila0djkrs0hvr-gnupg-1.4.23"
+          "store_path": "/nix/store/zf12chbmsxmkidrgafqwf8pw4ldlpdch-gnupg-2.4.7"
         }
       }
     },
