@@ -533,54 +533,6 @@
         }
       }
     },
-    "docker@latest": {
-      "last_modified": "2024-08-17T10:40:00Z",
-      "resolved": "github:NixOS/nixpkgs/a0d6390cb3e82062a35d0288979c45756e481f60#docker",
-      "source": "devbox-search",
-      "version": "27.1.1",
-      "systems": {
-        "aarch64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/6hczrp87s1gc43shvfm72li0wgxcdnav-docker-27.1.1",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/6hczrp87s1gc43shvfm72li0wgxcdnav-docker-27.1.1"
-        },
-        "aarch64-linux": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/9y377zbhflzw9080lpk8rhbgdmb1sm33-docker-27.1.1",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/9y377zbhflzw9080lpk8rhbgdmb1sm33-docker-27.1.1"
-        },
-        "x86_64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/bngmcm26xmywy5mmgnvmygb9fjv2252j-docker-27.1.1",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/bngmcm26xmywy5mmgnvmygb9fjv2252j-docker-27.1.1"
-        },
-        "x86_64-linux": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/jp31x76yh6x6gdy82c0chd9rha9pk6zf-docker-27.1.1",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/jp31x76yh6x6gdy82c0chd9rha9pk6zf-docker-27.1.1"
-        }
-      }
-    },
     "dust@latest": {
       "last_modified": "2024-08-14T11:41:26Z",
       "resolved": "github:NixOS/nixpkgs/0cb2fd7c59fed0cd82ef858cbcbdb552b9a33465#dust",
@@ -1745,6 +1697,54 @@
             }
           ],
           "store_path": "/nix/store/k5l8wnq3na7d2fzglhfq0zgv9w5giz9z-neovim-0.10.1"
+        }
+      }
+    },
+    "nodePackages_latest.localtunnel@latest": {
+      "last_modified": "2025-04-17T05:47:26Z",
+      "resolved": "github:NixOS/nixpkgs/ebe4301cbd8f81c4f8d3244b3632338bbeb6d49c#nodePackages_latest.localtunnel",
+      "source": "devbox-search",
+      "version": "2.0.2",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/6ksyvpn074cigfrcv3w5k9p76wwic52x-localtunnel-2.0.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/6ksyvpn074cigfrcv3w5k9p76wwic52x-localtunnel-2.0.2"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/d0hyxbx2q94dfn1jq5n24vz7nphh8vij-localtunnel-2.0.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/d0hyxbx2q94dfn1jq5n24vz7nphh8vij-localtunnel-2.0.2"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/525z7fck982vkcz0ia9j4njq69fj7x3b-localtunnel-2.0.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/525z7fck982vkcz0ia9j4njq69fj7x3b-localtunnel-2.0.2"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/4prnhw0pvnpgmrxxpz8my5dp26zc7ml6-localtunnel-2.0.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/4prnhw0pvnpgmrxxpz8my5dp26zc7ml6-localtunnel-2.0.2"
         }
       }
     },
