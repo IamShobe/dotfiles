@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Install mise if not already present
+if ! command -v mise &> /dev/null; then
+  echo "Installing mise..."
+  curl https://mise.jdx.dev/install.sh | sh
+  # Add mise to PATH for this session
+  export PATH="$HOME/.local/bin:$PATH"
+else
+  echo "mise is already installed"
+fi
+
+# Install/update tools from .mise.toml
+echo "Installing mise tools from ~/.mise.toml..."
+mise install
+
+echo "mise setup complete!"
