@@ -1,0 +1,20 @@
+{
+  "skill_name": "chezmoi-helper",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have different configs for my work laptop vs personal machine. I use chezmoi to manage my dotfiles but I'm not sure how to set up templates so the right config gets applied to each machine. Can you walk me through setting up machine-specific configs with templates?",
+      "expected_output": "Step-by-step guide on using .chezmoidata.yaml, template syntax with .hostname, and machine-specific data files. Should include example template code and file structure."
+    },
+    {
+      "id": 2,
+      "prompt": "I want to encrypt my password file in chezmoi and integrate it with Bitwarden so secrets aren't stored in git. What's the best approach and how do I set it up?",
+      "expected_output": "Explanation of password manager integration vs file encryption, setup steps for Bitwarden integration, commands to encrypt files, and example template code to access secrets."
+    },
+    {
+      "id": 3,
+      "prompt": "I initialized chezmoi on my new Ubuntu machine with `chezmoi init --apply` but some files didn't apply correctly. `chezmoi status` shows differences. How do I debug what's wrong and fix it?",
+      "expected_output": "Troubleshooting workflow using chezmoi status/diff/verify, explanation of common causes (templates, permissions, target paths), and how to resolve each type of issue."
+    }
+  ]
+}
