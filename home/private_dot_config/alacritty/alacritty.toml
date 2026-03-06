@@ -55,3 +55,8 @@ size = 12.0
 
 [font.normal]
 family = "DejaVuSansM Nerd Font"
+
+[bell]
+animation = "Linear"
+color = "0xffffff"
+duration = 0

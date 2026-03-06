@@ -1,11 +1,8 @@
 #!/bin/bash
 # vim: set filetype=bash:
-# {{ $watchedLocation := joinPath .chezmoi.sourceDir ".." "ansible"}}
-# watching location: {{ $watchedLocation }} 
-# location hash: {{ output "devbox" "global" "run" "nix-hash" $watchedLocation | trim }}
+# watching location: {{ joinPath .chezmoi.sourceDir ".." "ansible"}}
 
-# other triggers:
-# vim packages hash: {{ output "devbox" "global" "run" "nix-hash" (joinPath .chezmoi.sourceDir "executable_dot_vimrc") | trim }}
+{{ $watchedLocation := joinPath .chezmoi.sourceDir ".." "ansible"}}
 
 echo "Detected a change that is required in global machine, running ansible..."
-devbox global run -- ansible-playbook -i {{$watchedLocation}}/hosts {{$watchedLocation}}/playbook.yml --ask-become-pass
+ansible-playbook -i {{$watchedLocation}}/hosts {{$watchedLocation}}/playbook.yml --ask-become-pass

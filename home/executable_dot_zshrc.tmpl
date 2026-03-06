@@ -159,6 +159,11 @@ function startup {
   # Google cli rc file
   [ -f $HOME/.gcprc ] && source $HOME/.gcprc
 
+  # Initialize mise for tool version management
+  if command -v mise 2>&1 >/dev/null; then
+    eval "$(mise activate zsh)"
+  fi
+
   # configure rust:
   [ -f $HOME/.cargo/env ] && source $HOME/.cargo/env
   # kubectl krew
@@ -167,10 +172,6 @@ function startup {
   [ -f $HOME/.op/plugins.sh ] && source $HOME/.op/plugins.sh
 
   [ -d "$HOME/go/bin" ] && export PATH="$HOME/go/bin:$PATH"
-
-  if command -v devbox 2>&1 >/dev/null; then 
-    eval "$(devbox global shellenv --init-hook)"
-  fi
 
   if [ -n "$SSH_CLIENT" ]; then
       export DISPLAY=`echo $SSH_CLIENT | cut -d" " -f1`:0

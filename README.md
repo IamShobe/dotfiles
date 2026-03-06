@@ -29,9 +29,13 @@ chezmoi edit --apply $FILE # is like chezmoi edit $FILE but also runs chezmoi ap
 chezmoi cd # opens a subshell in the source directory.
 ```
 
-## Update global devbox package
+## Manage tools with mise
 ```bash
-devbox global add <package>
-chezmoi re-add ~/.local/share/devbox/  # refresh it to sync with the rest
+mise add <tool>[@version]  # add a new tool
+mise remove <tool>         # remove a tool
+mise install               # install all tools in .mise.toml
+mise ls installed          # list installed tools
 ```
+
+Edit `~/.mise.toml` to add/remove tools, then run `mise install` to sync.
 

@@ -48,7 +48,7 @@ if [ $machine = Mac ]; then
         # required for realpath
         # brew install coreutils noti
 
-        # deps for devbox + nix
+        # Basic dependencies
         ensure_brew_package git git
     fi
 
@@ -61,7 +61,7 @@ elif [ $machine = Linux ]; then
 
 
     $run_as apt update
-    # dependencies for devbox + nix
+    # Basic dependencies
     ensure_apt_package xz xz-utils
     ensure_apt_package git git
 fi
