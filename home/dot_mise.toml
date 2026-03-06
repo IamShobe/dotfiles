@@ -1,0 +1,47 @@
+# Mise tool management configuration
+# Replaces devbox for managing development tools and languages
+# Note: System packages like git, docker, gcc, make, tmux should be installed via Homebrew
+# This file manages language runtimes and CLI tools available through mise
+
+[tools]
+# Language Runtimes
+nodejs = "latest"
+python = "latest"
+go = "latest"
+rust = "latest"
+
+# CLI Tools available in mise registry
+fzf = "latest"
+neovim = "latest"
+bat = "latest"
+eza = "latest"
+fd = "latest"
+ripgrep = "latest"
+gum = "latest"
+atuin = "latest"
+direnv = "latest"
+tlrc = "latest"          # was: tealdeer
+dust = "latest"
+tree-sitter = "latest"
+pipx = "latest"
+
+# DevOps & Cloud Tools
+gh = "latest"
+sops = "latest"
+age = "latest"
+ansible = "latest"
+kubectl = "latest"
+k9s = "latest"
+awscli = "latest"
+jq = "latest"
+task = "latest"          # was: go-task
+kubectx = "latest"
+cloudflared = "latest"
+carapace = "latest"
+docker-cli = "latest"    # was: docker
+make = "latest"          # was: gnumake
+op = "latest"            # 1password CLI
+
+[env]
+# Python virtual environment (if needed)
+# _.python.venv = ".venv"
