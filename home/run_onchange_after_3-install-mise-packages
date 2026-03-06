@@ -1,0 +1,9 @@
+#!/bin/bash
+# chezmoi: afterSourceFile = /Users/elran777/.local/share/chezmoi/home/dot_mise.toml
+
+set -euo pipefail
+
+echo "mise.toml changed, installing/updating tools..."
+mise install
+
+echo "mise tools installed!"
