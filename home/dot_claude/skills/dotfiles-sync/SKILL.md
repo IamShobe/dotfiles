@@ -38,9 +38,23 @@ The skill monitors these directories and files:
 
 1. **Check for changes**: Script scans tracked locations against chezmoi source
 2. **Show diffs**: Displays what's different between local and dotfiles versions
-3. **Confirm sync**: Asks you to review and approve changes
-4. **Auto-sync**: Commits changes with descriptive message and pushes to remote
-5. **Report status**: Shows commit hash and push result
+3. **Detect new configs**: Identifies untracked global config files that might be useful to share
+4. **Suggest additions**: Prompts you to add relevant new files to chezmoi tracking
+5. **Confirm sync**: Asks you to review and approve all changes
+6. **Auto-sync**: Commits changes with descriptive message and pushes to remote
+7. **Report status**: Shows commit hash and push result
+
+## Smart Config Detection
+
+The skill detects common global configuration files that you might want to track:
+- Shell configs: `.zshrc`, `.bashrc`, `.zshrc.d/`
+- Git configs: `.gitconfig`, `.gitignore_global`
+- SSH config: `.ssh/config`
+- Editor configs: `~/.config/nvim/`, `~/.config/helix/`
+- Tool configs: `~/.config/ripgrep/`, `~/.config/fd/`
+- And more...
+
+When new configs are found, the skill asks if you want to add them to chezmoi so they're available on all your machines.
 
 ## Expected Output
 
