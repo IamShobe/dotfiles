@@ -1,0 +1,20 @@
+{
+  "skill_name": "dotfiles-sync",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just edited my ~/.claude/hooks/status.py file to add better error handling. I want to sync this change back to my dotfiles. Show me what changed and sync it.",
+      "expected_output": "Shows diff of the status.py changes, asks for confirmation, commits and pushes to dotfiles repo"
+    },
+    {
+      "id": 2,
+      "prompt": "I modified my wezterm config to add a new keybinding. How do I sync this to my dotfiles so it's available on other machines?",
+      "expected_output": "Detects the ~/.config/wezterm/wezterm.lua change, shows the diff, syncs it to chezmoi"
+    },
+    {
+      "id": 3,
+      "prompt": "Check if my dotfiles are in sync with my local configs. I'm worried I might have made some changes that aren't tracked.",
+      "expected_output": "Scans all tracked files, reports if anything is out of sync, shows diffs if there are changes"
+    }
+  ]
+}
