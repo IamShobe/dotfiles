@@ -39,7 +39,6 @@ kubectx = "latest"
 cloudflared = "latest"
 carapace = "latest"
 docker-cli = "latest"    # was: docker
-make = "latest"          # was: gnumake
 op = "latest"            # 1password CLI
 
 [env]
