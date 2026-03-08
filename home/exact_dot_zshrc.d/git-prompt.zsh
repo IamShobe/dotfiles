@@ -88,7 +88,24 @@ function gitstatus_prompt_update() {
 # Start gitstatusd instance with name "MY". The same name is passed to
 # gitstatus_query in gitstatus_prompt_update. The flags with -1 as values
 # enable staged, unstaged, conflicted and untracked counters.
-gitstatus_stop 'MY' && gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY'
+
+# PID file for tracking gitstatusd daemon globally
+typeset -g GITSTATUS_PID_FILE="/tmp/gitstatus.MY.pid"
+
+# Helper: Check if daemon process is actually running
+_gitstatus_is_running() {
+  [[ -f "$GITSTATUS_PID_FILE" ]] && \
+  kill -0 $(cat "$GITSTATUS_PID_FILE" 2>/dev/null) 2>/dev/null
+}
+
+# Only start gitstatusd if no instance is already running globally
+if ! _gitstatus_is_running; then
+  gitstatus_stop 'MY' 2>/dev/null
+  gitstatus_start -s -1 -u -1 -c -1 -d -1 'MY' || return
+  # Store the PID of the daemon for other shells to check
+  # gitstatus_start sets GITSTATUS_DAEMON_PID_MY with the daemon's PID
+  echo $GITSTATUS_DAEMON_PID_MY > "$GITSTATUS_PID_FILE" 2>/dev/null || true
+fi
 
 # On every prompt, fetch git status and set GITSTATUS_PROMPT.
 autoload -Uz add-zsh-hook
