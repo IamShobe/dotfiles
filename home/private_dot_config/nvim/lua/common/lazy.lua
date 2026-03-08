@@ -114,5 +114,8 @@ lazy.setup({
     { "matze/vim-move" },
 
     { "github/copilot.vim" },
+
+    -- chezmoi integration
+    { "alker0/chezmoi.vim", lazy = false },
   },
 })
