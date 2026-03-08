@@ -38,6 +38,7 @@ task = "latest"          # was: go-task
 kubectx = "latest"
 cloudflared = "latest"
 carapace = "latest"
+"github:julienXX/terminal-notifier" = "latest"
 docker-cli = "latest"    # was: docker
 op = "latest"            # 1password CLI
 
