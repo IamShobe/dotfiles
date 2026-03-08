@@ -30,7 +30,7 @@ mason_lspconfig.setup({
     "emmet_ls",
     "jedi_language_server",
     "terraformls",
-    "ruff_lsp",
+    "ruff"
   },
   -- auto-install configured servers (with lspconfig)
   automatic_installation = true, -- not the same as ensure_installed
