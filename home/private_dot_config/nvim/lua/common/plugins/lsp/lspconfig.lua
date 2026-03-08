@@ -98,7 +98,7 @@ lspconfig["emmet_ls"].setup({
   filetypes = { "html", "typescriptreact", "javascriptreact", "css", "sass", "scss", "less", "svelte" },
 })
 
-lspconfig["ruff_lsp"].setup({
+lspconfig["ruff"].setup({
   capabilities = capabilities,
   on_attach = on_attach,
 })

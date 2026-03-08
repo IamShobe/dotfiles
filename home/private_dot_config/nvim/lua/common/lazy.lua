@@ -110,7 +110,7 @@ lazy.setup({
 
     -- navigation
     { "tpope/vim-repeat" },
-    { "ggandor/leap.nvim" },
+    { url = "https://codeberg.org/andyg/leap.nvim" },
     { "matze/vim-move" },
 
     { "github/copilot.vim" },
