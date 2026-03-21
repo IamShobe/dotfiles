@@ -137,11 +137,21 @@ config.keys = {
 
 -- Smart paste: if clipboard has an image, save it and paste the path
 wezterm.on("smart-paste", function(window, pane)
+  -- Fast path: if clipboard has text, paste directly without spawning pngpaste
+  local ok, _, stdout, _ = pcall(function()
+    return wezterm.run_child_process({ "pbpaste" })
+  end)
+  if ok and stdout and #stdout > 0 then
+    window:perform_action(wezterm.action.PasteFrom("Clipboard"), pane)
+    return
+  end
+
+  -- No text in clipboard — check for image
   local image_path = "/tmp/wezterm_clipboard_" .. os.time() .. ".png"
-  local ok, success = pcall(function()
+  local img_ok, img_success = pcall(function()
     return wezterm.run_child_process({ "/opt/homebrew/bin/pngpaste", image_path })
   end)
-  if ok and success then
+  if img_ok and img_success then
     window:perform_action(wezterm.action.SendString(image_path), pane)
   else
     window:perform_action(wezterm.action.PasteFrom("Clipboard"), pane)
