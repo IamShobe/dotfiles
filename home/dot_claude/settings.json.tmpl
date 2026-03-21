@@ -1,5 +1,4 @@
 {
-  "model": "haiku",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -33,6 +32,17 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{{ .chezmoi.homeDir }}/.claude/hooks/rtk-rewrite.sh"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -57,5 +67,6 @@
         "repo": "anthropics/skills"
       }
     }
-  }
+  },
+  "model": "sonnet"
 }
