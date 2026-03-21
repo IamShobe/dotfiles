@@ -64,6 +64,11 @@ config.mouse_bindings = {
 -- Add keybinding to reload config
 config.keys = {
   {
+    key = "v",
+    mods = "SUPER",
+    action = wezterm.action.EmitEvent("smart-paste"),
+  },
+  {
     key = "r",
     mods = "CTRL|SHIFT",
     action = wezterm.action.ReloadConfiguration,
@@ -129,6 +134,19 @@ config.keys = {
     action = wezterm.action.ActivatePaneDirection("Right"),
   },
 }
+
+-- Smart paste: if clipboard has an image, save it and paste the path
+wezterm.on("smart-paste", function(window, pane)
+  local image_path = "/tmp/wezterm_clipboard_" .. os.time() .. ".png"
+  local ok, success = pcall(function()
+    return wezterm.run_child_process({ "/opt/homebrew/bin/pngpaste", image_path })
+  end)
+  if ok and success then
+    window:perform_action(wezterm.action.SendString(image_path), pane)
+  else
+    window:perform_action(wezterm.action.PasteFrom("Clipboard"), pane)
+  end
+end)
 
 -- Show notification when config reloads
 wezterm.on("window-config-reloaded", function(window, pane)

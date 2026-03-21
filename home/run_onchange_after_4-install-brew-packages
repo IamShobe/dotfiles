@@ -1,0 +1,9 @@
+#!/bin/bash
+# chezmoi: afterSourceFile = /Users/elran777/.local/share/chezmoi/home/Brewfile
+
+set -euo pipefail
+
+echo "Brewfile changed, installing/updating packages..."
+brew bundle --file="${HOME}/Brewfile"
+
+echo "Brew packages installed!"
