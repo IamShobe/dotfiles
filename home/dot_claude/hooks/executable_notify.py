@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Show tab indicator + macOS notification when Claude Code finishes."""
+"""Show tab indicator + desktop notification when Claude Code finishes."""
 import json
 import sys
 import subprocess
 import os
+import platform
 from pathlib import Path
 
-WEZTERM = "/Applications/WezTerm.app/Contents/MacOS/wezterm"
+IS_MACOS = platform.system() == "Darwin"
+WEZTERM_MACOS = "/Applications/WezTerm.app/Contents/MacOS/wezterm"
+WEZTERM_LINUX = "/usr/local/bin/wezterm"
+WEZTERM = WEZTERM_MACOS if IS_MACOS else WEZTERM_LINUX
 LOG_FILE = Path.home() / ".local/share/a9s/notify-hook.log"
 
 def log_error(msg: str):
@@ -49,11 +53,11 @@ if transcript_path:
     except Exception:
         pass
 
-# 1. Update the WezTerm tab title using the CLI
+# 1. Update the WezTerm tab title using the CLI (only if wezterm binary exists)
 pane_id = os.environ.get("WEZTERM_PANE")
 tab_id = ""
 base = ""
-if pane_id:
+if pane_id and Path(WEZTERM).exists():
     process_title = ""
     tab_title = ""
     result = subprocess.run(
@@ -87,30 +91,41 @@ if pane_id:
     else:
         log_error(f"Tab title updated to: {title}")
 
-# 2. macOS notification (clickable — jumps back to the right tab/pane)
+# 2. Desktop notification
 text = user_msg if user_msg else "Response ready"
-hook_dir = Path(__file__).parent
-focus_script = str(hook_dir / "focus-wezterm.sh")
-execute_cmd = f"{focus_script} {pane_id} {tab_id}" if (pane_id and tab_id != "") else ""
 
-cmd = [
-    "terminal-notifier",
-    "-title", "Claude Code",
-    "-subtitle", base if base else "",   # tab name, e.g. "wezterm"
-    "-message", text,
-    "-activate", "com.github.wez.wezterm", # bring WezTerm to front on click (doesn't break -execute)
-    "-contentImage", "file:///Applications/WezTerm.app/Contents/Resources/terminal.icns",
-    "-sound", "Glass",
-    "-group", "claude-code",             # replace previous notification, avoids throttling
-]
-if execute_cmd:
-    cmd += ["-execute", execute_cmd]
+if IS_MACOS:
+    hook_dir = Path(__file__).parent
+    focus_script = str(hook_dir / "focus-wezterm.sh")
+    execute_cmd = f"{focus_script} {pane_id} {tab_id}" if (pane_id and tab_id != "") else ""
 
-result = subprocess.run(cmd, capture_output=True, text=True)
-if result.returncode != 0:
-    log_error(f"terminal-notifier failed: {result.stderr}")
-    # Fallback to osascript
-    script = f'display notification "{text}" with title "Claude Code" sound name "Glass"'
-    subprocess.run(["osascript", "-e", script], capture_output=True)
+    cmd = [
+        "terminal-notifier",
+        "-title", "Claude Code",
+        "-subtitle", base if base else "",
+        "-message", text,
+        "-activate", "com.github.wez.wezterm",
+        "-contentImage", "file:///Applications/WezTerm.app/Contents/Resources/terminal.icns",
+        "-sound", "Glass",
+        "-group", "claude-code",
+    ]
+    if execute_cmd:
+        cmd += ["-execute", execute_cmd]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        log_error(f"terminal-notifier failed: {result.stderr}")
+        script = f'display notification "{text}" with title "Claude Code" sound name "Glass"'
+        subprocess.run(["osascript", "-e", script], capture_output=True)
+    else:
+        log_error(f"Notification sent: {text}")
 else:
-    log_error(f"Notification sent: {text}")
+    # Linux: use notify-send
+    result = subprocess.run(
+        ["notify-send", "Claude Code", text, "--icon=dialog-information", "--expire-time=5000"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        log_error(f"notify-send failed: {result.stderr}")
+    else:
+        log_error(f"Notification sent: {text}")
