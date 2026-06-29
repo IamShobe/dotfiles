@@ -114,6 +114,9 @@ zle -N edit-command-line
 bindkey '^xe' edit-command-line
 bindkey '^x^e' edit-command-line
 
+# Claude quick-ask widget (Ctrl-X Ctrl-A)
+source $ZSH_DIR/claude-widget.zsh
+
 
 bindkey '^ ' autosuggest-accept
 
