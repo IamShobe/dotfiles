@@ -1,0 +1,5 @@
+# Build output & installed deps inside skills — generated on the target machine by
+# `ensure-deps.sh`, never tracked in the dotfiles repo.
+.claude/skills/*/template/node_modules/**
+.claude/skills/*/template/dist/**
+.claude/skills/*/template/bundle.html
