@@ -4,6 +4,10 @@
 - **DO NOT** add "Co-Authored-By: Claude Haiku 4.5 <noreply@anthropic.com>" watermarks or similar footers to commit messages
 - Keep commits clean and straightforward
 
+## Tooling
+- [No security/SSH commands](no-security-commands.md) — never run SSH/credential/GPG-touching commands, always defer to the user
+- [Search tool preference](search-tool-preference.md) — use `rg`/`fd` via Bash over Grep/Glob tools when their fixed interface is insufficient
+
 # Projects
 
 - [chezmoi: use `re-add`, not `add`](chezmoi-claude-settings-template.md) — `add` destroys templated sources like modify_settings.json.tmpl; `re-add` refuses to overwrite templates
