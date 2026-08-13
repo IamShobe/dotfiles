@@ -31,6 +31,10 @@ that folder:
   vault-worthy that wasn't already mirrored, and file it then. Skip silently
   if there's nothing to add.
 - Never write work content into this vault. When in doubt, don't.
+- **Recall**: whenever something in a session would prompt checking Claude
+  memory for relevance, also check this vault (`grep`/read notes directly —
+  no MCP needed). Treat it as a second, equally-weighted source, not a
+  fallback only checked when memory comes up empty.
 
 # Signatures
 
