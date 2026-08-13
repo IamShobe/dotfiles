@@ -63,7 +63,7 @@ Reach for these; build them with shadcn + the template's rich libs (all pre-inst
 |---|---|
 | Before/After cards | two shadcn `Card`s side by side, or old→new with a `lucide-react` `ArrowRight` |
 | Diff-chips (`+ added` / `− removed`) | inline `<span>`s with green/red Tailwind classes |
-| Emphasize a word in prose | `RoughNotation` (`react-rough-notation`) — highlight/circle/underline/strike |
+| Emphasize a word in prose | `RoughNotation` (`react-rough-notation`) — highlight/circle/underline/strike. **Breaks inside the TOC's own-scroll-container** (below) — the mark detaches from its text on scroll. If this page has a side-rail TOC, use a plain CSS highlight `<span>` instead (see `libraries.md`). |
 | Flow / sequence / state diagram | `import mermaid`, render in a `useEffect`; **color-code by role**, 4–7 nodes — see `web-artifacts-builder`'s `references/mermaid.md`. Native `<pre className="mermaid">` does **not** work bundled. |
 | Hover to reveal detail | `Tippy` (`@tippyjs/react`) — wrap a `<span>` |
 | Call out *the* line in code | `Highlight` (`prism-react-renderer`) |
@@ -140,4 +140,5 @@ Then **stop and let the user prune.** Expect "delete that", "too AI", "fix that 
 - [ ] `// @title:` set in `App.tsx`; confirm with `grep -o '<title>[^<]*' <name>/bundle.html` — never ship a template default.
 - [ ] `<Theme/>` rendered; styled via vars; both themes look right; any rich lib earns its place.
 - [ ] 3+ sections → fixed side-rail TOC (vendored `Scrollspy`) with each top-level heading.
+- [ ] If a TOC is present: `grep -n RoughNotation App.tsx` returns nothing (it detaches from text on scroll inside the TOC's own-scroll-container — swap for a plain CSS highlight `<span>`).
 - [ ] Code refs link to commit-pinned GitHub permalinks; every path + line range verified against source.

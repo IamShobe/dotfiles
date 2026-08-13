@@ -20,6 +20,7 @@ Reach for it only when a number genuinely needs a shape — a 3-row comparison i
 
 ## react-rough-notation (emphasis)
 
+- **Never inside a custom scroll container** (a `ref`'d `div` with `overflow-y-auto`, e.g. the TOC scroll-container pattern above). RoughNotation draws an absolutely-positioned SVG sized once on mount/window-resize; it has no listener on an arbitrary scrollable ancestor, so the mark stays pinned to its mount-time viewport position and visibly detaches from the text as soon as that div scrolls. Symptom: a highlight/circle floating away from its word during scroll. If the page's scroll container is the `<body>`/window (no wrapping `overflow-y-auto` div), it's safe. Otherwise use a plain CSS emphasis instead (e.g. `<span style={{ background: "var(--signal)", padding: "0 0.3em", borderRadius: "2px" }}>`), which scrolls with the text because it's part of normal flow, not an overlay.
 - One, maybe two annotations per page. It's a spotlight; more than that and nothing stands out.
 - Gate `show` on a mount flag + small `setTimeout` so it animates in after paint (annotating before layout settles mis-draws).
 - `type`: `highlight` for a phrase, `underline`/`circle` for a term, `strike` for removed. Color from `--signal` (highlight) or `--brand`.
