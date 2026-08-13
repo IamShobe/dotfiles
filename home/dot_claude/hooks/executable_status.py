@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Display a pretty, information-dense status line in Claude Code."""
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -42,6 +43,47 @@ def fmt_time_left(epoch_seconds):
         return f"{minutes}m"
     except Exception:
         return None
+
+
+def fmt_tokens(n):
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.1f}K"
+    return str(n)
+
+
+def context_used_tokens(transcript_path):
+    """Sum input+cache tokens of the most recent assistant usage entry.
+
+    Context usage reflects the last turn's total context, not a running
+    sum across turns, so only the latest usage snapshot is used.
+    """
+    if not transcript_path or not os.path.exists(transcript_path):
+        return None
+    last_usage = None
+    try:
+        with open(transcript_path) as f:
+            for line in f:
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                if obj.get("type") != "assistant":
+                    continue
+                msg = obj.get("message", {})
+                usage = msg.get("usage")
+                if usage:
+                    last_usage = usage
+    except Exception:
+        return None
+    if not last_usage:
+        return None
+    return (
+        last_usage.get("input_tokens", 0)
+        + last_usage.get("cache_read_input_tokens", 0)
+        + last_usage.get("cache_creation_input_tokens", 0)
+    )
 
 
 def git_branch(cwd):
@@ -105,7 +147,9 @@ context_window = payload.get("context_window") or {}
 used = context_window.get("used_percentage")
 if used is not None:
     color = pct_color(used)
-    line2.append(f"{color}◉{RESET} ctx {used:.0f}%")
+    tokens = context_used_tokens(payload.get("transcript_path"))
+    tokens_str = f" ({fmt_tokens(tokens)})" if tokens is not None else ""
+    line2.append(f"{color}◉{RESET} ctx {used:.0f}%{tokens_str}")
 
 rate_limits = payload.get("rate_limits") or {}
 five_hour_data = rate_limits.get("five_hour", {})

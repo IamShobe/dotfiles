@@ -3,6 +3,9 @@
 # Note: System packages like git, docker, gcc, make, tmux should be installed via Homebrew
 # This file manages language runtimes and CLI tools available through mise
 
+[settings]
+experimental = true
+
 [tools]
 # Language Runtimes
 nodejs = "latest"
@@ -41,6 +44,20 @@ carapace = "latest"
 "github:julienXX/terminal-notifier" = "latest"
 docker-cli = "latest"    # was: docker
 op = "latest"            # 1password CLI
+
+# More CLI Tools
+ast-grep = "latest"
+helm = "latest"
+hyperfine = "latest"
+"npm:ccusage" = "latest"
+pnpm = "latest"
+shellcheck = "latest"
+watchexec = "latest"
+yq = "latest"
+
+[bootstrap.packages]
+"brew:herdr" = "latest"
+"brew:ugrep" = "latest"
 
 [env]
 # Python virtual environment (if needed)
