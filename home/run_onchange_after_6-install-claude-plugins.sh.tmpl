@@ -1,0 +1,21 @@
+#!/bin/bash
+# Install all enabled Claude Code plugins from settings.json (user scope).
+# Re-runs whenever the managed settings template changes.
+# settings hash: {{ include "dot_claude/modify_settings.json.tmpl" | sha256sum }}
+
+set -euo pipefail
+
+command -v claude >/dev/null || { echo "claude CLI not found; skipping plugin install"; exit 0; }
+
+python3 - <<'EOF' | while read -r plugin; do
+import json, pathlib
+settings = json.load(open(pathlib.Path.home() / ".claude/settings.json"))
+for plugin_id, enabled in settings.get("enabledPlugins", {}).items():
+    if enabled:
+        print(plugin_id)
+EOF
+  echo "Ensuring plugin installed: ${plugin}"
+  claude plugin install "${plugin}" --scope user --yes || true  # no-op/soft-fail if already installed
+done
+
+echo "Claude plugins ensured."
