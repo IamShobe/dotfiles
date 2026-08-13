@@ -7,6 +7,7 @@
 ## Tooling
 - [No security/SSH commands](no-security-commands.md) — never run SSH/credential/GPG-touching commands, always defer to the user
 - [Search tool preference](search-tool-preference.md) — use `rg`/`fd` via Bash over Grep/Glob tools when their fixed interface is insufficient
+- [CLI tool stack](cli-tool-stack.md) — prefer zoxide/delta/sd/tokei/bottom/procs/ast-grep/difftastic (all mise-installed) over stock equivalents when the task fits
 
 # Projects
 
