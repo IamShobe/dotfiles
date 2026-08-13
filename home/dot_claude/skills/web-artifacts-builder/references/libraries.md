@@ -2,6 +2,8 @@
 
 How to use each pre-installed lib *well*. Read the row you need. All bundle inline (CSP-safe); import only what you reference (tree-shaken). Style everything through the theme vars from `<Theme/>` (`@/theme`) so both light/dark work — never hardcode a hex that a var already covers.
 
+**Overlay libs + custom scroll containers, as a rule:** `react-rough-notation`, `leader-line`, and anything else that draws an absolutely-positioned overlay sized at mount (not real DOM flow) has no listener on an arbitrary scrollable ancestor — only on `window` resize/scroll. Inside this template's `ref`'d `overflow-y-auto` scroll container (used for the TOC pattern, see `recipes.md`), the overlay's position goes stale the instant that div scrolls: the mark/arrow visibly detaches from what it's annotating. Safe only when the page's scroll container is the window itself (no wrapping `overflow-y-auto` div). Otherwise, prefer a same-flow alternative (a plain CSS-styled `<span>` for emphasis, an inline SVG arrow instead of `LeaderLine`) so the effect scrolls with its target instead of floating over it.
+
 ## recharts (charts)
 
 Reach for it only when a number genuinely needs a shape — a 3-row comparison is a better table. When you do:

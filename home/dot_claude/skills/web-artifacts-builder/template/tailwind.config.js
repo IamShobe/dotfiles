@@ -7,39 +7,46 @@ module.exports = {
   ],
   theme: {
     extend: {
+      // Tailwind color names shadcn components compile to (bg-primary, text-muted-foreground, …)
+      // are wired directly to theme.tsx's hex tokens — NOT the hsl(var(--x)) shadcn convention.
+      // This is why: theme.tsx is the single source of truth for both light/dark (it switches
+      // via prefers-color-scheme + [data-theme], never a `.dark` class), so a parallel HSL/`.dark`
+      // system here would silently diverge — every shadcn component would render shadcn's stock
+      // grayscale instead of the brand palette, in both themes, with no visible error. See
+      // src/index.css for the (now brand-hex) light-mode fallback used only if <Theme/> isn't rendered.
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        border: "var(--border)",
+        input: "var(--border)",
+        ring: "var(--brand)",
+        background: "var(--bg)",
+        foreground: "var(--ink)",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "var(--brand)",
+          foreground: "#ffffff",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "var(--surface)",
+          foreground: "var(--ink)",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "var(--rm)",
+          foreground: "#ffffff",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "var(--surface)",
+          foreground: "var(--ink-3)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--brand-soft)",
+          foreground: "var(--brand-ink)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "var(--surface)",
+          foreground: "var(--ink)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "var(--surface)",
+          foreground: "var(--ink)",
         },
       },
       borderRadius: {

@@ -50,7 +50,7 @@ const scrollRef = useRef<HTMLDivElement>(null)
 
 Jitter-free active styling (never change `font-weight` on active — it reflows the rail):
 ```css
-.rail a{display:flex;align-items:center;color:var(--muted);text-decoration:none;transition:color .18s}
+.rail a{display:flex;align-items:center;color:var(--ink-3);text-decoration:none;transition:color .18s}
 .rail a > span{font-weight:600}                 /* reserve bold metrics for every item */
 .rail a:not([data-active]) > span{font-weight:400}
 .rail a::before{content:"";flex:0 0 auto;width:.9em;height:.9em;margin-right:.4rem;border-radius:99px;

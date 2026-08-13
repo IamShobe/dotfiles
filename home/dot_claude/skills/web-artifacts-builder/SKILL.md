@@ -8,6 +8,8 @@ license: Complete terms in LICENSE.txt
 
 React + TS + Tailwind + shadcn/ui (41 components) + rich libs → one self-contained `bundle.html` (all JS/CSS inlined; CSP-safe, no CDN/eval) via Vite in ~0.6s.
 
+**Render `<Theme/>` once near the root of every `App.tsx`:** `import { Theme } from '@/theme'` then `<Theme/>` as the first element. It's what actually switches light/dark (via `prefers-color-scheme` + `[data-theme]`) and is what shadcn's `bg-primary`/`text-muted-foreground`/etc. classes now resolve through. `index.css` only ships static light-mode fallback hex so the page isn't broken for the instant before mount — it is not a substitute and never switches themes on its own.
+
 ## Build — one call
 
 The bottleneck is agent round-trips, not the build. Minimize turns:
@@ -59,7 +61,7 @@ Bundle baseline ~450KB; `+recharts` ~+500KB; `import mermaid` ~+3MB.
 
 The host **auto-sizes the iframe to content; the *parent* scrolls** — there's **no inner scroll viewport**. So these silently fail: `position: sticky`, `100vh`/`h-screen` pinning, `<a href="#id">` hash-jumps, `window` scroll listeners (`scrollY` stays 0), and scroll-root-autodetecting libs (`react-scrollama` was removed for this).
 
-**Fix: make your own scroll container** — wrap the page in a `ref`'d `h-screen overflow-y-auto` div; everything inside then behaves normally.
+**Fix: make your own scroll container** — wrap the page in a `ref`'d `h-screen overflow-y-auto` div; everything inside then behaves normally. (Radix portal-based components — `Dialog`, `Sheet`, `Popover`, `DropdownMenu`, etc., which mount into `document.body` — are unaffected by this and position correctly; verified against this iframe's auto-sizing model.)
 - **TOC/scrollspy:** vendored `Scrollspy` (`@/components/ui/scrollspy`) with `targetRef={scrollRef}`, `history={false}`. It's already hardened (rAF-throttled, no-op on unchanged id, settle-lock so clicks don't flash/trail). Style active jitter-free: **never change `font-weight`** (reflows the rail) — reserve bold metrics + signal with color and a `transform`-scaled dot.
 - **Pinned/scrollytelling:** `position: fixed` (not sticky), inline fallback on narrow screens; drive steps with `IntersectionObserver`.
 
