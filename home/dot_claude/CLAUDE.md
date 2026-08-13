@@ -6,7 +6,7 @@ Use `gh` CLI for all GitHub work (authenticated as IamShobe). No GitHub MCP serv
 
 # chezmoi
 
-`~` is chezmoi-managed (source: `~/.local/share/chezmoi`); some files are templates (`~/.claude/settings.json`, `~/.zshrc`, `~/.gitconfig`). Before editing anything under `~`, `~/.config`, `~/.claude`: run `chezmoi source-path <target>` and edit the source, not the target. Never `chezmoi add` an already-tracked file (destroys templates) — use `re-add`. Full procedure: `chezmoi` skill.
+`~` is chezmoi-managed (source: `~/.local/share/chezmoi`); some files are templates (`~/.claude/settings.json`, `~/.zshrc`, `~/.gitconfig`). Editing anything under `~`, `~/.config`, `~/.claude` — even without the user saying "chezmoi" — invoke the `chezmoi` skill before touching the file; don't just run `source-path` from memory. Never `chezmoi add` an already-tracked file (destroys templates) — use `re-add`.
 
 # Personal Obsidian vault
 
