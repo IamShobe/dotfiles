@@ -5,12 +5,13 @@ herdr 0.8.0 replaced the animated working-state spinner with a static mark.
 This daemon restores the animation through supported APIs only: it polls
 `herdr api snapshot` for working agents and stamps spinner frames into their
 `spin` metadata token via `herdr {workspace,pane} report-metadata`. Render it
-by adding "$spin" to ui.sidebar.agents.rows and ui.sidebar.spaces.rows in
-~/.config/herdr/config.toml.
+by adding "$spin" at the END of ui.sidebar.agents.rows / ui.sidebar.spaces.rows
+in ~/.config/herdr/config.toml — trailing position matters: the token clears
+when the agent stops working, and only an end-of-row token can vanish without
+reflowing the text before it. The native state_icon stays untouched.
 
-Frames carry a TTL so a crash leaves no frozen glyph; the TTL is deliberately
-long relative to the frame interval so a slow tick never lets the token
-expire mid-animation (expiry gaps read as flicker in the sidebar).
+Frames carry a TTL so a crash leaves no frozen glyph; the TTL is long
+relative to the frame interval so a slow tick never reads as flicker.
 """
 
 import json
@@ -23,11 +24,6 @@ SNAPSHOT_INTERVAL = 1.0        # how often to re-check which agents are working
 DOWN_INTERVAL = 5.0            # retry cadence when the herdr server is down
 TTL_MS = 5000                  # crash cleanup only; frames overwrite each other
 
-def herdr(*args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        ["herdr", *args], capture_output=True, text=True, timeout=10
-    )
-
 def herdr_fire(*args: str) -> None:
     """Fire-and-forget herdr call; keeps the frame loop off the CLI's latency."""
     subprocess.Popen(
@@ -39,7 +35,10 @@ def herdr_fire(*args: str) -> None:
 def working_targets() -> dict[str, set[str]] | None:
     """Working-agent targets by report-metadata scope; None if herdr is down."""
     try:
-        proc = herdr("api", "snapshot")
+        proc = subprocess.run(
+            ["herdr", "api", "snapshot"],
+            capture_output=True, text=True, timeout=10,
+        )
     except (subprocess.TimeoutExpired, OSError):
         return None
     if proc.returncode != 0:
