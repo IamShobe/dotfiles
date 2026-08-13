@@ -1,0 +1,53 @@
+onboarding = false
+# -- keybindings: matched to tmux (Oh my tmux! stock bindings) --------------
+[keys]
+prefix = "ctrl+b"
+
+# Splits — tmux: prefix " = split top/bottom, prefix % = split left/right
+split_horizontal = "prefix+\""   # tmux: prefix "
+split_vertical   = "prefix+%"   # tmux: prefix %
+close_pane       = "prefix+x"          # tmux: prefix x (kill-pane)
+zoom             = "prefix+z"           # tmux: prefix z (zoom pane)
+
+# Pane focus — arrow keys
+focus_pane_left  = "prefix+left"
+focus_pane_down  = "prefix+down"
+focus_pane_up    = "prefix+up"
+focus_pane_right = "prefix+right"
+
+# Pane resize — tmux: prefix H/J/K/L
+resize_mode      = "prefix+r"          # herdr uses a resize mode; tmux resizes directly
+
+# Tabs (tmux "windows") — tmux: c new, Ctrl+h/Ctrl+l prev/next, "," rename
+new_tab          = "prefix+c"          # tmux: prefix c (new-window)
+previous_tab     = "prefix+ctrl+h"     # tmux: prefix Ctrl+h (previous-window)
+next_tab         = "prefix+ctrl+l"     # tmux: prefix Ctrl+l (next-window)
+rename_tab       = "prefix+comma"      # tmux: prefix , (rename-window)
+switch_tab       = "prefix+1..9"       # tmux: prefix <number>
+close_tab        = "prefix+ampersand"  # tmux: prefix & (kill-window)
+last_pane        = "prefix+tab"        # tmux: prefix Tab (jump back to previous)
+
+# Copy / scrollback — tmux: prefix Enter enters copy-mode
+copy_mode        = "prefix+enter"      # tmux: prefix Enter
+
+# Misc
+detach           = "prefix+d"          # tmux: prefix d (detach-client)
+reload_config    = "prefix+shift+r"    # tmux: prefix r (reload)
+
+# Navigate-mode movement (no prefix). Left/right arrows are reserved by herdr
+# to focus the pane left/right, so only up/down are set here.
+navigate_pane_down  = "down"
+navigate_pane_up    = "up"
+
+[ui]
+agent_panel_sort = "spaces"
+
+show_agent_labels_on_pane_borders = true
+[ui.toast]
+delivery = "system"
+
+[experimental]
+pane_history = false
+
+[ui.sidebar.spaces]
+rows = [["state_icon", "workspace", "$pde"], ["branch", "git_status"]]
