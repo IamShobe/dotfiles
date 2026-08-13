@@ -1,13 +1,14 @@
 ---
 name: Search tool preference
-description: When to use rg via Bash vs the Grep tool for searching
+description: Always default to fast CLI search tools (ugrep/rg/fd) over grep and the Grep/Glob tools
 type: feedback
 ---
 
-Use `rg` via Bash instead of the Grep tool when the task requires it (complex flags, piping, custom output formats, etc.). The Grep tool has a fixed interface and is more limited than running `rg` directly.
+Default to the fastest available CLI tool for search, always, not just when the built-in tool falls short:
+- **`ugrep`** over plain `grep`/`rg` for any file/text search via Bash — SIMD-accelerated, faster on bulk scans. Installed via Homebrew (not mise — no aqua/cargo registry entry exists for it).
+- **`rg`** via Bash instead of the Grep tool — the Grep tool has a fixed interface, `rg` is faster and more flexible.
+- **`fd`** via Bash instead of the Glob tool — same reasoning, faster and more flexible.
 
-Use `fd` via Bash instead of the Glob tool when the task requires it (complex filters, type flags, exec, etc.). The Glob tool has a fixed interface and is more limited than running `fd` directly.
+**Why:** User wants command runtime minimized as a standing default ("use them always if possible, just in case — it's usually much more efficient"), not only when a task specifically demands it. Efficiency is the default posture, not a conditional fallback.
 
-**Why:** Both the Grep and Glob tools have constrained APIs that can't express everything `rg`/`fd` support natively. They work differently from their CLI counterparts.
-
-**How to apply:** Default to the dedicated tools (Grep/Glob) for simple cases, but switch to `rg`/`fd` via Bash whenever the dedicated tool's interface is insufficient.
+**How to apply:** Reach for `ugrep`/`rg`/`fd` via Bash by default for search tasks, even simple ones, rather than starting with `grep` or the Grep/Glob tools. Only fall back to the built-in tools if the fast CLI tool is unavailable in the environment.
