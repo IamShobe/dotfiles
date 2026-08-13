@@ -1,0 +1,18 @@
+#!/bin/bash
+# Reload the herdr-spinner LaunchAgent whenever its plist or daemon changes.
+# plist hash: {{ include "Library/LaunchAgents/dev.elran.herdr-spinner.plist.tmpl" | sha256sum }}
+# daemon hash: {{ include "dot_local/bin/executable_herdr-spinner" | sha256sum }}
+
+set -euo pipefail
+
+[ "$(uname)" = "Darwin" ] || exit 0
+
+PLIST="${HOME}/Library/LaunchAgents/dev.elran.herdr-spinner.plist"
+LABEL="dev.elran.herdr-spinner"
+DOMAIN="gui/$(id -u)"
+
+echo "Loading herdr-spinner LaunchAgent..."
+launchctl bootstrap "${DOMAIN}" "${PLIST}" 2>/dev/null || true  # no-op if already loaded
+launchctl kickstart -k "${DOMAIN}/${LABEL}"                     # (re)start with latest daemon
+
+echo "herdr-spinner running."
