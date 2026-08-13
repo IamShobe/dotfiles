@@ -89,6 +89,15 @@ if git_info:
     marker = f"{YELLOW}*{RESET}" if dirty else ""
     line1.append(f"{MAGENTA}⎇{RESET} {branch}{marker}")
 
+pr = payload.get("pr") or {}
+pr_number = pr.get("number")
+pr_url = pr.get("url")
+if pr_number:
+    label = f"{CYAN}⇄{RESET} #{pr_number}"
+    if pr_url:
+        label = f"\033]8;;{pr_url}\033\\{label}\033]8;;\033\\"
+    line1.append(label)
+
 # ---- Line 2: context %, rate limits, cost, lines changed ----
 line2 = []
 
