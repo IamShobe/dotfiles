@@ -8,6 +8,15 @@ Use the `gh` CLI for all GitHub work (issues, PRs, repos, releases, etc.) — al
 
 Dotfiles are managed by chezmoi (source: `~/.local/share/chezmoi`). Several tracked files are templates — `~/.claude/settings.json` (a `modify_` script), `~/.zshrc`, `~/.gitconfig`, `~/.tmux.conf`.
 
+**Before editing any global config file** (anything in `~`, `~/.config`, `~/.claude`, or a dotfile in the home dir), check whether chezmoi owns it and work from the source:
+
+```bash
+chezmoi managed | grep <name>   # is it tracked?
+chezmoi source-path <target>    # where does it actually live?
+```
+
+If it is tracked, edit the source file and `chezmoi apply --force <target>` — never edit the target. If it is *not* tracked but is a durable global config the user will want on other machines, prefer bringing it under chezmoi (`chezmoi add <target>` — safe here, since the file is new to chezmoi) over leaving it untracked, and say so rather than silently adding it. Genuinely machine-local files (caches, credentials, per-host state) stay untracked.
+
 **Never run `chezmoi add` on an already-tracked file.** It replaces the source with a static snapshot, silently deleting template logic and breaking anything that `include`s it. Check first, then pick the path:
 
 ```bash
