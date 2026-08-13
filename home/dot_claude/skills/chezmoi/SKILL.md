@@ -20,11 +20,45 @@ Chezmoi is a dotfile manager that lets users maintain configuration files across
 - `chezmoi update` - Pull changes from the repo and apply them
 
 ### File Management
-- `chezmoi add <path>` - Add a file to chezmoi management
-- `chezmoi edit <path>` - Edit a managed file in your editor
+- `chezmoi add <path>` - Bring a **new, untracked** file under management. Never run this on an already-tracked file (see below).
+- `chezmoi re-add <path>` - Update the source from a modified **plain** file. Safe default: it refuses to overwrite templates.
+- `chezmoi source-path <path>` - Show where a target actually lives in the source
 - `chezmoi remove <path>` - Stop managing a file
 - `chezmoi diff` - Preview what changes would be applied
 - `chezmoi verify` - Check that all files match their targets
+
+### Editing a tracked file (decision procedure)
+
+`chezmoi add` on a tracked file replaces its source with a static snapshot. If that source was a template or `modify_` script, the logic is **destroyed**, and anything that `include`s it breaks on every subsequent chezmoi command. Always resolve the source first:
+
+```bash
+chezmoi source-path <target>
+```
+
+- Source ends in `.tmpl`, or the basename starts `modify_` / `create_` / `run_` → **templated**. Edit that source file directly with normal file tools, then `chezmoi apply --force <target>`.
+- Otherwise → **plain**. Use `chezmoi re-add <target>`.
+
+Never edit the target file directly — the next `apply` overwrites it.
+
+### Agent/non-interactive notes
+
+- **`chezmoi edit` is unsuitable for agents.** It launches `$EDITOR` and hangs. Edit the path from `source-path` instead.
+- **Pass `--force`.** Without a TTY, prompts fail with `could not open a new TTY`. Applies to `add`, `apply`, `forget`, `re-add`.
+- **Verify by rendering, not by reading the target:**
+  ```bash
+  chezmoi cat <target>                              # rendered output, without applying
+  chezmoi execute-template < "$(chezmoi source-path <target>)"
+  ```
+  Reading the target only shows the last-applied state, which lies if `apply` failed.
+
+### Recovering from a clobbered template
+
+If `chezmoi add` already ate a template, the source repo is a git repo — restore it:
+
+```bash
+cd "$(chezmoi source-path)" && git status --short
+rm <source>/<snapshot-file> && git checkout <source>/<template>.tmpl
+```
 
 ### Advanced Operations
 - `chezmoi merge` - Merge upstream changes (with conflict resolution)
@@ -97,6 +131,12 @@ Files in `~/.local/share/chezmoi/` (or `.chezmoi` directory in repo) can be temp
 **Merge conflicts**
 - `chezmoi merge` guides you through conflicts
 - Can manually resolve in `~/.local/share/chezmoi/`
+
+**"could not open a new TTY"**
+- The command wants an interactive prompt. Re-run with `--force`.
+
+**Template disappeared after `chezmoi add`**
+- Expected: `add` snapshots the target over the source. Restore via git in `$(chezmoi source-path)` and edit the template directly instead.
 
 **Encryption issues**
 - Ensure GPG/age keys are configured
