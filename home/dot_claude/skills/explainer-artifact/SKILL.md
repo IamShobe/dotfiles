@@ -141,4 +141,5 @@ Then **stop and let the user prune.** Expect "delete that", "too AI", "fix that 
 - [ ] `<Theme/>` rendered; styled via vars; both themes look right; any rich lib earns its place.
 - [ ] 3+ sections → fixed side-rail TOC (vendored `Scrollspy`) with each top-level heading.
 - [ ] If a TOC is present: `grep -n RoughNotation App.tsx` returns nothing (it detaches from text on scroll inside the TOC's own-scroll-container — swap for a plain CSS highlight `<span>`).
+- [ ] No `flex`/`inline-flex` component (an icon+link like `SourceLink`, an inline badge) sits inside a sentence of running prose — it breaks text reflow and can glue words together at a line wrap (see `libraries.md`). Fine for block-level layout (cards, badge rows), not for something a sentence flows around.
 - [ ] Code refs link to commit-pinned GitHub permalinks; every path + line range verified against source.
