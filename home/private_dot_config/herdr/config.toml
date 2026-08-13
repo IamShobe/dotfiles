@@ -49,5 +49,8 @@ delivery = "system"
 [experimental]
 pane_history = false
 
+[ui.sidebar.agents]
+rows = [["state_icon", "$spin", "workspace", "tab"], ["agent"]]
+
 [ui.sidebar.spaces]
-rows = [["state_icon", "workspace", "$pde"], ["branch", "git_status"]]
+rows = [["state_icon", "$spin", "workspace", "$pde"], ["branch", "git_status"]]
