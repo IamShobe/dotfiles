@@ -29,6 +29,8 @@ function Mermaid({ chart, id }: { chart: string; id: string }) {
 
 ## Scroll container + TOC scaffold
 
+**If this page also uses `RoughNotation`** (see `libraries.md`), it will visually detach from its text on scroll inside this `overflow-y-auto` div — RoughNotation has no listener on a non-window scroll ancestor. Use a plain CSS highlight `<span>` instead of `RoughNotation` anywhere inside this scroll container.
+
 ```tsx
 const scrollRef = useRef<HTMLDivElement>(null)
 <div ref={scrollRef} className="h-screen overflow-y-auto">
@@ -39,7 +41,10 @@ const scrollRef = useRef<HTMLDivElement>(null)
       ))}
     </nav>
   </Scrollspy>
-  <main>… <section id="core-shift">…</section> …</main>
+  {/* pl-* reserves the rail's gutter; do NOT also add mx-auto — centering the
+      max-w box in the full-width flex parent re-introduces the rail's offset
+      as dead space and can push content under/behind the fixed rail. */}
+  <main className="max-w-3xl pl-56 px-6 py-14">… <section id="core-shift">…</section> …</main>
 </div>
 ```
 
