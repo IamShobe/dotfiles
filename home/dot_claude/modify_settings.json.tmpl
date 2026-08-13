@@ -1,0 +1,147 @@
+#!/usr/bin/env python3
+"""Merge chezmoi-managed Claude settings into the existing file on this machine.
+
+chezmoi pipes the current ~/.claude/settings.json in on stdin and takes the desired
+contents from stdout. Merging (rather than replacing) keeps machine-local state that
+no other machine should carry:
+
+  - BlueBear's `bluebear hook claude …` hooks — installed and reconciled by the local
+    BlueBear daemon, which is not present on every machine.
+  - `model` — chosen per machine.
+
+Anything else in this template is authoritative and overwrites the local value.
+"""
+
+import json
+import sys
+
+MANAGED = json.loads(r"""
+{
+  "hooks": {
+    "UserPromptSubmit": [],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 {{ .chezmoi.homeDir }}/.claude/hooks/notify.py"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 {{ .chezmoi.homeDir }}/.claude/hooks/notify.py"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '{{ .chezmoi.homeDir }}/.claude/hooks/herdr-agent-state.sh' session",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rtk hook claude"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "python3 {{ .chezmoi.homeDir }}/.claude/hooks/status.py"
+  },
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "effortLevel": "medium",
+  "alwaysThinkingEnabled": false,
+  "showThinkingSummaries": true,
+  "autoCompactEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": false,
+    "skill-creator@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "feature-dev@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "claude-api@anthropic-agent-skills": true
+  },
+  "extraKnownMarketplaces": {
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/skills"
+      }
+    }
+  }
+}
+""")
+
+# Keys left to whatever the machine already has.
+LOCAL_ONLY_KEYS = ("model",)
+
+
+def is_local_hook(command):
+    return "bluebear" in command
+
+
+def main():
+    raw = sys.stdin.read()
+    try:
+        current = json.loads(raw) if raw.strip() else {}
+    except json.JSONDecodeError:
+        # Never destroy a file we cannot parse.
+        sys.stdout.write(raw)
+        return
+
+    result = dict(MANAGED)
+
+    for key in LOCAL_ONLY_KEYS:
+        if key in current:
+            result[key] = current[key]
+
+    merged_hooks = {
+        event: [dict(entry) for entry in entries]
+        for event, entries in MANAGED.get("hooks", {}).items()
+    }
+
+    for event, entries in current.get("hooks", {}).items():
+        for entry in entries:
+            local = [hk for hk in entry.get("hooks", []) if is_local_hook(hk.get("command", ""))]
+            if not local:
+                continue
+            preserved = dict(entry)
+            preserved["hooks"] = local
+            merged_hooks.setdefault(event, []).append(preserved)
+
+    result["hooks"] = merged_hooks
+    json.dump(result, sys.stdout, indent=2)
+    sys.stdout.write("\n")
+
+
+main()
