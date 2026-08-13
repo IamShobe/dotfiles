@@ -22,19 +22,26 @@ knowledge (see its `AGENTS.md` for full rules — read it before writing there).
 Applies in every session, any working directory, not just when already inside
 that folder:
 
+- **Read `~/vaults/personal/VAULT-INDEX.md` first**, before grepping the
+  vault — it's a live summary of what exists (notes, open threads, recent
+  changes), kept current on every write. Don't rediscover the vault from
+  scratch when the index already has the answer.
 - Whenever a Claude memory entry is saved and it is clearly personal — not
   tied to a specific work project, employer, or repo — also write or update
   a corresponding note in `~/vaults/personal`, following that vault's
   `AGENTS.md` template and filing rules. If ambiguous whether it's personal
   or work-related, skip mirroring rather than ask.
+- **After any write, update `VAULT-INDEX.md`** (Notes list + "Recently
+  touched") in the same turn — it must never drift out of sync with what's
+  actually in the vault.
 - At the end of a session, do a quick pass for anything personal and
   vault-worthy that wasn't already mirrored, and file it then. Skip silently
   if there's nothing to add.
 - Never write work content into this vault. When in doubt, don't.
 - **Recall**: whenever something in a session would prompt checking Claude
-  memory for relevance, also check this vault (`grep`/read notes directly —
-  no MCP needed). Treat it as a second, equally-weighted source, not a
-  fallback only checked when memory comes up empty.
+  memory for relevance, check `VAULT-INDEX.md` first, then the relevant
+  note(s) directly (no MCP needed). Treat it as a second, equally-weighted
+  source, not a fallback only checked when memory comes up empty.
 
 # Signatures
 
