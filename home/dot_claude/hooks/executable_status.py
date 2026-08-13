@@ -1,55 +1,9 @@
 #!/usr/bin/env python3
-"""Display a pretty usage status line in Claude Code."""
+"""Display a pretty, information-dense status line in Claude Code."""
 import json
-import sys
-import os
 import subprocess
-import tempfile
-import time
-
-def fmt_tokens(n):
-    """Format tokens as K, M notation."""
-    if n >= 1_000_000:
-        return f"{n/1_000_000:.1f}M"
-    if n >= 1_000:
-        return f"{n/1_000:.1f}K"
-    return str(n)
-
-try:
-    payload = json.loads(sys.stdin.read())
-except Exception:
-    sys.exit(0)
-
-transcript_path = payload.get("transcript_path")
-if not transcript_path or not os.path.exists(transcript_path):
-    sys.exit(0)
-
-# Accumulate totals
-totals = {
-    "input_tokens": 0,
-    "output_tokens": 0,
-    "cache_read_input_tokens": 0,
-    "cache_creation_input_tokens": 0,
-}
-model = ""
-
-with open(transcript_path) as f:
-    for line in f:
-        try:
-            obj = json.loads(line)
-            if obj.get("type") == "assistant":
-                msg = obj.get("message", {})
-                if msg.get("role") == "assistant":
-                    if msg.get("model"):
-                        model = msg["model"]
-                    usage = msg.get("usage", {})
-                    if usage:
-                        totals["input_tokens"] += usage.get("input_tokens", 0)
-                        totals["output_tokens"] += usage.get("output_tokens", 0)
-                        totals["cache_read_input_tokens"] += usage.get("cache_read_input_tokens", 0)
-                        totals["cache_creation_input_tokens"] += usage.get("cache_creation_input_tokens", 0)
-        except Exception:
-            continue
+import sys
+from datetime import datetime
 
 # ANSI color codes
 CYAN = "\033[36m"
@@ -57,92 +11,115 @@ YELLOW = "\033[33m"
 GREEN = "\033[32m"
 BLUE = "\033[34m"
 MAGENTA = "\033[35m"
+RED = "\033[31m"
 DIM = "\033[2m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-# Build pretty status line
-parts = []
 
-# Model with color
-if model:
-    model_short = model.split("-")[1] if "-" in model else model
-    parts.append(f"{CYAN}◆{RESET} {BOLD}{model_short}{RESET}")
+def pct_color(pct):
+    if pct is None:
+        return DIM
+    if pct > 85:
+        return RED
+    if pct > 60:
+        return YELLOW
+    return GREEN
 
-# Input tokens (blue)
-parts.append(f"{BLUE}↓{RESET} {fmt_tokens(totals['input_tokens'])}")
 
-# Output tokens (green)
-parts.append(f"{GREEN}↑{RESET} {fmt_tokens(totals['output_tokens'])}")
-
-# Cache stats (magenta)
-cache_read = totals["cache_read_input_tokens"]
-cache_write = totals["cache_creation_input_tokens"]
-if cache_read or cache_write:
-    parts.append(f"{MAGENTA}⚡{RESET} {fmt_tokens(cache_read)}/{fmt_tokens(cache_write)}")
-
-# Context window usage (from payload)
-context_window = payload.get("context_window", {})
-if context_window:
-    used = context_window.get("used_percentage", 0)
-    # Color based on usage level
-    if used > 85:
-        color = "\033[31m"  # Red
-    elif used > 60:
-        color = "\033[33m"  # Yellow
-    else:
-        color = "\033[32m"  # Green
-    parts.append(f"{color}◉{RESET} {used:.0f}%")
-
-# Monthly spend from ccusage (cached for 5 minutes to avoid slowdown)
-CACHE_FILE = os.path.join(tempfile.gettempdir(), "ccusage_monthly_cache.json")
-CACHE_TTL = 300  # seconds
-
-def get_monthly_spend():
+def fmt_time_left(epoch_seconds):
     try:
-        now = time.time()
-        if os.path.exists(CACHE_FILE):
-            age = now - os.path.getmtime(CACHE_FILE)
-            if age < CACHE_TTL:
-                with open(CACHE_FILE) as f:
-                    cached = json.load(f)
-                return cached.get("spend")
+        delta = epoch_seconds - datetime.now().timestamp()
+        if delta <= 0:
+            return None
+        hours, rem = divmod(int(delta), 3600)
+        minutes = rem // 60
+        if hours >= 24:
+            days, hours = divmod(hours, 24)
+            return f"{days}d{hours}h"
+        if hours:
+            return f"{hours}h{minutes}m"
+        return f"{minutes}m"
+    except Exception:
+        return None
+
+
+def git_branch(cwd):
+    try:
         result = subprocess.run(
-            ["mise", "exec", "ccusage", "--", "ccusage", "monthly", "--json"],
-            capture_output=True, text=True, timeout=10
+            ["git", "-C", cwd, "status", "--porcelain=v2", "--branch"],
+            capture_output=True, text=True, timeout=2,
         )
         if result.returncode != 0:
-            print(f"ccusage error: {result.stderr}", file=sys.stderr)
-        if result.returncode == 0 and result.stdout.strip():
-            data = json.loads(result.stdout.strip())
-            # ccusage monthly --json returns {monthly: [...], totals: {...}}
-            if isinstance(data, dict) and "monthly" in data:
-                monthly = data["monthly"]
-                if isinstance(monthly, list) and monthly:
-                    entry = monthly[-1]  # most recent month
-                else:
-                    return None
-            elif isinstance(data, list) and data:
-                entry = data[-1]  # fallback: direct list
-            elif isinstance(data, dict):
-                entry = data  # fallback: direct dict
-            else:
-                return None
-            spend = (entry.get("totalCost") or entry.get("cost") or
-                     entry.get("total_cost") or entry.get("total"))
-            if spend is None:
-                return None
-            with open(CACHE_FILE, "w") as f:
-                json.dump({"spend": spend}, f)
-            return spend
+            return None
+        branch = None
+        dirty = False
+        for line in result.stdout.splitlines():
+            if line.startswith("# branch.head"):
+                branch = line.split()[-1]
+            elif not line.startswith("#"):
+                dirty = True
+        if branch is None or branch == "(detached)":
+            return None
+        return branch, dirty
     except Exception:
-        pass
-    return None
+        return None
 
-monthly_spend = get_monthly_spend()
-if monthly_spend is not None:
-    parts.append(f"{YELLOW}${monthly_spend:.2f}{RESET}/mo")
 
-# Join with nice separator
-status = f"{DIM}│{RESET}  ".join(parts)
-print(f"  {status}")
+try:
+    payload = json.loads(sys.stdin.read())
+except Exception:
+    sys.exit(0)
+
+# ---- Line 1: model, directory, git branch ----
+line1 = []
+
+model = payload.get("model", {}).get("display_name", "")
+if model:
+    line1.append(f"{CYAN}◆{RESET} {BOLD}{model}{RESET}")
+
+cwd = payload.get("workspace", {}).get("current_dir") or payload.get("cwd", "")
+if cwd:
+    dirname = cwd.rstrip("/").split("/")[-1] or "/"
+    line1.append(f"{BLUE}📁{RESET} {dirname}")
+
+git_info = git_branch(cwd) if cwd else None
+if git_info:
+    branch, dirty = git_info
+    marker = f"{YELLOW}*{RESET}" if dirty else ""
+    line1.append(f"{MAGENTA}⎇{RESET} {branch}{marker}")
+
+# ---- Line 2: context %, rate limits, cost, lines changed ----
+line2 = []
+
+context_window = payload.get("context_window") or {}
+used = context_window.get("used_percentage")
+if used is not None:
+    color = pct_color(used)
+    line2.append(f"{color}◉{RESET} ctx {used:.0f}%")
+
+rate_limits = payload.get("rate_limits") or {}
+five_hour_data = rate_limits.get("five_hour", {})
+seven_day_data = rate_limits.get("seven_day", {})
+five_hour = five_hour_data.get("used_percentage")
+seven_day = seven_day_data.get("used_percentage")
+if five_hour is not None:
+    color = pct_color(five_hour)
+    left = fmt_time_left(five_hour_data.get("resets_at"))
+    left_str = f" {DIM}({left} left){RESET}" if left else ""
+    line2.append(f"{color}⏱{RESET} 5h {five_hour:.0f}%{left_str}")
+if seven_day is not None:
+    color = pct_color(seven_day)
+    left = fmt_time_left(seven_day_data.get("resets_at"))
+    left_str = f" {DIM}({left} left){RESET}" if left else ""
+    line2.append(f"{color}📅{RESET} 7d {seven_day:.0f}%{left_str}")
+
+cost = payload.get("cost") or {}
+total_cost = cost.get("total_cost_usd")
+if total_cost is not None:
+    line2.append(f"{YELLOW}${total_cost:.2f}{RESET}")
+
+sep = f" {DIM}│{RESET} "
+print("  " + sep.join(line1))
+if line2:
+    print("  " + sep.join(line2))
