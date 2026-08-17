@@ -2,8 +2,11 @@
 # herdr coder shim: when HERDR_CODER_WS is set (coder-backed herdr panes),
 # "claude" runs remotely in the pod over SSH but keeps argv0 "claude" so
 # herdr's process-based agent occupancy detection still recognizes the pane.
+# If the pod has ~/.claude-oauth-token (pushed by create-layout.sh from
+# claude setup-token), it authenticates the session via CLAUDE_CODE_OAUTH_TOKEN.
 if [[ -n "${HERDR_CODER_WS:-}" ]]; then
-  exec -a claude ssh -t "coder.${HERDR_CODER_WS}" claude "$@"
+  remote_cmd="if [ -s \"\$HOME/.claude-oauth-token\" ]; then export CLAUDE_CODE_OAUTH_TOKEN=\"\$(cat \"\$HOME/.claude-oauth-token\")\"; fi; exec claude $(printf '%q ' "$@")"
+  exec -a claude ssh -t "coder.${HERDR_CODER_WS}" "$remote_cmd"
 fi
 # not a coder pane: fall through to the real claude (strip shim dir from PATH)
 SHIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

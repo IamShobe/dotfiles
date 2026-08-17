@@ -33,7 +33,7 @@ SNAPSHOT_INTERVAL = 1.0        # how often to re-check agent/coder state
 DOWN_INTERVAL = 5.0            # retry cadence when the herdr server is down
 FRAME_TTL_MS = 5000            # crash cleanup only; frames overwrite each other
 CODER_TTL_MS = 30000           # coder marker; refreshed well inside this window
-CODER_MARK = "☁"
+CODER_MARK = "🌐"
 
 CODER_REGISTRY_PATH = Path.home() / ".local/state/herdr-tools/coder-workspaces.json"
 
