@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Animate a $spin metadata token for herdr workspaces/panes with working agents.
+"""Animate a $spin token and maintain a $coder token for herdr workspaces.
 
 herdr 0.8.0 replaced the animated working-state spinner with a static mark.
 This daemon restores the animation through supported APIs only: it polls
@@ -10,6 +10,14 @@ in ~/.config/herdr/config.toml — trailing position matters: the token clears
 when the agent stops working, and only an end-of-row token can vanish without
 reflowing the text before it. The native state_icon stays untouched.
 
+herdr exposes no signal for "this workspace is attached to a Coder PDE" (no
+process/argv per pane, only local cwd), so that mapping is tracked explicitly
+in ~/.local/state/herdr-tools/coder-workspaces.json via herdr-coder-registry,
+written whenever a Coder-backed workspace is created. This daemon reads that
+registry each snapshot tick and keeps a persistent "coder" token in sync —
+present for every registered workspace, cleared the moment it's unregistered
+or the herdr workspace itself closes.
+
 Frames carry a TTL so a crash leaves no frozen glyph; the TTL is long
 relative to the frame interval so a slow tick never reads as flicker.
 """
@@ -17,12 +25,17 @@ relative to the frame interval so a slow tick never reads as flicker.
 import json
 import subprocess
 import time
+from pathlib import Path
 
 FRAMES = "⣾⣽⣻⢿⡿⣟⣯⣷"
 FRAME_INTERVAL = 0.15          # seconds between frames while animating
-SNAPSHOT_INTERVAL = 1.0        # how often to re-check which agents are working
+SNAPSHOT_INTERVAL = 1.0        # how often to re-check agent/coder state
 DOWN_INTERVAL = 5.0            # retry cadence when the herdr server is down
-TTL_MS = 5000                  # crash cleanup only; frames overwrite each other
+FRAME_TTL_MS = 5000            # crash cleanup only; frames overwrite each other
+CODER_TTL_MS = 30000           # coder marker; refreshed well inside this window
+CODER_MARK = "☁"
+
+CODER_REGISTRY_PATH = Path.home() / ".local/state/herdr-tools/coder-workspaces.json"
 
 def herdr_fire(*args: str) -> None:
     """Fire-and-forget herdr call; keeps the frame loop off the CLI's latency."""
@@ -32,8 +45,7 @@ def herdr_fire(*args: str) -> None:
         stderr=subprocess.DEVNULL,
     )
 
-def working_targets() -> dict[str, set[str]] | None:
-    """Working-agent targets by report-metadata scope; None if herdr is down."""
+def snapshot() -> dict | None:
     try:
         proc = subprocess.run(
             ["herdr", "api", "snapshot"],
@@ -44,64 +56,85 @@ def working_targets() -> dict[str, set[str]] | None:
     if proc.returncode != 0:
         return None
     try:
-        snapshot = json.loads(proc.stdout)["result"]["snapshot"]
+        return json.loads(proc.stdout)["result"]["snapshot"]
     except (json.JSONDecodeError, KeyError):
         return None
+
+def working_targets(snap: dict) -> dict[str, set[str]]:
     return {
         "workspace": {
             ws["workspace_id"]
-            for ws in snapshot.get("workspaces", [])
+            for ws in snap.get("workspaces", [])
             if ws.get("agent_status") == "working"
         },
         "pane": {
             agent["pane_id"]
-            for agent in snapshot.get("agents", [])
+            for agent in snap.get("agents", [])
             if agent.get("agent_status") == "working"
         },
     }
 
-def set_frame(scope: str, target_id: str, frame: str) -> None:
+def coder_workspace_ids(snap: dict) -> set[str]:
+    try:
+        registry = json.loads(CODER_REGISTRY_PATH.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return set()
+    live_ids = {ws["workspace_id"] for ws in snap.get("workspaces", [])}
+    return set(registry) & live_ids
+
+def set_token(scope: str, target_id: str, name: str, value: str, ttl_ms: int) -> None:
     herdr_fire(
         scope, "report-metadata", target_id,
         "--source", "spinner",
-        "--token", f"spin={frame}",
-        "--ttl-ms", str(TTL_MS),
+        "--token", f"{name}={value}",
+        "--ttl-ms", str(ttl_ms),
     )
 
-def clear_frame(scope: str, target_id: str) -> None:
+def clear_token(scope: str, target_id: str, name: str) -> None:
     herdr_fire(
         scope, "report-metadata", target_id,
         "--source", "spinner",
-        "--clear-token", "spin",
+        "--clear-token", name,
     )
 
 def main() -> None:
     frame_index = 0
-    targets: dict[str, set[str]] = {"workspace": set(), "pane": set()}
+    spin_targets: dict[str, set[str]] = {"workspace": set(), "pane": set()}
+    coder_targets: set[str] = set()
     last_snapshot = 0.0
     while True:
         now = time.monotonic()
         if now - last_snapshot >= SNAPSHOT_INTERVAL:
-            fresh = working_targets()
+            snap = snapshot()
             last_snapshot = now
-            if fresh is None:
-                targets = {"workspace": set(), "pane": set()}
+            if snap is None:
+                spin_targets = {"workspace": set(), "pane": set()}
+                coder_targets = set()
                 time.sleep(DOWN_INTERVAL)
                 continue
-            for scope in targets:
-                for target_id in targets[scope] - fresh[scope]:
-                    clear_frame(scope, target_id)
-            targets = fresh
 
-        if not targets["workspace"] and not targets["pane"]:
+            fresh_spin = working_targets(snap)
+            for scope in spin_targets:
+                for target_id in spin_targets[scope] - fresh_spin[scope]:
+                    clear_token(scope, target_id, "spin")
+            spin_targets = fresh_spin
+
+            fresh_coder = coder_workspace_ids(snap)
+            for workspace_id in coder_targets - fresh_coder:
+                clear_token("workspace", workspace_id, "coder")
+            for workspace_id in fresh_coder:
+                set_token("workspace", workspace_id, "coder", CODER_MARK, CODER_TTL_MS)
+            coder_targets = fresh_coder
+
+        if not spin_targets["workspace"] and not spin_targets["pane"]:
             time.sleep(SNAPSHOT_INTERVAL)
             continue
 
         frame = FRAMES[frame_index % len(FRAMES)]
         frame_index += 1
-        for scope in targets:
-            for target_id in targets[scope]:
-                set_frame(scope, target_id, frame)
+        for scope in spin_targets:
+            for target_id in spin_targets[scope]:
+                set_token(scope, target_id, "spin", frame, FRAME_TTL_MS)
         time.sleep(FRAME_INTERVAL)
 
 if __name__ == "__main__":

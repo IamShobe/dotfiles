@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Maintain the herdr-workspace <-> Coder-workspace mapping used for the
+sidebar's coder indicator token.
+
+This is the source of truth for "which herdr workspaces are attached to a
+Coder PDE" — herdr itself exposes no such signal (no process/argv info per
+pane, only local cwd), so the mapping is recorded explicitly whenever a
+Coder-backed workspace is created, and pruned when either side goes away.
+
+Usage:
+  herdr-coder-registry link <herdr_workspace_id> <coder_workspace_name>
+  herdr-coder-registry unlink <herdr_workspace_id>
+  herdr-coder-registry list
+  herdr-coder-registry prune   # drop entries whose herdr workspace or
+                                # Coder workspace no longer exists
+"""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+REGISTRY_PATH = Path.home() / ".local/state/herdr-tools/coder-workspaces.json"
+
+def load() -> dict:
+    if not REGISTRY_PATH.exists():
+        return {}
+    try:
+        return json.loads(REGISTRY_PATH.read_text())
+    except json.JSONDecodeError:
+        return {}
+
+def save(registry: dict) -> None:
+    REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REGISTRY_PATH.write_text(json.dumps(registry, indent=2, sort_keys=True) + "\n")
+
+def live_herdr_workspace_ids() -> set[str]:
+    proc = subprocess.run(
+        ["herdr", "workspace", "list"], capture_output=True, text=True, timeout=10
+    )
+    if proc.returncode != 0:
+        return set()
+    data = json.loads(proc.stdout)
+    return {ws["workspace_id"] for ws in data["result"]["workspaces"]}
+
+def live_coder_workspace_names() -> set[str]:
+    proc = subprocess.run(
+        ["coder", "list", "--output", "json"], capture_output=True, text=True, timeout=15
+    )
+    if proc.returncode != 0:
+        return set()
+    try:
+        return {ws["name"] for ws in json.loads(proc.stdout)}
+    except (json.JSONDecodeError, KeyError):
+        return set()
+
+def cmd_link(workspace_id: str, coder_name: str) -> None:
+    registry = load()
+    registry[workspace_id] = coder_name
+    save(registry)
+    print(f"linked {workspace_id} -> {coder_name}")
+
+def cmd_unlink(workspace_id: str) -> None:
+    registry = load()
+    if registry.pop(workspace_id, None) is not None:
+        save(registry)
+        print(f"unlinked {workspace_id}")
+    else:
+        print(f"{workspace_id} was not linked")
+
+def cmd_list() -> None:
+    for workspace_id, coder_name in sorted(load().items()):
+        print(f"{workspace_id}\t{coder_name}")
+
+def cmd_prune() -> None:
+    registry = load()
+    herdr_ids = live_herdr_workspace_ids()
+    coder_names = live_coder_workspace_names()
+    kept = {}
+    for workspace_id, coder_name in registry.items():
+        if workspace_id not in herdr_ids:
+            print(f"pruning {workspace_id} -> {coder_name}: herdr workspace gone")
+            continue
+        if coder_name not in coder_names:
+            print(f"pruning {workspace_id} -> {coder_name}: coder workspace gone")
+            continue
+        kept[workspace_id] = coder_name
+    if kept != registry:
+        save(kept)
+
+def main() -> None:
+    args = sys.argv[1:]
+    if not args:
+        print(__doc__)
+        sys.exit(1)
+    command, rest = args[0], args[1:]
+    if command == "link" and len(rest) == 2:
+        cmd_link(*rest)
+    elif command == "unlink" and len(rest) == 1:
+        cmd_unlink(*rest)
+    elif command == "list" and not rest:
+        cmd_list()
+    elif command == "prune" and not rest:
+        cmd_prune()
+    else:
+        print(__doc__)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
