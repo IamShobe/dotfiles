@@ -25,6 +25,13 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
           ". + {hasCompletedOnboarding: true, lastOnboardingVersion: \$v, theme: \"dark\"}" \
           "$HOME/.claude.json" > "$tmp" && mv "$tmp" "$HOME/.claude.json"
       fi
+      mkdir -p "$HOME/.claude"
+      if [ ! -s "$HOME/.claude/settings.json" ]; then
+        echo "{}" > "$HOME/.claude/settings.json"
+      fi
+      tmp="$(mktemp)" && jq \
+        ". + {permissions: ((.permissions // {}) + {defaultMode: \"auto\"}), skipAutoPermissionPrompt: true}" \
+        "$HOME/.claude/settings.json" > "$tmp" && mv "$tmp" "$HOME/.claude/settings.json"
     fi
     exec claude '"${args}"'
   '
