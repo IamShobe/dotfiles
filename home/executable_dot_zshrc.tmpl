@@ -199,3 +199,6 @@ fi
 
 [ -f "$HOME/.hooks" ] && source $HOME/.hooks
 
+
+# herdr coder shim: must load after startup/mise so its PATH prepend is final
+[ -f $ZSH_DIR/herdr-coder-shim.zsh ] && source $ZSH_DIR/herdr-coder-shim.zsh
