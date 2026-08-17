@@ -59,10 +59,17 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
     CLAUDE_CODE_OAUTH_TOKEN="$(op read "${OP_TOKEN_REF}" 2>/dev/null)" || CLAUDE_CODE_OAUTH_TOKEN=""
     export CLAUDE_CODE_OAUTH_TOKEN
   fi
+  # GH_TOKEN rides the same SendEnv channel so gh (PR status, gh pr, git
+  # credential helper via gh) works inside the remote claude session without
+  # a per-pod `gh auth login`.
+  if command -v gh >/dev/null 2>&1; then
+    GH_TOKEN="$(gh auth token 2>/dev/null)" || GH_TOKEN=""
+    export GH_TOKEN
+  fi
   # CODER_SSH_WAIT=no: connect as soon as the agent is up instead of blocking
   # until the pod's full startup script (k3d + pnpm + tilt) finishes.
   export CODER_SSH_WAIT=no
-  exec -a claude ssh -t -o SendEnv=CLAUDE_CODE_OAUTH_TOKEN "coder.${HERDR_CODER_WS}" "$remote_cmd"
+  exec -a claude ssh -t -o SendEnv=CLAUDE_CODE_OAUTH_TOKEN -o SendEnv=GH_TOKEN "coder.${HERDR_CODER_WS}" "$remote_cmd"
 fi
 # not a coder pane: fall through to the real claude (strip shim dir from PATH)
 SHIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
