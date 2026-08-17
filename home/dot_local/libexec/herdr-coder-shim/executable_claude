@@ -7,6 +7,10 @@
 # before the pty hands off to claude's own stdin — the token is never written
 # to disk on either end, and never appears in any process's argv.
 if [[ -n "${HERDR_CODER_WS:-}" ]]; then
+  # Remote project directory to cd into and pre-trust — generic default is
+  # the pod's home; a project-specific caller (e.g. the coder-herdr skill)
+  # overrides this with HERDR_CODER_PROJECT_DIR (e.g. /workspace/act).
+  PROJECT_DIR="${HERDR_CODER_PROJECT_DIR:-\$HOME}"
   # Build the remote `exec claude ...` invocation as a single safely-quoted
   # string. With zero args this must produce exactly `exec claude` — no
   # trailing empty-string argument, which claude misreads as implying
@@ -31,10 +35,10 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
           ". + {hasCompletedOnboarding: true, lastOnboardingVersion: \$v, theme: \"dark\"}" \
           "$HOME/.claude.json" > "$tmp" && mv "$tmp" "$HOME/.claude.json"
       fi
-      # Skip the per-directory trust prompt for the pod'\''s one real project
-      # path (undocumented internal state; see projects.<path>.hasTrustDialogAccepted).
+      # Skip the per-directory trust prompt for the pod'\''s project path
+      # (undocumented internal state; see projects.<path>.hasTrustDialogAccepted).
       tmp="$(mktemp)" && jq \
-        ". + {projects: ((.projects // {}) + {\"/workspace/act\": ((.projects[\"/workspace/act\"] // {}) + {hasTrustDialogAccepted: true})})}" \
+        ". + {projects: ((.projects // {}) + {\"${PROJECT_DIR}\": ((.projects[\"${PROJECT_DIR}\"] // {}) + {hasTrustDialogAccepted: true})})}" \
         "$HOME/.claude.json" > "$tmp" && mv "$tmp" "$HOME/.claude.json"
       mkdir -p "$HOME/.claude"
       if [ ! -s "$HOME/.claude/settings.json" ]; then
@@ -44,7 +48,7 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
         ". + {permissions: ((.permissions // {}) + {defaultMode: \"auto\"}), skipAutoPermissionPrompt: true}" \
         "$HOME/.claude/settings.json" > "$tmp" && mv "$tmp" "$HOME/.claude/settings.json"
     fi
-    cd /workspace/act 2>/dev/null || true
+    cd "'"${PROJECT_DIR}"'" 2>/dev/null || true
     '"${exec_claude}"'
   '
   # Token delivery via SSH SendEnv: the value lives only in this process's
@@ -54,9 +58,12 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
   # allocates a proper pty for the interactive session. (Piping the token
   # over stdin instead silently downgrades -t to no-pty — the warning is
   # hidden by LogLevel ERROR — and pty-less claude dies in --print mode.)
-  OP_TOKEN_REF="${HERDR_CODER_OP_REF:-op://Employee/claude-coder-oauth/credential}"
-  if command -v op >/dev/null 2>&1; then
-    CLAUDE_CODE_OAUTH_TOKEN="$(op read "${OP_TOKEN_REF}" 2>/dev/null)" || CLAUDE_CODE_OAUTH_TOKEN=""
+  # No generic default — a 1Password item reference is inherently
+  # project/org-specific. Callers set HERDR_CODER_OP_REF (e.g. the
+  # coder-herdr skill sets it to its own act/Employee vault item); with it
+  # unset, this pane simply gets no token and remote claude asks to /login.
+  if [[ -n "${HERDR_CODER_OP_REF:-}" ]] && command -v op >/dev/null 2>&1; then
+    CLAUDE_CODE_OAUTH_TOKEN="$(op read "${HERDR_CODER_OP_REF}" 2>/dev/null)" || CLAUDE_CODE_OAUTH_TOKEN=""
     export CLAUDE_CODE_OAUTH_TOKEN
   fi
   # GH_TOKEN rides the same SendEnv channel so gh (PR status, gh pr, git
