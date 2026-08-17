@@ -2,8 +2,10 @@
 # herdr coder shim: when HERDR_CODER_WS is set (coder-backed herdr panes),
 # "claude" runs remotely in the pod over SSH but keeps argv0 "claude" so
 # herdr's process-based agent occupancy detection still recognizes the pane.
-# If the pod has ~/.claude-oauth-token (pushed by create-layout.sh from
-# claude setup-token), it authenticates the session via CLAUDE_CODE_OAUTH_TOKEN.
+# The Claude OAuth token is read via `op read` (1Password CLI) and piped over
+# the ssh connection's stdin, consumed by a `read` in the remote command
+# before the pty hands off to claude's own stdin — the token is never written
+# to disk on either end, and never appears in any process's argv.
 if [[ -n "${HERDR_CODER_WS:-}" ]]; then
   args=""
   if (( $# > 0 )); then
@@ -16,8 +18,9 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
   # ~/.claude.json so the TUI starts straight at the prompt and then picks up
   # the env var as its credential.
   remote_cmd='
-    if [ -s "$HOME/.claude-oauth-token" ]; then
-      export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.claude-oauth-token")"
+    read -r CLAUDE_CODE_OAUTH_TOKEN
+    export CLAUDE_CODE_OAUTH_TOKEN
+    if [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
       if ! grep -q hasCompletedOnboarding "$HOME/.claude.json" 2>/dev/null; then
         [ -s "$HOME/.claude.json" ] || echo "{}" > "$HOME/.claude.json"
         v="$(claude --version 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)"
@@ -25,6 +28,11 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
           ". + {hasCompletedOnboarding: true, lastOnboardingVersion: \$v, theme: \"dark\"}" \
           "$HOME/.claude.json" > "$tmp" && mv "$tmp" "$HOME/.claude.json"
       fi
+      # Skip the per-directory trust prompt for the pod'\''s one real project
+      # path (undocumented internal state; see projects.<path>.hasTrustDialogAccepted).
+      tmp="$(mktemp)" && jq \
+        ". + {projects: ((.projects // {}) + {\"/workspace/act\": ((.projects[\"/workspace/act\"] // {}) + {hasTrustDialogAccepted: true})})}" \
+        "$HOME/.claude.json" > "$tmp" && mv "$tmp" "$HOME/.claude.json"
       mkdir -p "$HOME/.claude"
       if [ ! -s "$HOME/.claude/settings.json" ]; then
         echo "{}" > "$HOME/.claude/settings.json"
@@ -36,7 +44,12 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
     cd /workspace/act 2>/dev/null || true
     exec claude '"${args}"'
   '
-  exec -a claude ssh -t "coder.${HERDR_CODER_WS}" "$remote_cmd"
+  OP_TOKEN_REF="${HERDR_CODER_OP_REF:-op://Employee/claude-coder-oauth/credential}"
+  if command -v op >/dev/null 2>&1; then
+    op read "${OP_TOKEN_REF}" 2>/dev/null | exec -a claude ssh -t "coder.${HERDR_CODER_WS}" "$remote_cmd"
+  else
+    echo | exec -a claude ssh -t "coder.${HERDR_CODER_WS}" "$remote_cmd"
+  fi
 fi
 # not a coder pane: fall through to the real claude (strip shim dir from PATH)
 SHIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
