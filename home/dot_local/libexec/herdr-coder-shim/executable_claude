@@ -59,6 +59,9 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
     CLAUDE_CODE_OAUTH_TOKEN="$(op read "${OP_TOKEN_REF}" 2>/dev/null)" || CLAUDE_CODE_OAUTH_TOKEN=""
     export CLAUDE_CODE_OAUTH_TOKEN
   fi
+  # CODER_SSH_WAIT=no: connect as soon as the agent is up instead of blocking
+  # until the pod's full startup script (k3d + pnpm + tilt) finishes.
+  export CODER_SSH_WAIT=no
   exec -a claude ssh -t -o SendEnv=CLAUDE_CODE_OAUTH_TOKEN "coder.${HERDR_CODER_WS}" "$remote_cmd"
 fi
 # not a coder pane: fall through to the real claude (strip shim dir from PATH)
