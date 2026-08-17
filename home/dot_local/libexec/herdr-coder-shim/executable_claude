@@ -1,0 +1,10 @@
+#!/bin/bash
+# herdr coder shim: when HERDR_CODER_WS is set (coder-backed herdr panes),
+# "claude" runs remotely in the pod over SSH but keeps argv0 "claude" so
+# herdr's process-based agent occupancy detection still recognizes the pane.
+if [[ -n "${HERDR_CODER_WS:-}" ]]; then
+  exec -a claude ssh -t "coder.${HERDR_CODER_WS}" claude "$@"
+fi
+# not a coder pane: fall through to the real claude (strip shim dir from PATH)
+SHIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PATH="$(echo "$PATH" | tr ':' '\n' | grep -vxF "$SHIM_DIR" | tr '\n' ':' )" exec claude "$@"
