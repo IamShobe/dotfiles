@@ -7,9 +7,14 @@
 # before the pty hands off to claude's own stdin — the token is never written
 # to disk on either end, and never appears in any process's argv.
 if [[ -n "${HERDR_CODER_WS:-}" ]]; then
-  args=""
+  # Build the remote `exec claude ...` invocation as a single safely-quoted
+  # string. With zero args this must produce exactly `exec claude` — no
+  # trailing empty-string argument, which claude misreads as implying
+  # --print with no piped input ("Input must be provided either through
+  # stdin or as a prompt argument when using --print").
+  exec_claude="exec claude"
   if (( $# > 0 )); then
-    args="$(printf '%q ' "$@")"
+    exec_claude="exec claude $(printf '%q ' "$@")"
   fi
   # The interactive TUI's first-run onboarding (theme picker -> login picker)
   # ignores CLAUDE_CODE_OAUTH_TOKEN by design (upstream issue #46259, closed
@@ -42,7 +47,7 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
         "$HOME/.claude/settings.json" > "$tmp" && mv "$tmp" "$HOME/.claude/settings.json"
     fi
     cd /workspace/act 2>/dev/null || true
-    exec claude '"${args}"'
+    '"${exec_claude}"'
   '
   OP_TOKEN_REF="${HERDR_CODER_OP_REF:-op://Employee/claude-coder-oauth/credential}"
   if command -v op >/dev/null 2>&1; then
