@@ -33,6 +33,7 @@ if [[ -n "${HERDR_CODER_WS:-}" ]]; then
         ". + {permissions: ((.permissions // {}) + {defaultMode: \"auto\"}), skipAutoPermissionPrompt: true}" \
         "$HOME/.claude/settings.json" > "$tmp" && mv "$tmp" "$HOME/.claude/settings.json"
     fi
+    cd /workspace/act 2>/dev/null || true
     exec claude '"${args}"'
   '
   exec -a claude ssh -t "coder.${HERDR_CODER_WS}" "$remote_cmd"
