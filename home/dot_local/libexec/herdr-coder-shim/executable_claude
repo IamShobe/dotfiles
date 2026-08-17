@@ -5,7 +5,29 @@
 # If the pod has ~/.claude-oauth-token (pushed by create-layout.sh from
 # claude setup-token), it authenticates the session via CLAUDE_CODE_OAUTH_TOKEN.
 if [[ -n "${HERDR_CODER_WS:-}" ]]; then
-  remote_cmd="if [ -s \"\$HOME/.claude-oauth-token\" ]; then export CLAUDE_CODE_OAUTH_TOKEN=\"\$(cat \"\$HOME/.claude-oauth-token\")\"; fi; exec claude $(printf '%q ' "$@")"
+  args=""
+  if (( $# > 0 )); then
+    args="$(printf '%q ' "$@")"
+  fi
+  # The interactive TUI's first-run onboarding (theme picker -> login picker)
+  # ignores CLAUDE_CODE_OAUTH_TOKEN by design (upstream issue #46259, closed
+  # not-planned) even though -p mode and `claude auth status` honor it. The
+  # sanctioned workaround is seeding onboarding-complete state into
+  # ~/.claude.json so the TUI starts straight at the prompt and then picks up
+  # the env var as its credential.
+  remote_cmd='
+    if [ -s "$HOME/.claude-oauth-token" ]; then
+      export CLAUDE_CODE_OAUTH_TOKEN="$(cat "$HOME/.claude-oauth-token")"
+      if ! grep -q hasCompletedOnboarding "$HOME/.claude.json" 2>/dev/null; then
+        [ -s "$HOME/.claude.json" ] || echo "{}" > "$HOME/.claude.json"
+        v="$(claude --version 2>/dev/null | grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)"
+        tmp="$(mktemp)" && jq --arg v "${v:-2.1.221}" \
+          ". + {hasCompletedOnboarding: true, lastOnboardingVersion: \$v, theme: \"dark\"}" \
+          "$HOME/.claude.json" > "$tmp" && mv "$tmp" "$HOME/.claude.json"
+      fi
+    fi
+    exec claude '"${args}"'
+  '
   exec -a claude ssh -t "coder.${HERDR_CODER_WS}" "$remote_cmd"
 fi
 # not a coder pane: fall through to the real claude (strip shim dir from PATH)
