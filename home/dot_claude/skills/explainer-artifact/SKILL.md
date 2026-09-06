@@ -64,7 +64,7 @@ Reach for these; build them with shadcn + the template's rich libs (all pre-inst
 | Before/After cards | two shadcn `Card`s side by side, or old→new with a `lucide-react` `ArrowRight` |
 | Diff-chips (`+ added` / `− removed`) | inline `<span>`s with green/red Tailwind classes |
 | Emphasize a word in prose | `RoughNotation` (`react-rough-notation`) — highlight/circle/underline/strike. **Breaks inside the TOC's own-scroll-container** (below) — the mark detaches from its text on scroll. If this page has a side-rail TOC, use a plain CSS highlight `<span>` instead (see `libraries.md`). |
-| Flow / sequence / state diagram | `import mermaid`, render in a `useEffect`; **color-code by role**, 4–7 nodes — see `web-artifacts-builder`'s `references/mermaid.md`. Native `<pre className="mermaid">` does **not** work bundled. |
+| Any diagram — flow, sequence, state, architecture, layer stack, timeline… | the **`diagram-design`** skill → inline its `<svg>` as a component. See §Diagrams below. **Never `import mermaid`.** |
 | Hover to reveal detail | `Tippy` (`@tippyjs/react`) — wrap a `<span>` |
 | Call out *the* line in code | `Highlight` (`prism-react-renderer`) |
 | Charts | `recharts` (only if a number genuinely needs a chart — usually a table is better) |
@@ -76,7 +76,24 @@ Reach for these; build them with shadcn + the template's rich libs (all pre-inst
 
 **Icons:** `lucide-react` for UI glyphs (`import { Shield, Zap } from 'lucide-react'`). Brand logos (AWS, GitHub, Postgres…): inline a Simple-Icons `<svg fill="currentColor">`. Never a placeholder glyph like □.
 
-**Size discipline:** unused imports tree-shake out, so import only what a section uses. `import mermaid` (the JS API) adds ~3MB — spend it only when the change genuinely needs a diagram.
+**Size discipline:** unused imports tree-shake out, so import only what a section uses. Diagrams cost nothing at bundle time — they're static inline `<svg>`, no renderer shipped.
+
+### Diagrams — always `diagram-design`
+
+**Every diagram in an explainer comes from the `diagram-design` skill.** No mermaid, no hand-rolled boxes-and-arrows SVG. Mermaid's auto-layout is exactly the "AI slop" look an explainer is trying to avoid, and it ships a ~3MB renderer to draw six boxes.
+
+`diagram-design` produces a standalone `.html` with one inline `<svg>`. You extract that `<svg>` and drop it into the page as a React component. Procedure:
+
+1. **Pick the type first.** `diagram-design` routes on what you're showing — architecture, flowchart, sequence, state machine, layer stack, timeline, data flow, dependency graph, and ~30 more. Load its SKILL.md and follow its type guide; don't freestyle.
+2. **Skin it to the explainer theme.** Run `/diagram-design:profile` once to save a profile whose tokens mirror this skill's vars (mapping in `references/theme-tokens.md`). Without this the diagram lands as warm-paper + tangerine beside an indigo page.
+3. **Generate**, then extract the first `<svg>…</svg>` block into `src/diagrams/<name>.tsx` as a component returning that JSX. Or run `/diagram-design:export-diagram <file>.html --svg-only` and inline the result.
+4. **Convert to JSX**: kebab attributes → camelCase (`stroke-width` → `strokeWidth`, `font-size` → `fontSize`), `class` → `className`, inline `style="…"` → an object, and self-close empty tags. Keep `viewBox`, `role="img"`, and the `<title>`/`<desc>` pair exactly — they're the accessible name.
+5. **Make it theme-aware.** This is the one place the two systems genuinely clash: `diagram-design` bakes **one** skin's hexes into the SVG, while the explainer page is dual-theme. Sed those hexes to `var(--…)` per the map in `references/theme-tokens.md` — **including the `<marker>` fills**, which don't inherit — then check both themes.
+6. **Size it**: wrap in `<div className="w-full overflow-x-auto">` and give the `<svg>` `className="w-full h-auto"` with its `viewBox` intact — it then scales to the full content width.
+
+Multiple diagrams on one page are safe: `diagram-design` prefixes its element IDs per diagram, so no two `<defs>` collide.
+
+**Fonts.** The diagram calls for Geist / Instrument Serif. Add one `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?…">` in `index.html` — `fonts.googleapis.com` is CSP-allowed in artifacts. If you skip it the diagram falls back to system sans, which is acceptable; a broken half-loaded state is not.
 
 ## Table of contents (fixed side-rail)
 
@@ -105,7 +122,17 @@ An explainer is an internal doc for teammates: match the product's theme, read a
 
 Type: sans body + `.mono` for code/identifiers/eyebrows (no display serif). ~65ch measure, `tabular-nums` in data columns. Raw hex ↔ token map, and how to re-skin: `references/theme-tokens.md`.
 
+**Dark mode is not an afterthought — build in it, not just check it.** The page is read in both, and dark is where explainers usually fall apart. Rules:
+
+- **Never a raw hex, never a Tailwind color class** for anything themed. `bg-white`, `text-gray-600`, `border-gray-200`, `bg-slate-50` are all light-mode-only and are the #1 cause of a broken dark page. Style through the vars: `style={{background:'var(--surface)', color:'var(--ink-2)'}}`. Tailwind is for layout and spacing, not color.
+- **Elevation comes from `--surface`, not from shadow or a lighter gray.** Shadows are invisible on a dark ground. A card is `--surface` on `--bg` with a `--border` hairline.
+- **Don't hand-tune per-theme.** If a thing needs different colors in each theme, you picked the wrong var — there's no `dark:` variant in this system.
+- **Opacity over invented tints.** For a wash, use `color-mix(in srgb, var(--brand) 12%, transparent)` — it tracks both themes. A hardcoded `#eef2ff` glows in dark mode.
+- **Anything with its own background** — code blocks, inline `<svg>`, data-URI images, `ReactCompareSlider` screenshots — does **not** inherit the theme. Code blocks are fine (`--code-bg` is dark in both by design). Screenshots of a light UI will sit as a white slab on a dark page: that's acceptable if it's deliberately a screenshot, but give it a `--border` frame so it reads as an image rather than a rendering bug.
+
 **Load `artifact-design`** for craft mechanics (type scale, `@font-face`) — but the shipped palette *is* the direction, so the vars above override "pick something distinctive". Wide content gets `overflow-x`.
+
+**Use the full viewport.** Never default to a narrow reading column: `main` at `max-w-[1280px]` (`2xl:max-w-[1480px]`) beside the rail gutter, with tables, grids, diagrams, and mockups spanning the full content width. Constrain *prose* legibility per-paragraph (`maxWidth: '88ch'` on the paragraph component), not by shrinking the page — a `max-w-3xl` page wastes most of the screen and squeezes every table.
 
 ## Build & publish
 
@@ -136,9 +163,14 @@ Then **stop and let the user prune.** Expect "delete that", "too AI", "fix that 
 - [ ] Deprecations answer "gone" vs "kept-but-don't-use".
 - [ ] Interface changes split user-facing vs developer-facing, old→new.
 - [ ] At least one real diagram / before-after / mockup.
+- [ ] Every diagram came from `diagram-design`: `grep -n "mermaid" App.tsx src/**/*.tsx` returns nothing.
+- [ ] Diagram SVGs are var-driven — `grep -oE '#(f5f5f5|2d3142|4f5d75|eb6c36|2e5aa8)' src/diagrams/*.tsx` returns nothing (marker fills included) — and both themes were checked.
 - [ ] Every code/config example is real and verified against source.
 - [ ] `// @title:` set in `App.tsx`; confirm with `grep -o '<title>[^<]*' <name>/bundle.html` — never ship a template default.
-- [ ] `<Theme/>` rendered; styled via vars; both themes look right; any rich lib earns its place.
+- [ ] `<Theme/>` rendered; styled via vars; any rich lib earns its place.
+- [ ] **Dark mode actually checked**, not assumed — toggle it and read the whole page.
+- [ ] No hardcoded colors: `grep -nE '(bg|text|border|from|to)-(white|black|gray|slate|zinc|neutral|stone|indigo|blue|red|green|amber)-?[0-9]*|#[0-9a-fA-F]{6}' App.tsx src/**/*.tsx` returns nothing outside `src/theme.tsx` and diagram files (which use vars per `theme-tokens.md`).
+- [ ] No `shadow-*` class — elevation is `--surface` + `--border`.
 - [ ] 3+ sections → fixed side-rail TOC (vendored `Scrollspy`) with each top-level heading.
 - [ ] If a TOC is present: `grep -n RoughNotation App.tsx` returns nothing (it detaches from text on scroll inside the TOC's own-scroll-container — swap for a plain CSS highlight `<span>`).
 - [ ] No `flex`/`inline-flex` component (an icon+link like `SourceLink`, an inline badge) sits inside a sentence of running prose — it breaks text reflow and can glue words together at a line wrap (see `libraries.md`). Fine for block-level layout (cards, badge rows), not for something a sentence flows around.
