@@ -21,6 +21,9 @@ _claude_litellm_start() {
   [[ -x "$litellm" ]] || { print -u2 "claude-litellm: litellm not installed (pipx install 'litellm[proxy]')"; return 1; }
   az_dir="$(dirname "$(command -v az 2>/dev/null || ls "$HOME"/.local/share/mise/installs/azure-cli/*/bin/az 2>/dev/null | tail -1)")"
   mkdir -p "${CLAUDE_LITELLM_LOG:h}"
+  # config.yaml `include`s a machine-local models file (workplace stuff, not in dotfiles);
+  # LiteLLM refuses to start if it's missing, so seed an empty one.
+  [[ -f "${CLAUDE_LITELLM_CONFIG:h}/models.local.yaml" ]] || print 'model_list: []' >"${CLAUDE_LITELLM_CONFIG:h}/models.local.yaml"
   PATH="${az_dir}:${PATH}" nohup "$litellm" --config "$CLAUDE_LITELLM_CONFIG" \
     --host 127.0.0.1 --port "$CLAUDE_LITELLM_PORT" >>"$CLAUDE_LITELLM_LOG" 2>&1 &!
   local i

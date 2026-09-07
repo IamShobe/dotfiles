@@ -13,4 +13,4 @@
 
 - [chezmoi: use `re-add`, not `add`](chezmoi-claude-settings-template.md) — `add` destroys templated sources like modify_settings.json.tmpl; `re-add` refuses to overwrite templates
 - [chezmoi: don't double-prefix `home/` after cd'ing into source-path](chezmoi-source-path-git-prefix.md) — `source-path` already resolves inside `home/`; git paths from there are relative to it, no extra prefix
-- [Claude → LiteLLM gateway](claude-litellm-gateway.md) — `claude` is a wrapper routing Claude→Anthropic (subscription) and astra/gpt-5.6→Azure via LiteLLM :4000; `claude-proxy`, `CLAUDE_DIRECT=1`
+- [Claude → LiteLLM gateway](claude-litellm-gateway.md) — `claude` is a zsh wrapper through LiteLLM :4000: Claude→Anthropic on subscription, extra models from unmanaged `~/.config/litellm/models.local.yaml`; `claude-proxy`, `CLAUDE_DIRECT=1`

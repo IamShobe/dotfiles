@@ -8,6 +8,7 @@ no other machine should carry:
   - BlueBear's `bluebear hook claude …` hooks — installed and reconciled by the local
     BlueBear daemon, which is not present on every machine.
   - `model` — chosen per machine.
+  - `modelPicker` — extra /model rows for machine-local gateway models (workplace).
 
 Anything else in this template is authoritative and overwrites the local value.
 """
@@ -79,15 +80,6 @@ MANAGED = json.loads(r"""
   "skipAutoPermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
   "tui": "fullscreen",
-  "modelPicker": {
-    "options": [
-      { "model": "astra[1m]",    "label": "GPT-6 Astra",   "description": "Azure Foundry via work router · 1M context", "behavesAs": "claude-opus-5" },
-      { "model": "gpt-5.6-sol",  "label": "GPT-5.6 Sol",   "description": "Azure Foundry via work router",              "behavesAs": "claude-opus-5" },
-      { "model": "gpt-5.6-terra","label": "GPT-5.6 Terra", "description": "Azure Foundry via work router",              "behavesAs": "claude-opus-5" },
-      { "model": "gpt-5.6-luna", "label": "GPT-5.6 Luna",  "description": "Azure Foundry via work router",              "behavesAs": "claude-opus-5" },
-      { "model": "gpt-5.5",      "label": "GPT-5.5",       "description": "Azure Foundry via work router",              "behavesAs": "claude-opus-5" }
-    ]
-  },
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": false,
     "skill-creator@claude-plugins-official": true,
@@ -127,7 +119,7 @@ MANAGED = json.loads(r"""
 """)
 
 # Keys left to whatever the machine already has.
-LOCAL_ONLY_KEYS = ("model",)
+LOCAL_ONLY_KEYS = ("model", "modelPicker")  # modelPicker: workplace models, per machine
 
 
 def is_local_hook(command):
