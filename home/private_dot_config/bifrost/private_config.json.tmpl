@@ -1,0 +1,41 @@
+{{- /* Only generic settings belong here. Local providers never enter the source tree. */ -}}
+{{- $config := dict
+  "encryption_key" "env.BIFROST_ENCRYPTION_KEY"
+  "setup_token" "env.BIFROST_SETUP_TOKEN"
+  "client" (dict
+    "disable_content_logging" true
+    "enable_logging" false
+    "logging_headers" (list)
+    "allow_direct_keys" true
+    "allowed_origins" (list "http://localhost:4001" "http://127.0.0.1:4001"))
+  "governance" (dict
+    "auth_config" (dict
+      "is_enabled" true
+      "admin_username" "admin"
+      "admin_password" "env.BIFROST_ADMIN_PASSWORD"
+      "disable_auth_on_inference" true)
+    "routing_rules" (list (dict
+      "id" "route-claude"
+      "name" "Claude subscription"
+      "enabled" true
+      "scope" "global"
+      "priority" 100
+      "cel_expression" "model.startsWith('claude-')"
+      "targets" (list (dict "provider" "anthropic" "weight" 1.0)))))
+  "providers" (dict "anthropic" (dict "keys" (list) "network_config" (dict "max_retries" 0)))
+  "plugins" (list)
+-}}
+{{- $localPath := joinPath .chezmoi.homeDir ".config/bifrost/providers.local.json" -}}
+{{- if stat $localPath -}}
+  {{- $local := include $localPath | fromJson -}}
+  {{- range $name, $provider := $local.providers -}}
+    {{- if eq $name "anthropic" -}}
+      {{- fail "Local providers cannot override the generic Anthropic subscription route" -}}
+    {{- end -}}
+    {{- $_ := set $config.providers $name $provider -}}
+  {{- end -}}
+  {{- if $local.routing_rules -}}
+    {{- $_ := set $config.governance "routing_rules" (concat $local.routing_rules $config.governance.routing_rules) -}}
+  {{- end -}}
+{{- end -}}
+{{ toPrettyJson $config }}

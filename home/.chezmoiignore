@@ -3,3 +3,9 @@
 .claude/skills/*/template/node_modules/**
 .claude/skills/*/template/dist/**
 .claude/skills/*/template/bundle.html
+
+# Bifrost runtime and private provider data: never import into dotfiles.
+.config/bifrost/*
+!.config/bifrost/config.json
+.cache/bifrost/**
+.local/state/proxy-migration-backup/**
