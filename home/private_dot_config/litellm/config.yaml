@@ -1,0 +1,50 @@
+# LiteLLM gateway in front of Claude Code — one `claude`, routed by model name.
+#
+#   claude-*  → api.anthropic.com   Claude Code's own subscription OAuth is forwarded
+#                                   untouched (official LiteLLM "Claude Code Max" flow).
+#   astra…    → work Azure APIM router (Responses API). Auth is an Entra token minted by
+#                                   LiteLLM from `az login`, auto-refreshed — no token in env.
+#
+# Started lazily by the `claude` wrapper in ~/.zshrc.d/claude-litellm.zsh on 127.0.0.1:4000.
+
+model_list:
+  # Anthropic passthrough: any claude-* id Claude Code asks for, as-is.
+  - model_name: "anthropic/*"
+    litellm_params:
+      model: "anthropic/*"
+
+  # work Azure Foundry models via the APIM Codex router. `azure/responses/<slug>` makes
+  # LiteLLM translate Anthropic Messages ⇄ OpenAI Responses (streaming + tools verified).
+  # `api_version: preview` yields the router's exact path: /router/openai/v1/responses.
+  - model_name: astra
+    litellm_params: &act
+      model: azure/responses/work-gateway/router-astra
+      api_base: https://work-gateway.invalid/router
+      api_version: preview
+      azure_scope: https://management.azure.com/.default   # APIM validates ARM-audience tokens
+  - model_name: gpt-5.6-sol
+    litellm_params:
+      <<: *act
+      model: azure/responses/work-gateway/router-gpt-5.6-sol
+  - model_name: gpt-5.6-terra
+    litellm_params:
+      <<: *act
+      model: azure/responses/work-gateway/route-terra
+  - model_name: gpt-5.6-luna
+    litellm_params:
+      <<: *act
+      model: azure/responses/work-gateway/router-luna
+  - model_name: gpt-5.5
+    litellm_params:
+      <<: *act
+      model: azure/responses/work-gateway/router-5.5
+
+general_settings:
+  # Proxy auth rides in `x-litellm-api-key` so the `Authorization` header stays free to
+  # carry Claude Code's OAuth token through to Anthropic. Localhost-only; not a secret.
+  master_key: sk-litellm-local
+  forward_client_headers_to_llm_api: true
+
+litellm_settings:
+  drop_params: true
+  enable_azure_ad_token_refresh: true   # DefaultAzureCredential → AzureCliCredential (az login)
