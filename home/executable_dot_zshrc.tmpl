@@ -117,8 +117,8 @@ bindkey '^x^e' edit-command-line
 # Claude quick-ask widget (Ctrl-X Ctrl-A)
 source $ZSH_DIR/claude-widget.zsh
 
-# `claude` → local LiteLLM gateway (Anthropic passthrough + work Azure Foundry models)
-source $ZSH_DIR/claude-litellm.zsh
+# Local Bifrost gateway; provider configuration remains machine-local.
+source $ZSH_DIR/claude-bifrost.zsh
 
 
 bindkey '^ ' autosuggest-accept
