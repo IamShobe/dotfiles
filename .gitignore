@@ -4,3 +4,11 @@ roles/vim/files/vim/bundle/
 roles/vim/files/vim/plugged/
 roles/zsh/files/zshrc.d/plugins/
 
+
+# Defense in depth: only the reviewed Bifrost template may be committed.
+/home/private_dot_config/bifrost/*
+!/home/private_dot_config/bifrost/private_config.json.tmpl
+/home/dot_config/bifrost/
+/home/**/bifrost/**/providers.local.json
+/home/**/bifrost/**/secrets.env
+/home/**/proxy-migration-backup/
