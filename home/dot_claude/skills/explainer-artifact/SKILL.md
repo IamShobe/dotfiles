@@ -97,7 +97,7 @@ Multiple diagrams on one page are safe: `diagram-design` prefixes its element ID
 
 ## Table of contents (fixed side-rail)
 
-3+ top-level sections → a fixed side-rail TOC, one link per top-level `<h2>`, top-level only. **Don't hand-roll it** — the iframe has no scroll viewport, which defeats `sticky`/`100vh`/hash-anchors/`window`-scroll/auto-root libs, and a hand-rolled observer flashes/mis-highlights. Use the vendored `Scrollspy` + own-scroll-container pattern: scaffold + jitter-free CSS in `web-artifacts-builder`'s `references/recipes.md`. If `scrollspy.tsx` isn't in the template, vendor it (same file) and `rm -rf <clone>` before rebuild (stale-clone gotcha).
+3+ top-level sections → a fixed side-rail TOC at `lg:` and up, one link per top-level `<h2>`, top-level only. **The rail is desktop-only** — hide it below `lg` (`hidden lg:block`) and drop the content gutter with it; a 240px rail on a 500px-wide iframe leaves an unreadable column. **Don't hand-roll it** — the iframe has no scroll viewport, which defeats `sticky`/`100vh`/hash-anchors/`window`-scroll/auto-root libs, and a hand-rolled observer flashes/mis-highlights. Use the vendored `Scrollspy` + own-scroll-container pattern: scaffold + jitter-free CSS in `web-artifacts-builder`'s `references/recipes.md`. If `scrollspy.tsx` isn't in the template, vendor it (same file) and `rm -rf <clone>` before rebuild (stale-clone gotcha).
 
 ## GitHub source links (commit-pinned permalinks)
 
@@ -133,6 +133,25 @@ Type: sans body + `.mono` for code/identifiers/eyebrows (no display serif). ~65c
 **Load `artifact-design`** for craft mechanics (type scale, `@font-face`) — but the shipped palette *is* the direction, so the vars above override "pick something distinctive". Wide content gets `overflow-x`.
 
 **Use the full viewport.** Never default to a narrow reading column: `main` at `max-w-[1280px]` (`2xl:max-w-[1480px]`) beside the rail gutter, with tables, grids, diagrams, and mockups spanning the full content width. Constrain *prose* legibility per-paragraph (`maxWidth: '88ch'` on the paragraph component), not by shrinking the page — a `max-w-3xl` page wastes most of the screen and squeezes every table.
+
+**Full viewport means the viewport it actually gets.** The same page is read in a full browser tab, in a side-by-side split, and in a phone-width artifact iframe. "Full width" is a *maximum*, never a floor — see the next section.
+
+## Narrow widths (the squash rule)
+
+The artifact iframe is frequently far narrower than a laptop tab. The failure mode is always the same: a layout that keeps its desktop shape and *compresses* — three columns crushed to 90px each, a table with one word per line, a diagram shrunk to illegible. **Content must reflow, never squash.** One breakpoint does most of the work — `md` (768px) — with `lg` (1024px) for the rail.
+
+Rules, in the order they break:
+
+- **Every multi-column grid starts at one column.** Write `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`, never a bare `grid-cols-3`. Same for flex rows of cards: `flex-col md:flex-row`.
+- **Never fix a width in `px` or `vw` on content.** No `w-[720px]`, no `min-w-[600px]` on a section. Use `max-w-*` (a cap) plus `w-full` (a fill). A `min-width` on anything but a table cell is the bug.
+- **Wide-by-nature content scrolls in its own box, and only that box.** Tables, code blocks, diagrams, and mockups go in `<div className="w-full overflow-x-auto">`. The page body must never scroll sideways.
+- **Tables:** give the wrapper `overflow-x-auto` and the `<table>` `min-w-[560px]` so columns keep their shape and the wrapper scrolls, instead of every cell wrapping to four lines. For a 2-column key/value table, prefer stacking to definition-list rows below `md` over horizontal scroll.
+- **Diagrams keep `viewBox` + `w-full h-auto`** (already the rule above) — that scales them, but an architecture SVG below ~600px is unreadable at any scale. Wrap it in `overflow-x-auto` and give the `<svg>` `min-w-[640px]` so it scrolls rather than shrinks to nothing.
+- **Padding and type step down:** `p-4 md:p-8`, `text-3xl md:text-5xl` on the hero. Desktop-tuned padding eats a third of a narrow screen.
+- **Side-by-side comparisons** (before/after, `ReactCompareSlider`, two code panes) stack vertically below `md`. A 2-up diff at 380px each is worse than nothing.
+- **Sticky/fixed anything is desktop-only.** The rail, any sticky header — `hidden lg:block`. Vertical space is the scarce resource on a narrow screen.
+
+**Check it before publishing.** Open `bundle.html` in the browser and resize to ~390px and ~768px, or use `claude-in-chrome` / `playwright-cli` to screenshot at those widths. Look for: horizontal page scroll, a crushed grid, a table with one word per line, text under ~14px. Any of those → fix it, don't ship it.
 
 ## Build & publish
 
@@ -172,6 +191,10 @@ Then **stop and let the user prune.** Expect "delete that", "too AI", "fix that 
 - [ ] No hardcoded colors: `grep -nE '(bg|text|border|from|to)-(white|black|gray|slate|zinc|neutral|stone|indigo|blue|red|green|amber)-?[0-9]*|#[0-9a-fA-F]{6}' App.tsx src/**/*.tsx` returns nothing outside `src/theme.tsx` and diagram files (which use vars per `theme-tokens.md`).
 - [ ] No `shadow-*` class — elevation is `--surface` + `--border`.
 - [ ] 3+ sections → fixed side-rail TOC (vendored `Scrollspy`) with each top-level heading.
+- [ ] **Checked at ~390px and ~768px**, not just laptop width: no horizontal page scroll, no crushed grid, no one-word-per-line table, nothing under 14px.
+- [ ] No bare multi-column grid: `grep -nE 'grid-cols-[2-9]' App.tsx src/**/*.tsx` — every hit is prefixed `md:` or `lg:`, with a `grid-cols-1` base.
+- [ ] No fixed content widths: `grep -nE '\b(w|min-w)-\[[0-9]+(px|vw)\]' App.tsx src/**/*.tsx` returns nothing outside `overflow-x-auto` wrappers (tables/diagrams may set `min-w`).
+- [ ] Side-rail and any sticky element are `hidden lg:block`; the content gutter drops with them.
 - [ ] If a TOC is present: `grep -n RoughNotation App.tsx` returns nothing (it detaches from text on scroll inside the TOC's own-scroll-container — swap for a plain CSS highlight `<span>`).
 - [ ] No `flex`/`inline-flex` component (an icon+link like `SourceLink`, an inline badge) sits inside a sentence of running prose — it breaks text reflow and can glue words together at a line wrap (see `libraries.md`). Fine for block-level layout (cards, badge rows), not for something a sentence flows around.
 - [ ] Code refs link to commit-pinned GitHub permalinks; every path + line range verified against source.
