@@ -85,15 +85,16 @@ Reach for these; build them with shadcn + the template's rich libs (all pre-inst
 `diagram-design` produces a standalone `.html` with one inline `<svg>`. You extract that `<svg>` and drop it into the page as a React component. Procedure:
 
 1. **Pick the type first.** `diagram-design` routes on what you're showing — architecture, flowchart, sequence, state machine, layer stack, timeline, data flow, dependency graph, and ~30 more. Load its SKILL.md and follow its type guide; don't freestyle.
-2. **Skin it to the explainer theme.** Run `/diagram-design:profile` once to save a profile whose tokens mirror this skill's vars (mapping in `references/theme-tokens.md`). Without this the diagram lands as warm-paper + tangerine beside an indigo page.
-3. **Generate**, then extract the first `<svg>…</svg>` block into `src/diagrams/<name>.tsx` as a component returning that JSX. Or run `/diagram-design:export-diagram <file>.html --svg-only` and inline the result.
-4. **Convert to JSX**: kebab attributes → camelCase (`stroke-width` → `strokeWidth`, `font-size` → `fontSize`), `class` → `className`, inline `style="…"` → an object, and self-close empty tags. Keep `viewBox`, `role="img"`, and the `<title>`/`<desc>` pair exactly — they're the accessible name.
-5. **Make it theme-aware.** This is the one place the two systems genuinely clash: `diagram-design` bakes **one** skin's hexes into the SVG, while the explainer page is dual-theme. Sed those hexes to `var(--…)` per the map in `references/theme-tokens.md` — **including the `<marker>` fills**, which don't inherit — then check both themes.
-6. **Size it**: wrap in `<div className="w-full overflow-x-auto">` and give the `<svg>` `className="w-full h-auto"` with its `viewBox` intact — it then scales to the full content width.
+2. **Generate** it. The `explainer` profile is already saved at `~/.diagram-design/profiles/explainer.md` — its tokens *are* the explainer palette (both themes), so say `profile: explainer` and the diagram lands in-palette with nothing to re-skin. Don't run onboarding, don't re-save it, don't hand-tune hexes.
+3. **Convert in one command** — extracts the first `<svg>`, rewrites hexes to CSS vars (marker fills included), camelCases attributes, converts `class`/`style`/comments, self-closes tags, and strips `width`/`height` while keeping `viewBox`:
+   ```bash
+   bash <this-skill>/scripts/diagram-to-jsx.sh <diagram>.html <name>   # → src/diagrams/<name>.tsx
+   ```
+   It prints the import line to paste. If it warns about unmapped hexes, map them per `references/theme-tokens.md` — don't leave a raw hex.
 
 Multiple diagrams on one page are safe: `diagram-design` prefixes its element IDs per diagram, so no two `<defs>` collide.
 
-**Fonts.** The diagram calls for Geist / Instrument Serif. Add one `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?…">` in `index.html` — `fonts.googleapis.com` is CSP-allowed in artifacts. If you skip it the diagram falls back to system sans, which is acceptable; a broken half-loaded state is not.
+**Fonts.** The `explainer` profile uses Geist + Geist Mono only (no display serif, per the design rules below). Add one `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap">` in `index.html` — `fonts.googleapis.com` is CSP-allowed in artifacts. If you skip it the diagram falls back to system sans, which is acceptable; a broken half-loaded state is not.
 
 ## Table of contents (fixed side-rail)
 
@@ -161,12 +162,13 @@ Rules, in the order they break:
    git remote get-url origin && git rev-parse HEAD
    ```
    List the top-level section ids for the TOC.
-1. Draft the content per the section menu, then write it as a single **`App.tsx`** (React + shadcn + the libs above) to the scratchpad. Render `<Theme/>` once, style via the vars, include the fixed side-rail TOC and commit-pinned source links. **Start the file with a `// @title: <Human Readable Title>` line** — that becomes the browser-tab and Artifact-gallery name; without it the title falls back to `<name>`.
-2. Build in one call:
+1. **Generate every diagram first, via `diagram-design` (`profile: explainer`), and convert each with `scripts/diagram-to-jsx.sh`.** Do this before writing `App.tsx` — a page drafted first grows inline SVG placeholders that never get replaced. If a diagram feels like too much for the point it makes, cut the diagram; never substitute mermaid or hand-rolled SVG.
+2. Draft the content per the section menu, then write it as a single **`App.tsx`** (React + shadcn + the libs above) to the scratchpad. Render `<Theme/>` once, style via the vars, include the fixed side-rail TOC and commit-pinned source links. **Start the file with a `// @title: <Human Readable Title>` line** — that becomes the browser-tab and Artifact-gallery name; without it the title falls back to `<name>`.
+3. Build in one call:
    ```bash
    bash "$WAB/scripts/make-artifact.sh" <name> <your-App.tsx>   # → <name>/bundle.html
    ```
-3. **Never publish `bundle.html` directly** — the artifact's tab/gallery identity is the published file's *basename*, so it would show up as "bundle". Copy it to a descriptive name first and publish that path (and keep re-publishing the same path on edits to preserve the URL):
+4. **Never publish `bundle.html` directly** — the artifact's tab/gallery identity is the published file's *basename*, so it would show up as "bundle". Copy it to a descriptive name first and publish that path (and keep re-publishing the same path on edits to preserve the URL):
    ```bash
    cp <name>/bundle.html <name>.html   # e.g. auth-rewrite-explainer.html
    ```
@@ -182,8 +184,8 @@ Then **stop and let the user prune.** Expect "delete that", "too AI", "fix that 
 - [ ] Deprecations answer "gone" vs "kept-but-don't-use".
 - [ ] Interface changes split user-facing vs developer-facing, old→new.
 - [ ] At least one real diagram / before-after / mockup.
-- [ ] Every diagram came from `diagram-design`: `grep -n "mermaid" App.tsx src/**/*.tsx` returns nothing.
-- [ ] Diagram SVGs are var-driven — `grep -oE '#(f5f5f5|2d3142|4f5d75|eb6c36|2e5aa8)' src/diagrams/*.tsx` returns nothing (marker fills included) — and both themes were checked.
+- [ ] Every diagram came from `diagram-design` via `scripts/diagram-to-jsx.sh`: `grep -n "mermaid" App.tsx src/**/*.tsx` returns nothing, and every `src/diagrams/*.tsx` has a `<title>`/`<desc>` pair plus an intact `viewBox`.
+- [ ] Diagram SVGs are var-driven — `grep -oE '#[0-9a-fA-F]{6}' src/diagrams/*.tsx` returns nothing (the converter maps marker fills too; a leftover hex means it warned and was ignored) — and both themes were checked.
 - [ ] Every code/config example is real and verified against source.
 - [ ] `// @title:` set in `App.tsx`; confirm with `grep -o '<title>[^<]*' <name>/bundle.html` — never ship a template default.
 - [ ] `<Theme/>` rendered; styled via vars; any rich lib earns its place.
