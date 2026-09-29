@@ -1295,7 +1295,8 @@ def render_swimlane(spec):
     edges = _edges_from(spec, nodes)
     _check_accent(nodes, edges)
     label_w = snap_up(max(text_width(l.get('label', l['id']).upper(), 8, True) * 1.14 for l in lanes) + 48, 8)
-    width, height = grid_place(nodes, 'LR', label_gap(edges, (80, 40)), margin=label_w + 24, top=32)
+    gap = tuple(spec['gap']) if 'gap' in spec else label_gap(edges, (80, 40))   # an explicit gap wins
+    width, height = grid_place(nodes, 'LR', gap, margin=label_w + 24, top=32)
     svg = Svg()
     route_all(nodes, edges, 'LR')
     rows = sorted({n.row for n in nodes.values()} | set(range(len(lanes))))

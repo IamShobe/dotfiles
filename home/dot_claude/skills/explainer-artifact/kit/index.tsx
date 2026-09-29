@@ -27,7 +27,7 @@ export function sourceUrl(meta: Meta, path: string, lines?: string) {
 export function Src({ path, lines, children }: { path: string; lines?: string; children?: ReactNode }) {
   const href = sourceUrl(useContext(MetaCtx), path, lines)
   const label = children ?? `${path.split('/').pop()}${lines ? `:${lines.split('-')[0]}` : ''}`
-  const style = { color: 'var(--brand-ink)', fontSize: '0.9em' }
+  const style = { color: 'var(--brand-ink)', fontSize: 'max(12px, 0.9em)' }
   return href
     ? <a className="mono underline decoration-dotted underline-offset-2" style={style} href={href} target="_blank" rel="noreferrer">{label}</a>
     : <code className="mono" style={style}>{label}</code>
@@ -116,7 +116,7 @@ export function Term({ def, children }: { def: ReactNode; children: ReactNode })
 
 /** Inline identifier: <Id>fetchUser()</Id>. */
 export function Id({ children }: { children: ReactNode }) {
-  return <code className="mono text-[0.9em] px-1 py-px rounded" style={{ background: 'var(--brand-soft)', color: 'var(--brand-ink)' }}>{children}</code>
+  return <code className="mono px-1 py-px rounded" style={{ fontSize: 'max(12px, 0.9em)', background: 'var(--brand-soft)', color: 'var(--brand-ink)' }}>{children}</code>
 }
 
 type Kind = 'add' | 'rm' | 'change' | 'keep' | 'neutral'

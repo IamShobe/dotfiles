@@ -54,6 +54,7 @@ for f in sys.argv[1:]:
     for tag in re.findall(r'<Src\b[^>]*>', t):
         p = re.search(r'path="([^"]+)"', tag); l = re.search(r'lines="([^"]+)"', tag)
         if p: out.append(f"{p.group(1)}\t{l.group(1) if l else ''}")
+        else: out.append(f"?dynamic\t{tag[:60]}")   # path={…} can't be checked statically
 print(sha or '-')
 print('\n'.join(out))
 PY
@@ -69,6 +70,7 @@ else
     [ -n "$(git -C "$REPO_DIR" branch -r --contains "$SHA" 2>/dev/null)" ] \
       || bad "meta.sha ${SHA:0:12} isn't on any remote branch yet: every source link will 404 until it's pushed"
     while IFS=$'\t' read -r path lines; do
+      if [ "$path" = "?dynamic" ]; then broken="$broken"$'\n'"write path as a literal string to let it be checked: $lines"; continue; fi
       n="$(git -C "$REPO_DIR" show "$SHA:$path" 2>/dev/null | wc -l | tr -d ' ')"
       if ! git -C "$REPO_DIR" cat-file -e "$SHA:$path" 2>/dev/null; then broken="$broken"$'\n'"$path: not in ${SHA:0:12}"; continue; fi
       [ -z "$lines" ] && continue
