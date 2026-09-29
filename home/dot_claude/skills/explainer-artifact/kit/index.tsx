@@ -73,7 +73,7 @@ export function Page({ meta = {}, eyebrow, title, thesis, pills = [], children }
           <header className="pt-10 md:pt-16 pb-8 md:pb-12">
             {eyebrow && <p className="mono text-xs uppercase tracking-[0.16em] mb-3" style={{ color: 'var(--brand)' }}>{eyebrow}</p>}
             <h1 className="text-3xl md:text-5xl font-semibold tracking-tight leading-tight" style={{ color: 'var(--ink)' }}>{title}</h1>
-            <p className="xk-prose text-lg md:text-xl mt-4 leading-relaxed" style={{ color: 'var(--ink-2)' }}>{thesis}</p>
+            <p data-thesis className="xk-prose text-lg md:text-xl mt-4 leading-relaxed" style={{ color: 'var(--ink-2)' }}>{thesis}</p>
             {pills.length > 0 && <div className="flex flex-wrap gap-2 mt-5">{pills.map((p, i) => <Chip key={i}>{p}</Chip>)}</div>}
           </header>
           {children}
@@ -88,7 +88,7 @@ export function Section({ id, title, takeaway, children }: SectionProps) {
   return (
     <section id={id} className="py-10 md:py-14" style={{ borderTop: '1px solid var(--border)' }}>
       <h2 className="text-2xl md:text-3xl font-semibold tracking-tight" style={{ color: 'var(--ink)' }}>{title}</h2>
-      {takeaway && <p className="xk-prose text-base md:text-lg mt-2 font-medium" style={{ color: 'var(--ink)' }}>{takeaway}</p>}
+      {takeaway && <p data-takeaway className="xk-prose text-base md:text-lg mt-2 font-medium" style={{ color: 'var(--ink)' }}>{takeaway}</p>}
       <div className="mt-6 grid gap-6 min-w-0">{children}</div>
     </section>
   )
@@ -111,7 +111,7 @@ export function Mark({ children }: { children: ReactNode }) {
  * Renders the word in bold with its plain-words definition inline, once. After that, use the bare word.
  */
 export function Term({ def, children }: { def: ReactNode; children: ReactNode }) {
-  return <><strong style={{ color: 'var(--ink)' }}>{children}</strong> <span style={{ color: 'var(--ink-3)' }}>({def})</span></>
+  return <><strong data-term style={{ color: 'var(--ink)' }}>{children}</strong> <span data-noprose style={{ color: 'var(--ink-3)' }}>({def})</span></>
 }
 
 /** Inline identifier: <Id>fetchUser()</Id>. */
@@ -131,7 +131,7 @@ const KIND: Record<Kind, { fg: string; bg: string; sign: string }> = {
 /** Diff chip / pill. kind: add | rm | change | keep | neutral. Inline-block, safe in prose. */
 export function Chip({ kind = 'neutral', children }: { kind?: Kind; children: ReactNode }) {
   const k = KIND[kind]
-  return <span className="mono inline-block text-xs px-2 py-0.5 rounded-full whitespace-nowrap align-middle" style={{ color: k.fg, background: k.bg }}>{k.sign}{children}</span>
+  return <span data-noprose className="mono inline-block text-xs px-2 py-0.5 rounded-full whitespace-nowrap align-middle" style={{ color: k.fg, background: k.bg }}>{k.sign}{children}</span>
 }
 
 // ---------- blocks ----------

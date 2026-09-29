@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-call QA for a built explainer:
 #
-#   verify.sh <artifact-dir>          # after build.sh
+#   verify.sh <artifact-dir> [repo]   # after build.sh; repo defaults to the checkout you're in
 #
 #   1. Static checks on your code (src/, minus the kit, ui, diagrams and theme):
 #      themed colors, shadows, bare grids, fixed widths, mermaid, RoughNotation, title.
@@ -13,7 +13,8 @@
 # fix every ✗ in one edit pass, rebuild, re-run. No Chrome → steps 2–3 skip.
 set -uo pipefail
 
-ART="${1:?usage: verify.sh <artifact-dir>}"
+ART="${1:?usage: verify.sh <artifact-dir> [repo]}"
+REPO_DIR="${2:-$(git rev-parse --show-toplevel 2>/dev/null || true)}"
 BUNDLE="$ART/bundle.html"; SRC="$ART/src"
 [ -f "$BUNDLE" ] || { echo "✗ no $BUNDLE — run build.sh first" >&2; exit 1; }
 FAIL=0
@@ -41,6 +42,46 @@ T="$(sed -n 's|.*<title>\([^<]*\)</title>.*|\1|p' "$BUNDLE" | head -1)"
 if [ -z "$T" ] || [ "$T" = "__ARTIFACT_TITLE__" ] || [ "$T" = "$(basename "$ART")" ]; then
   bad "page title is '$T' — add // @title: <Title> to App.tsx"
 else good "title: $T"; fi
+
+# ---------- source links: every <Src> must resolve at the pinned SHA ----------
+SRCS="$(python3 - $FILES <<'PY'
+import re, sys
+sha, out = None, []
+for f in sys.argv[1:]:
+    t = open(f, encoding='utf-8').read()
+    m = re.search(r"sha:\s*['\"]([0-9a-f]{7,40})['\"]", t)
+    sha = sha or (m and m.group(1))
+    for tag in re.findall(r'<Src\b[^>]*>', t):
+        p = re.search(r'path="([^"]+)"', tag); l = re.search(r'lines="([^"]+)"', tag)
+        if p: out.append(f"{p.group(1)}\t{l.group(1) if l else ''}")
+print(sha or '-')
+print('\n'.join(out))
+PY
+)"
+SHA="$(printf '%s\n' "$SRCS" | head -1)"; LINKS="$(printf '%s\n' "$SRCS" | tail -n +2 | sed '/^$/d')"
+if [ -z "$LINKS" ]; then :
+elif [ -z "$REPO_DIR" ] || [ "$SHA" = "-" ]; then
+  echo "– source links not checked (run from the repo or pass it: verify.sh $ART <repo>; meta needs sha)"
+else
+  broken=""
+  git -C "$REPO_DIR" cat-file -e "$SHA^{commit}" 2>/dev/null || broken="meta.sha $SHA is not in $REPO_DIR"
+  if [ -z "$broken" ]; then
+    [ -n "$(git -C "$REPO_DIR" branch -r --contains "$SHA" 2>/dev/null)" ] \
+      || bad "meta.sha ${SHA:0:12} isn't on any remote branch yet: every source link will 404 until it's pushed"
+    while IFS=$'\t' read -r path lines; do
+      n="$(git -C "$REPO_DIR" show "$SHA:$path" 2>/dev/null | wc -l | tr -d ' ')"
+      if ! git -C "$REPO_DIR" cat-file -e "$SHA:$path" 2>/dev/null; then broken="$broken"$'\n'"$path: not in ${SHA:0:12}"; continue; fi
+      [ -z "$lines" ] && continue
+      end="${lines##*-}"; start="${lines%%-*}"
+      if ! [[ "$start" =~ ^[0-9]+$ && "$end" =~ ^[0-9]+$ ]] || [ "$start" -gt "$end" ] || [ "$end" -gt "$n" ]; then
+        broken="$broken"$'\n'"$path:$lines: file has $n lines"
+      fi
+    done <<<"$LINKS"
+  fi
+  broken="$(printf '%s' "$broken" | sed '/^$/d')"
+  [ -z "$broken" ] && good "$(printf '%s\n' "$LINKS" | wc -l | tr -d ' ') source links resolve at ${SHA:0:12}" \
+    || bad "broken source links (fix with the ranges from gather-facts.sh)" "$broken"
+fi
 
 # ---------- 2–3. browser ----------
 CH="${CHROME:-}"
@@ -95,7 +136,21 @@ for(const e of document.querySelectorAll("body *")){const cs=getComputedStyle(e)
 const overflow=r.filter(e=>!r.includes(e.parentElement)).slice(0,4).map(e=>"<"+e.tagName.toLowerCase()+(typeof e.className==="string"&&e.className?" class=\""+e.className.slice(0,60)+"\"":"")+"> ends at "+Math.round(e.getBoundingClientRect().right)+"px");
 let small=0;for(const t of document.querySelectorAll("p,li,td,th,span,a,code,div,h1,h2,h3,h4"))
  if(!t.closest("svg")&&[...t.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())&&parseFloat(getComputedStyle(t).fontSize)<12)small++;
-parent.postMessage({verify:1,theme:document.documentElement.dataset.theme||"light",W,h,overflow,small},"*")},600))</script>'
+const story=(()=>{const X="code,pre,nav,title,desc,style,script,[data-noprose],a.mono",root=document.querySelector("main")||document.body;
+ const tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT),seg=[];let n,txt="";
+ while(n=tw.nextNode()){const el=n.parentElement;if(!el||el.closest(X)||!n.textContent.trim())continue;
+  seg.push({at:txt.length,t:n.textContent,term:!!el.closest("[data-term]"),svg:!!el.closest("svg")});txt+=n.textContent+" "}
+ const low=txt.toLowerCase(),defs={},dup=[],early=[];
+ for(const g of seg)if(g.term){const k=g.t.trim().toLowerCase();if(k in defs)dup.push(g.t.trim());else defs[k]=g.at}
+ for(const k in defs){const re=new RegExp("(^|[^a-z0-9])"+k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(s|es)?(?![a-z0-9])","g");const m=re.exec(low);
+  if(m&&m.index+m[1].length<defs[k]){const i=m.index+m[1].length;early.push({term:k,ctx:txt.slice(Math.max(0,i-40),i+k.length+30).replace(/\s+/g," ").trim()})}}
+ const OK=new Set("API APIS URL URLS UI UX DB SQL HTTP HTTPS JSON YAML CSS HTML CI CD PR PRS ID IDS CPU GPU RAM SDK CLI OK TLDR JS TS AWS GCP OS IO DNS TCP UDP TLS SSL SSH REST CRUD ORM JWT UUID CSV PDF SVG PNG MVP QA SLA SLO RPC GRPC VM VMS K8S".split(" "));
+ const jar=new Set();for(const g of seg){if(g.svg||g.term)continue;
+  for(const w of g.t.match(/\b[A-Z][A-Z0-9]{1,5}s?\b|\b[a-z]+[A-Z][A-Za-z0-9]*\b|\b[a-z0-9]+_[a-z0-9_]+\b/g)||[]){
+   const u=w.replace(/s$/,"").toUpperCase();if(OK.has(u)||OK.has(w.toUpperCase())||w.toLowerCase() in defs||/^[0-9]/.test(w)||/^(k|M|G|T)?(B|b|iB)$|^(ms|us|ns)$/.test(w))continue;jar.add(w)}}
+ const q=e=>e?e.textContent.replace(/\s+/g," ").trim():"";
+ return{thesis:q(document.querySelector("[data-thesis]")),takeaways:[...document.querySelectorAll("[data-takeaway]")].map(q),early,dup,jargon:[...jar].slice(0,10)}})();
+parent.postMessage({verify:1,theme:document.documentElement.dataset.theme||"light",W,h,overflow,small,story},"*")},600))</script>'
 python3 - "$BUNDLE" "$OUT" "$PROBE" <<'PY'
 import sys
 b, out, probe = sys.argv[1:4]
@@ -139,6 +194,21 @@ for d in json.loads(sys.argv[1]):
         print(f"✓ {d['W']}px: no horizontal page overflow")
     if d['small']:
         print(f"✗ {d['W']}px: {d['small']} text elements under 12px")
+st = next((d['story'] for d in json.loads(sys.argv[1]) if d['W'] == 1280), None)
+if st:
+    if st['thesis'] or st['takeaways']:
+        print("📖 takeaway test: read this as one paragraph. It must tell the whole story on its own:")
+        print("    " + " → ".join(x for x in [st['thesis']] + st['takeaways'] if x))
+    if st['early']:
+        print("✗ terms used before their <Term> introduction (move the <Term> earlier, or reword):")
+        for e in st['early'][:6]:
+            print(f"    '{e['term']}' first appears in: …{e['ctx']}…")
+    else:
+        print("✓ every <Term> is introduced before it's used (prose and diagrams)")
+    if st['dup']:
+        print(f"✗ <Term> defined more than once: {', '.join(sorted(set(st['dup'])))} (define once, then use the bare word)")
+    if st['jargon']:
+        print(f"⚠ possible jargon never introduced: {', '.join(st['jargon'])} (wrap in <Term def=…> or <Id>, or rephrase)")
 print('HS=' + ','.join(hs))
 PY
 )"

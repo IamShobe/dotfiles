@@ -12,3 +12,5 @@ roles/zsh/files/zshrc.d/plugins/
 /home/**/bifrost/**/providers.local.json
 /home/**/bifrost/**/secrets.env
 /home/**/proxy-migration-backup/
+__pycache__/
+*.pyc

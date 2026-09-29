@@ -9,3 +9,5 @@
 !.config/bifrost/config.json
 .cache/bifrost/**
 .local/state/proxy-migration-backup/**
+.claude/skills/**/__pycache__/**
+.claude/skills/*/.deps/**

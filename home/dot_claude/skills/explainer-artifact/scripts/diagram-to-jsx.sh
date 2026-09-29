@@ -109,7 +109,9 @@ svg = re.sub(r'\s+/>', ' />', svg)
 # Fill the content width; viewBox keeps the aspect ratio.
 for _ in range(2):
     svg = re.sub(r'<svg\b([^>]*?)\s(?:width|height)="[^"]*"', r'<svg\1', svg, count=1)
-svg = re.sub(r'<svg\b', '<svg className="w-full h-auto" style={{minWidth: 640}}', svg, count=1)
+vb = re.search(r'viewBox="[\d.\s-]*?([\d.]+)\s+([\d.]+)"', svg)
+vbw = int(float(vb.group(1))) if vb else 1000
+svg = re.sub(r'<svg\b', f'<svg className="block h-auto mx-auto" style={{{{width: "100%", maxWidth: {vbw}, minWidth: {min(640, vbw)}}}}}', svg, count=1)
 
 if not re.search(r'viewBox=', svg) or '<title' not in svg or '<desc' not in svg:
     sys.exit(f'✗ {src}: svg needs viewBox, <title> and <desc>')

@@ -56,13 +56,48 @@ for s in A:Added D:Deleted R:Renamed M:Modified; do
   [ "$n" -gt 25 ] && echo "- … $((n - 25)) more"
 done
 
-# Interface-looking lines: declarations, routes, schema DDL. Tests excluded.
+# One pass over the diff: interface-looking lines with their line numbers, and the
+# changed line ranges per file (new side, at meta.sha) for <Src lines="…">.
 IFACE='^[+-][[:space:]]*(export |public |def |func |fn |class |interface |type |enum |struct |trait |message |service |rpc |CREATE |ALTER |DROP |@(Get|Post|Put|Patch|Delete|app\.|router\.)|(get|post|put|patch|delete)\()'
-LINES="$(git diff -U0 "$RANGE" -- . ':(exclude)*test*' ':(exclude)*spec*' ':(exclude)*.lock' ':(exclude)*lock.json' ':(exclude)*lock.yaml' \
-  | RE="$IFACE" awk 'BEGIN{re=ENVIRON["RE"]} /^\+\+\+ b\//{f=substr($0,7); next} /^--- /{next} $0 ~ re {print f ": " substr($0,1,160)}' | head -60)"
+DIFFOUT="$(git diff -U0 "$RANGE" -- . ':(exclude)*.lock' ':(exclude)*lock.json' ':(exclude)*lock.yaml' \
+  | RE="$IFACE" awk '
+    BEGIN { re = ENVIRON["RE"] }
+    /^\+\+\+ b\// { f = substr($0, 7); test = (f ~ /(test|spec)/); next }
+    /^\+\+\+ \/dev\/null/ { f = ""; next }
+    /^--- / { next }
+    /^@@/ {
+      split($2, o, ","); split($3, n, ","); ol = -o[1]; nl = n[1] + 0
+      cnt = (n[2] == "" ? 1 : n[2] + 0)
+      if (f != "" && cnt > 0) print "R\t" f "\t" nl "\t" nl + cnt - 1
+      next
+    }
+    /^\+/ { if (f != "" && !test && $0 ~ re) print "I\t" f ":" nl "\t" substr($0, 1, 150); nl++; next }
+    /^-/  { if (f != "" && !test && $0 ~ re) print "I\t" f " (was L" ol ")\t" substr($0, 1, 150); ol++; next }
+  ')"
+LINES="$(printf '%s\n' "$DIFFOUT" | awk -F'\t' '$1=="I" {print $2 ": " $3}' | head -60)"
 if [ -n "$LINES" ]; then
-  echo; echo "## Interface lines (+ added, − removed)"
+  echo; echo "## Interface lines (+ added at path:line, − removed)"
   echo '```diff'; printf '%s\n' "$LINES"; echo '```'
+fi
+RANGES="$(printf '%s\n' "$DIFFOUT" | awk -F'\t' '
+  $1 == "R" {
+    f = $2; s = $3 + 0; e = $4 + 0
+    if (!(f in cnt)) { order[++n] = f; cnt[f] = 0 }
+    k = cnt[f]
+    if (k > 0 && s <= en[f, k] + 4) { if (e > en[f, k]) en[f, k] = e }   # merge near hunks
+    else { k = ++cnt[f]; st[f, k] = s; en[f, k] = e }
+  }
+  END {
+    for (i = 1; i <= n && i <= 30; i++) {
+      f = order[i]; line = ""
+      for (k = 1; k <= cnt[f] && k <= 6; k++) line = line (k > 1 ? ", " : "") (st[f, k] == en[f, k] ? st[f, k] : st[f, k] "-" en[f, k])
+      if (cnt[f] > 6) line = line ", …"
+      print "- " f ": " line
+    }
+  }')"
+if [ -n "$RANGES" ]; then
+  echo; echo '## Link ranges at meta.sha (use as <Src path="…" lines="…" />)'
+  printf '%s\n' "$RANGES"
 fi
 
 MIG="$(git diff --name-only "$RANGE" | grep -iE '(^|/)(migrations?|migrate|alembic|flyway|liquibase|schema)(/|\.)' || true)"

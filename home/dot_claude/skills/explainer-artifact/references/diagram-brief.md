@@ -1,10 +1,24 @@
 # Diagram brief
 
-Everything needed to draw an explainer diagram, condensed from `diagram-design`
-(v2.6, MIT, by Cathryn Lavery) with the `explainer` palette baked in. Read this
-**instead of** diagram-design's SKILL.md, style guide and profile. Also read the
-one `$DIAGRAM_DESIGN/references/type-<type>.md` for each diagram you draw: it
-holds that type's layout grammar.
+**Rendered types come from a JSON spec. Don't hand-draw them.** For the 23 ⚙ types in
+`diagram-types.md`, write a spec and let the renderer do the geometry: routing,
+masks, fanned attach points, the legend and the 4px grid are all correct by construction.
+
+```bash
+R=$S/scripts/diagrams
+python3 $R/render.py --example sequence        # a valid spec to copy and edit
+python3 $R/render.py specs.json --artifact <name>   # one call: render all + convert → import lines
+```
+
+`specs.json` holds one spec or an array. The renderer rejects over-budget or
+inconsistent specs with the fix (e.g. "6 lifelines > 5 — split"). Adjust the spec,
+never the output. For layout, give nodes `col`/`row` for editorial control; omit
+them for an automatic layered layout.
+
+The rest of this file is for the ✎ types, drawn by hand. It's condensed from `diagram-design`
+(v2.6, MIT, by Cathryn Lavery) with the `explainer` palette baked in. Read it
+**instead of** diagram-design's SKILL.md, style guide and profile, plus the one
+`$DIAGRAM_DESIGN/references/type-<type>.md` for the diagram you draw.
 
 ## Output
 
@@ -86,22 +100,7 @@ Arrows: default = muted + `url(#arrow)`; headline path = accent + `url(#arrow-ac
 
 ## Pick the type
 
-| Showing… | Type (`type-<name>.md`) |
-|---|---|
-| Components and connections | `architecture` |
-| Decision logic with branches | `flowchart` |
-| Time-ordered messages between actors | `sequence` |
-| States, transitions, guards | `state` |
-| Who does what at each pipeline step | `data-flow` |
-| Stacked abstraction levels / where controls live | `layers` |
-| What depends on what (fan-in, cycles) | `dependency` |
-| Entities and relationships / physical tables | `er` / `db-schema` |
-| Where software runs | `deployment` |
-| Cross-team process with handoffs | `swimlane` |
-| Events in time / phased rollout | `timeline` / `gantt` |
-| Parent → children | `tree` |
-
-Other types exist (`ls $DIAGRAM_DESIGN/references/type-*.md`); an explainer rarely needs them. If a 3-column table says the same thing, use the table.
+See `diagram-types.md`: choose by the question the section answers.
 
 ## Slop to avoid
 

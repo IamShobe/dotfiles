@@ -42,7 +42,7 @@ The page is read top to bottom by someone who didn't write the change. Write it 
 bash $S/scripts/gather-facts.sh [base]    # default: merge-base with the default branch
 ```
 
-It returns the `meta` line for `<Page>`, the commits, files by status, changed interface lines, migrations and dependency changes. Then read only the source you need for the *why* and for the exact line ranges you'll link. From that, pin down:
+It returns the `meta` line for `<Page>`, the commits, files by status, changed interface lines **with line numbers**, ready-to-paste `<Src>` link ranges, migrations and dependency changes. Then read only the source you need for the *why* and for the exact line ranges you'll link. From that, pin down:
 
 - **The core shift**: the one conceptual change everything else follows from.
 - **Deprecated / removed**: *what* plus a one-line *why*. Separate **gone for good** from **kept as fallback** ("don't build on these").
@@ -65,19 +65,25 @@ Write the thesis and one takeaway per section, and run the takeaway test on them
 | How to extend / use it now | `<Steps>` with real code |
 | Migration notes | short `<P>` or `<Table>` |
 
-Then list the diagrams, **at most 3**, one line each: `<slug> · <type> · <what it shows>`. Their labels use the page's vocabulary. A diagram never introduces a term that the prose hasn't introduced first.
+Then plan the diagrams, **at most 3**, one line each: `<slug> · <type> · <the question it answers>`. **Choose each type from `references/diagram-types.md` by the question its section answers**, not by habit: a request path is a `sequence`, a status change is a `state`, a migration is a `db-schema`, a perf win is a `dumbbell` or `waterfall`, a rollout is a `gantt`. Two diagrams of the same type on one page need a reason. Labels use the page's vocabulary; a diagram never introduces a term the prose hasn't introduced first.
 
-### 3. Diagrams: delegated, one pass
+### 3. Diagrams: specs, one call
 
-Every diagram comes from `diagram-design`'s rules. Never use mermaid or hand-rolled boxes and arrows: mermaid's auto-layout is the "AI slop" look, and it ships a 3MB renderer.
+Every diagram follows diagram-design's rules. Never use mermaid or hand-rolled boxes and arrows.
 
-**If you can run a subagent (Claude Code: `Agent`), delegate all diagrams in one background call** and write `App.tsx` meanwhile. Import names are predictable: slug `auth-flow` → `import { AuthFlow } from '@/diagrams/auth-flow'`. Prompt:
+**⚙ rendered types (23, most of what an explainer needs):** write one `specs.json` (an array, one spec per diagram). Start from `python3 $S/scripts/diagrams/render.py --example <type>`. Then:
 
-> Draw these diagrams for an explainer page. No questions, no extra files. Read `$S/references/diagram-brief.md`, then for each diagram only `$DIAGRAM_DESIGN/references/type-<type>.md`. Don't read diagram-design's SKILL.md, style guide or profiles. Plans: `<the lines from step 2>`. Vocabulary to use in labels: `<terms>`. Write each to `<dir>/<slug>.html` containing only the `<svg>`. Then, from `<dir>`, run `bash $S/scripts/diagram-to-jsx.sh <name> <files>`; if it rejects a file, fix that file and re-run once. Never edit the generated .tsx. Reply with only the import lines.
+```bash
+python3 $S/scripts/diagrams/render.py specs.json --artifact <name>   # renders, self-checks, converts → import lines
+```
 
-**Without a subagent:** do the same steps inline. `references/diagram-brief.md` replaces diagram-design's own SKILL.md for this purpose.
+A spec that breaks a rule (over budget, a decision without labelled exits, a waterfall that doesn't add up) is rejected with the fix. Change the spec, never the output. Specs are small, so write them inline; no subagent is needed.
 
-`diagram-to-jsx.sh` self-checks each file, maps every color to theme vars (dark mode included), prefixes ids and writes `<name>/src/diagrams/`. **Never hand-edit colors in a diagram.** If one still looks wrong after one redraw, cut it.
+**✎ hand-drawn types** (fishbone, sankey, journey, loop and the rest in `diagram-types.md`): delegate to one background subagent (Claude Code: `Agent`) while you write `App.tsx`, since import names are predictable (`auth-flow` → `import { AuthFlow } from '@/diagrams/auth-flow'`). Prompt:
+
+> Draw these diagrams for an explainer page. No questions, no extra files. Read `$S/references/diagram-brief.md`, then for each diagram only `$DIAGRAM_DESIGN/references/type-<type>.md`. Plans: `<lines>`. Vocabulary: `<terms>`. Write each to `<dir>/<slug>.html` containing only the `<svg>`. Then, from `<dir>`, run `bash $S/scripts/diagram-to-jsx.sh <name> <files>`; fix a rejected file once. Never edit the generated .tsx. Reply with only the import lines.
+
+`diagram-to-jsx.sh` maps every color to theme vars, including dark mode, prefixes ids, and sizes each diagram at its natural width. **Never hand-edit colors in a diagram.** If one still looks wrong after one fix, cut it.
 
 ### 4. Write `App.tsx` and build
 
@@ -94,7 +100,7 @@ export default function App() {
 }
 ```
 
-Run from the same `<dir>` the diagrams were converted in:
+Run from the same directory the diagrams were rendered in:
 
 ```bash
 bash $S/scripts/build.sh <name> App.tsx    # → <name>.html (publish this path); rebuild: build.sh <name>
@@ -105,10 +111,16 @@ Need a component the kit doesn't have? Follow `references/design.md`.
 ### 5. Verify, then publish
 
 ```bash
-bash $S/scripts/verify.sh <name>
+bash $S/scripts/verify.sh <name> [repo]    # repo defaults to the checkout you're in
 ```
 
-It runs the static rules (theme vars, no shadows, responsive grids, no fixed widths, title), an overflow and tiny-text probe at 390/768/1280px, and writes **one contact sheet** (light and dark × three widths). Read the sheet once, fix every ✗ in a single edit pass, rebuild, re-run. Don't screenshot by hand.
+One call checks everything mechanical:
+- **Story:** prints the takeaway paragraph, fails on any term used before its `<Term>` (diagrams included), and warns about jargon that was never introduced.
+- **Source links:** every `<Src>` resolves at the pinned SHA (the file exists, the range fits), and the SHA is pushed.
+- **Style:** theme vars only, no shadows, responsive grids, no fixed widths, a real title.
+- **Layout:** an overflow and tiny-text probe at 390/768/1280px, and **one contact sheet** (light and dark × three widths).
+
+Read the sheet once, fix every ✗ in a single edit pass, rebuild, re-run. Don't screenshot by hand.
 
 Publish `<name>.html` with the `Artifact` tool (never `bundle.html`, whose basename becomes the title), with a one-sentence `description`. Re-publish the same path on edits to keep the URL.
 
@@ -116,9 +128,9 @@ Then **stop and let the user prune** ("delete that", "too AI"). Edit, `build.sh 
 
 ## Final check (content only; `verify.sh` covers the rest)
 
-- [ ] The takeaway test reads as one coherent paragraph.
-- [ ] Every new term is introduced with `<Term>` before it's used anywhere, including diagrams, and keeps one name throughout.
+- [ ] The takeaway paragraph `verify.sh` prints reads as one coherent story.
+- [ ] Each diagram's type fits the question its section answers (`diagram-types.md`), not a default.
 - [ ] Thesis is one sentence a non-author understands. No filler, no vanity metrics.
 - [ ] Deprecations say "gone" vs "kept, don't build on it". Interface changes split user-facing from developer-facing, old → new.
-- [ ] Every example and `<Src>` path and line range is verified against source.
-- [ ] `verify.sh` passes and the contact sheet looks right in both themes.
+- [ ] Every example is real, from the diff. `<Src lines>` values come from `gather-facts.sh`'s link ranges.
+- [ ] `verify.sh` shows no ✗, and the contact sheet looks right in both themes.
