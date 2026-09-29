@@ -59,8 +59,28 @@ fi
 
 OUT="$ART/.verify"; mkdir -p "$OUT"
 ABS="$(cd "$ART" && pwd)"
-chrome() { "$CH" --headless=new --disable-gpu --hide-scrollbars --no-first-run --no-default-browser-check \
-  --allow-file-access-from-files --virtual-time-budget=2500 "$@" 2>/dev/null; }
+# Headless Chrome sometimes finishes its work but never exits (seen with custom
+# profiles and with no keychain). So don't wait for exit: wait for the output,
+# then kill it. Mock keychain avoids macOS keychain prompts. Hard cap: 60s.
+#   chrome_run <out-file> <done-test> <chrome args…>
+chrome_run() {
+  local out="$1" done="$2"; shift 2
+  rm -f "$out"
+  "$CH" --headless=new --disable-gpu --hide-scrollbars --no-first-run --no-default-browser-check \
+    --use-mock-keychain --password-store=basic --disable-extensions \
+    --allow-file-access-from-files --virtual-time-budget=2500 "$@" >"${DUMP_TO:-/dev/null}" 2>/dev/null &
+  local pid=$! t=0 last=-1 size
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$done" = html ] && grep -q '</html>' "$out" 2>/dev/null; then break; fi
+    if [ "$done" = png ] && [ -s "$out" ]; then
+      size="$(wc -c <"$out")"; [ "$size" = "$last" ] && break; last="$size"
+    fi
+    [ "$t" -ge 600 ] && { echo "✗ headless Chrome timed out after 60s" >&2; break; }
+    sleep 0.1; t=$((t + 1))
+  done
+  kill -9 "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
+  return 0
+}
 
 # Headless Chrome can't size a window below 500px, so every width is measured
 # inside an iframe. A probe in each frame posts its findings to the sheet page;
@@ -99,7 +119,8 @@ if(probe){const got=[];addEventListener("message",e=>{if(!e.data||!e.data.verify
 </script>
 HTML
 
-J="$(chrome --window-size=2500,1000 --dump-dom "file://$ABS/.verify/sheet.html?probe" \
+DUMP_TO="$OUT/dom.html" chrome_run "$OUT/dom.html" html --window-size=2500,1000 --dump-dom "file://$ABS/.verify/sheet.html?probe"
+J="$(cat "$OUT/dom.html" 2>/dev/null \
   | sed -n 's|.*<pre id="__verify">\(.*\)</pre>.*|\1|p' | sed 's/&quot;/"/g; s/&lt;/</g; s/&gt;/>/g; s/&amp;/\&/g')"
 if [ -z "$J" ]; then
   bad "runtime probe got no results — the page may throw on load; open $BUNDLE"
@@ -127,8 +148,8 @@ PY
 fi
 
 MAXH="$(printf '%s' "$HS" | tr ',' '\n' | sort -n | tail -1)"
-chrome --window-size=2486,$(( 2 * (MAXH + 30) + 36 )) --screenshot="$ABS/.verify/sheet.png" \
-  "file://$ABS/.verify/sheet.html?h=$HS" >/dev/null
+chrome_run "$OUT/sheet.png" png --window-size=2486,$(( 2 * (MAXH + 30) + 36 )) --screenshot="$ABS/.verify/sheet.png" \
+  "file://$ABS/.verify/sheet.html?h=$HS"
 [ -f "$OUT/sheet.png" ] && echo "📸 $OUT/sheet.png  (light row, dark row × 390/768/1280 — read it once)"
 exit "$FAIL"
 
