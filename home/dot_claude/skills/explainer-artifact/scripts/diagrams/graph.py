@@ -179,11 +179,11 @@ def _slot_beside(nodes, edges, todo, direction):
         n.row -= lo_r
 
 
-def label_gap(edges: list, base: tuple[int, int]) -> tuple[int, int]:
-    """Room for the widest edge label between columns (labels sit on open canvas)."""
-    # A Z-route splits the gap in two, and a label needs its own half plus clearance.
+def label_gap(edges: list, base: tuple[int, int], z: bool = True) -> tuple[int, int]:
+    """Room for the widest edge label between columns (labels sit on open canvas).
+    z: a Z-route splits the gap in two, so a label needs its own half plus clearance."""
     w = max([text_width(e.label.upper(), 8, True) * 1.06 + 8 for e in edges if e.label] or [0])
-    need = 2 * (w + 24) if w else 0
+    need = (2 * (w + 24) if z else w + 48) if w else 0
     return (max(base[0], min(snap_up(need, 8), 360)), base[1])
 
 
@@ -1295,7 +1295,7 @@ def render_swimlane(spec):
     edges = _edges_from(spec, nodes)
     _check_accent(nodes, edges)
     label_w = snap_up(max(text_width(l.get('label', l['id']).upper(), 8, True) * 1.14 for l in lanes) + 48, 8)
-    gap = tuple(spec['gap']) if 'gap' in spec else label_gap(edges, (80, 40))   # an explicit gap wins
+    gap = tuple(spec['gap']) if 'gap' in spec else label_gap(edges, (48, 40), z=False)   # an explicit gap wins
     width, height = grid_place(nodes, 'LR', gap, margin=label_w + 24, top=32)
     svg = Svg()
     route_all(nodes, edges, 'LR')

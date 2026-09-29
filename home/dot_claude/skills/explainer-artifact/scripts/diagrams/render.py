@@ -28,6 +28,7 @@ from diagrams.core import SpecError, document  # noqa: E402
 
 # Engine modules. Each defines TYPES = {type: (render_fn, example_spec, one_line_use)};
 # render_fn(spec) -> (Svg, legend_y | None).
+PAGE_W = 990   # usable figure width on a desktop explainer page
 ENGINE_MODULES = ('graph', 'sequence', 'timeline', 'stack', 'charts', 'matrix')
 
 
@@ -101,6 +102,12 @@ def main(argv: list[str]) -> int:
             continue
         path = os.path.join(out_dir, f"{spec['slug']}.html")
         open(path, 'w', encoding='utf-8').write(svg)
+        m = re.search(r'viewBox="0 0 ([\d.]+)', svg)
+        vbw = float(m.group(1)) if m else 0
+        if vbw > PAGE_W / 0.8:          # content column beside the TOC rail is ~PAGE_W px
+            k = PAGE_W / vbw
+            print(f"⚠ {name}: {int(vbw)}px wide, so on the page it shrinks to {k:.0%} and 12px names render at "
+                  f"{12 * k:.0f}px. Cut steps, lower 'gap', or split it into two diagrams.", file=sys.stderr)
         written.append(path)
         if not artifact:
             print(f'✓ {path}')

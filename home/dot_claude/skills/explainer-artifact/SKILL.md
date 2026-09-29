@@ -39,10 +39,12 @@ The page is read top to bottom by someone who didn't write the change. Write it 
 ### 1. Facts: one call
 
 ```bash
-bash $S/scripts/gather-facts.sh [base]    # default: merge-base with the default branch
+bash $S/scripts/gather-facts.sh [base] [head] [-- paths…]   # base: merge-base with the default branch
 ```
 
-It returns the `meta` line for `<Page>`, the commits, files by status, changed interface lines **with line numbers**, ready-to-paste `<Src>` link ranges, migrations and dependency changes. Then read only the source you need for the *why* and for the exact line ranges you'll link. From that, pin down:
+Pass `-- <paths>` whenever the change lives in part of a big repo (one package, one service); the commit list and diff then contain only what matters.
+
+It returns the `meta` line for `<Page>`, the commits, files by status, changed declarations as `path:start-end` (paste straight into `<Src lines>`), link ranges per file, migrations and dependency changes. Then read only the source you need for the *why* and for the exact line ranges you'll link. From that, pin down:
 
 - **The core shift**: the one conceptual change everything else follows from.
 - **Deprecated / removed**: *what* plus a one-line *why*. Separate **gone for good** from **kept as fallback** ("don't build on these").
@@ -73,11 +75,13 @@ Every diagram follows diagram-design's rules. Never use mermaid or hand-rolled b
 
 **⚙ rendered types (23, most of what an explainer needs):** write one `specs.json` (an array, one spec per diagram). Start from `python3 $S/scripts/diagrams/render.py --example <type>`. Then:
 
+Rendering happens inside the build (step 4). To check specs on their own first:
+
 ```bash
 python3 $S/scripts/diagrams/render.py specs.json --artifact <name>   # renders, self-checks, converts → import lines
 ```
 
-A spec that breaks a rule (over budget, a decision without labelled exits, a waterfall that doesn't add up) is rejected with the fix. Change the spec, never the output. Specs are small, so write them inline; no subagent is needed.
+A diagram wider than ~1240px gets a warning with its effective text size: cut steps, lower `gap`, or split it. A spec that breaks a rule (over budget, a decision without labelled exits, a waterfall that doesn't add up) is rejected with the fix. Change the spec, never the output. Specs are small, so write them inline; no subagent is needed.
 
 **✎ hand-drawn types** (fishbone, sankey, journey, loop and the rest in `diagram-types.md`): delegate to one background subagent (Claude Code: `Agent`) while you write `App.tsx`, since import names are predictable (`auth-flow` → `import { AuthFlow } from '@/diagrams/auth-flow'`). Prompt:
 
@@ -100,21 +104,18 @@ export default function App() {
 }
 ```
 
-Run from the same directory the diagrams were rendered in:
+**One call renders the specs, builds, and verifies** (step 5 runs automatically):
 
 ```bash
-bash $S/scripts/build.sh <name> App.tsx    # → <name>.html (publish this path); rebuild: build.sh <name>
+bash $S/scripts/build.sh <name> App.tsx --specs specs.json --repo <checkout>   # → <name>.html + the verify report
+bash $S/scripts/build.sh <name>                                               # rebuild after an edit (also re-verifies)
 ```
 
 Need a component the kit doesn't have? Follow `references/design.md`.
 
 ### 5. Verify, then publish
 
-```bash
-bash $S/scripts/verify.sh <name> [repo]    # repo defaults to the checkout you're in
-```
-
-One call checks everything mechanical:
+`build.sh` ends by running `verify.sh <name> [repo]` (run it alone with that command). It checks everything mechanical:
 - **Story:** prints the takeaway paragraph, fails on any term used before its `<Term>` (diagrams included), and warns about jargon that was never introduced.
 - **Source links:** every `<Src>` resolves at the pinned SHA (the file exists, the range fits), and the SHA is pushed.
 - **Style:** theme vars only, no shadows, responsive grids, no fixed widths, a real title.

@@ -3,18 +3,25 @@
 # repo slug + SHA (for permalinks), commit story, files grouped by status,
 # changed interface lines, migrations, dependency changes.
 #
-#   gather-facts.sh [base] [head]    # base defaults to the merge-base with the
-#                                    # default branch; head defaults to HEAD
+#   gather-facts.sh [base] [head] [-- paths…]
+#     base: defaults to the merge-base with the default branch; head: HEAD
+#     paths: limit everything to these paths (a monorepo package, one skill…)
 #
 # Paste `meta` straight into <Page meta={...}>. Read source files only for what
 # this can't show (the *why*, exact line ranges to link).
 set -euo pipefail
 
 git rev-parse --git-dir >/dev/null 2>&1 || { echo "not a git repo" >&2; exit 1; }
-HEAD_REF="${2:-HEAD}"
+POS=(); PS=()
+while [ $# -gt 0 ]; do
+  if [ "$1" = "--" ]; then shift; PS=("$@"); break; fi
+  POS+=("$1"); shift
+done
+[ ${#PS[@]} -gt 0 ] || PS=(.)
+HEAD_REF="${POS[1]:-HEAD}"
 
-if [ -n "${1:-}" ]; then
-  BASE="$1"
+if [ -n "${POS[0]:-}" ]; then
+  BASE="${POS[0]}"
 else
   DEF="$(git symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || true)"
   for c in "$DEF" origin/main origin/master main master; do
@@ -41,14 +48,14 @@ else
 fi
 echo '```'
 
-echo; echo "## Commits ($(git rev-list --count "$RANGE"))"
-git log --format='- %s' "$RANGE" | head -40
+echo; echo "## Commits ($(git rev-list --count "$RANGE" -- "${PS[@]}"))"
+git log --format='- %s' "$RANGE" -- "${PS[@]}" | head -40
 
 echo; echo "## Files"
-STAT="$(git diff --shortstat "$RANGE")"; echo "${STAT# }"
+STAT="$(git diff --shortstat "$RANGE" -- "${PS[@]}")"; echo "${STAT# }"
 for s in A:Added D:Deleted R:Renamed M:Modified; do
   k="${s%%:*}"; label="${s#*:}"
-  list="$(git diff --name-status -M "$RANGE" | awk -v k="$k" '$1 ~ "^"k { if (k=="R") print "- " $2 " → " $3; else print "- " $2 }')"
+  list="$(git diff --name-status -M "$RANGE" -- "${PS[@]}" | awk -v k="$k" '$1 ~ "^"k { if (k=="R") print "- " $2 " → " $3; else print "- " $2 }')"
   [ -n "$list" ] || continue
   n="$(printf '%s\n' "$list" | wc -l | tr -d ' ')"
   echo; echo "**$label ($n)**"
@@ -59,7 +66,7 @@ done
 # One pass over the diff: interface-looking lines with their line numbers, and the
 # changed line ranges per file (new side, at meta.sha) for <Src lines="…">.
 IFACE='^[+-][[:space:]]*(export |public |def |func |fn |class |interface |type |enum |struct |trait |message |service |rpc |CREATE |ALTER |DROP |@(Get|Post|Put|Patch|Delete|app\.|router\.)|(get|post|put|patch|delete)\()'
-DIFFOUT="$(git diff -U0 "$RANGE" -- . ':(exclude)*.lock' ':(exclude)*lock.json' ':(exclude)*lock.yaml' \
+DIFFOUT="$(git diff -U0 "$RANGE" -- "${PS[@]}" ':(exclude)*.lock' ':(exclude)*lock.json' ':(exclude)*lock.yaml' \
   | RE="$IFACE" awk '
     BEGIN { re = ENVIRON["RE"] }
     /^\+\+\+ b\// { f = substr($0, 7); test = (f ~ /(test|spec)/); next }
@@ -75,8 +82,38 @@ DIFFOUT="$(git diff -U0 "$RANGE" -- . ':(exclude)*.lock' ':(exclude)*lock.json' 
     /^-/  { if (f != "" && !test && $0 ~ re) print "I\t" f " (was L" ol ")\t" substr($0, 1, 150); ol++; next }
   ')"
 LINES="$(printf '%s\n' "$DIFFOUT" | awk -F'\t' '$1=="I" {print $2 ": " $3}' | head -60)"
+# Widen each added declaration to its whole block (path:start-end at meta.sha), so
+# <Src lines="…"> can be pasted without opening the file.
+LINES="$(printf '%s\n' "$LINES" | SHA="$SHA" python3 -c '
+import os, re, subprocess, sys
+cache = {}
+def src(path):
+    if path not in cache:
+        r = subprocess.run(["git", "show", os.environ["SHA"] + ":" + path], capture_output=True, text=True)
+        cache[path] = r.stdout.splitlines() if r.returncode == 0 else None
+    return cache[path]
+ind = lambda l: len(l) - len(l.lstrip())
+CLOSE = ("}", ")", "]", "fi", "done", "esac", "end")
+for line in sys.stdin.read().splitlines():
+    m = re.match(r"^(.+?):(\d+): \+", line)
+    lines = src(m.group(1)) if m else None
+    if not lines:
+        print(line); continue
+    n = int(m.group(2)); i0 = n - 1; base = ind(lines[i0]); end = n
+    for k in range(i0 + 1, min(len(lines), i0 + 400)):
+        t = lines[k]
+        if not t.strip():
+            continue
+        if ind(t) <= base:
+            if t.strip().startswith(CLOSE) and t.rstrip().endswith(("{", "(", "[", ":")):
+                end = k + 1; continue          # "}) {" closes a signature, opens the body
+            end = k + 1 if t.strip().startswith(CLOSE) else end
+            break
+        end = k + 1
+    print(line.replace(f":{n}: +", f":{n}-{end}: +" if end > n else f":{n}: +", 1))
+')"
 if [ -n "$LINES" ]; then
-  echo; echo "## Interface lines (+ added at path:line, − removed)"
+  echo; echo "## Interface lines (+ added at path:start-end, − removed)"
   echo '```diff'; printf '%s\n' "$LINES"; echo '```'
 fi
 RANGES="$(printf '%s\n' "$DIFFOUT" | awk -F'\t' '
@@ -100,10 +137,10 @@ if [ -n "$RANGES" ]; then
   printf '%s\n' "$RANGES"
 fi
 
-MIG="$(git diff --name-only "$RANGE" | grep -iE '(^|/)(migrations?|migrate|alembic|flyway|liquibase|schema)(/|\.)' || true)"
+MIG="$(git diff --name-only "$RANGE" -- "${PS[@]}" | grep -iE '(^|/)(migrations?|migrate|alembic|flyway|liquibase|schema)(/|\.)' || true)"
 if [ -n "$MIG" ]; then echo; echo "## Migrations / schema"; printf -- '- %s\n' $MIG; fi
 
-DEPS="$(git diff --name-only "$RANGE" | grep -E '(^|/)(package\.json|go\.mod|Cargo\.toml|pyproject\.toml|requirements[^/]*\.txt|Gemfile|pom\.xml|build\.gradle(\.kts)?)$' || true)"
+DEPS="$(git diff --name-only "$RANGE" -- "${PS[@]}" | grep -E '(^|/)(package\.json|go\.mod|Cargo\.toml|pyproject\.toml|requirements[^/]*\.txt|Gemfile|pom\.xml|build\.gradle(\.kts)?)$' || true)"
 if [ -n "$DEPS" ]; then
   echo; echo "## Dependency changes"
   for f in $DEPS; do
