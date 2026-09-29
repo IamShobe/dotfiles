@@ -82,23 +82,34 @@ Reach for these; build them with shadcn + the template's rich libs (all pre-inst
 
 **Size discipline:** unused imports tree-shake out, so import only what a section uses. Diagrams cost nothing at bundle time — they're static inline `<svg>`, no renderer shipped.
 
-### Diagrams — always `diagram-design`
+### Diagrams — always `diagram-design`, one pass
 
-**Every diagram in an explainer comes from the `diagram-design` skill.** No mermaid, no hand-rolled boxes-and-arrows SVG. Mermaid's auto-layout is exactly the "AI slop" look an explainer is trying to avoid, and it ships a ~3MB renderer to draw six boxes.
+**Every diagram comes from the `diagram-design` skill.** No mermaid, no hand-rolled boxes-and-arrows SVG: mermaid's auto-layout is the "AI slop" look an explainer avoids, and it ships a ~3MB renderer to draw six boxes. At most **3 diagrams per page**; if a point doesn't need one, cut it.
 
-`diagram-design` produces a standalone `.html` with one inline `<svg>`. You extract that `<svg>` and drop it into the page as a React component. Procedure:
+**Fast path. The explainer has already decided palette, plan, and output shape, so these diagram-design steps are skipped:**
 
-1. **Pick the type first.** `diagram-design` routes on what you're showing — architecture, flowchart, sequence, state machine, layer stack, timeline, data flow, dependency graph, and ~30 more. Load it (the `diagram-design` skill, or read `$DIAGRAM_DESIGN/SKILL.md` if it isn't registered with your agent) and follow its type guide; don't freestyle.
-2. **Generate** it. The `explainer` profile is at `~/.diagram-design/profiles/explainer.md` (step 0 installs it from this skill's `assets/`) — its tokens *are* the explainer palette (both themes), so say `profile: explainer` and the diagram lands in-palette with nothing to re-skin. Don't run onboarding, don't re-save it, don't hand-tune hexes.
-3. **Convert in one command** — extracts the first `<svg>`, rewrites hexes to CSS vars (marker fills included), camelCases attributes, converts `class`/`style`/comments, self-closes tags, and strips `width`/`height` while keeping `viewBox`:
+| diagram-design says | In an explainer |
+|---|---|
+| §0 style-guide gate, onboarding, `/diagram-design:profile` | **Skip.** Read `~/.diagram-design/profiles/explainer.md` once as the style guide. Never ask about branding, never save or load a profile. |
+| §3 "confirm before drawing" pause | **Skip.** Your one diagram plan (below) is the confirmation. |
+| Page chrome: eyebrow, `<h1>`, Instrument Serif, dark/full variants, motion, export | **Skip.** Only the `<svg>` survives conversion. Start from `assets/template.html`, draw light only. |
+| §9 typography checks (`getComputedStyle`, font verification) | **Skip.** The page's `<Theme/>` sets fonts. |
+| §6 connector rules, §7 complexity budget, `<title>`/`<desc>` | **Keep.** These are what make the diagram good. |
+| `self_check.py` | **Automatic.** The converter runs it. |
+
+Procedure:
+
+1. **Plan all diagrams in one line each**: `<slug> · <type> · <what it shows>`. Load diagram-design's SKILL.md **once per page** (or `$DIAGRAM_DESIGN/SKILL.md` if it isn't registered with your agent), then only the `references/type-<type>.md` each diagram needs.
+2. **Write each diagram** to `<slug>.html` (kebab-case slug) in the scratchpad, using the explainer profile's hexes.
+3. **Convert all of them in one call.** This also creates the build workspace:
    ```bash
-   bash <this-skill>/scripts/diagram-to-jsx.sh <diagram>.html <name>   # → src/diagrams/<name>.tsx
+   bash <this-skill>/scripts/diagram-to-jsx.sh <name> a.html b.html c.html   # → <name>/src/diagrams/<slug>.tsx
    ```
-   It prints the import line to paste. If it warns about unmapped hexes, map them per `references/theme-tokens.md` — don't leave a raw hex.
+   It self-checks each file, maps every palette color (explainer or diagram-design default, hex or rgba) to theme vars, prefixes ids per diagram, escapes JSX text, and prints the import lines to paste.
 
-Multiple diagrams on one page are safe: `diagram-design` prefixes its element IDs per diagram, so no two `<defs>` collide.
+**No restyle loop.** Colors and dark mode belong to the converter: never hand-edit hexes or vars in `src/diagrams/*.tsx`. An "off-palette, kept as drawn" note is informational, so leave it. If the converter fails, fix that one `.html` and re-run it for that file only. If a diagram still looks wrong after **one** redraw, cut it rather than iterate.
 
-**Fonts.** The `explainer` profile uses Geist + Geist Mono only (no display serif, per the design rules below). Add one `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap">` in `index.html` — `fonts.googleapis.com` is CSP-allowed in artifacts. If you skip it the diagram falls back to system sans, which is acceptable; a broken half-loaded state is not.
+**Fonts.** Diagrams use Geist + Geist Mono. Add one `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap">` to `index.html` (CSP-allowed). Without it they fall back to system sans, which is fine.
 
 ## Table of contents (fixed side-rail)
 
@@ -166,7 +177,7 @@ Rules, in the order they break:
    git remote get-url origin && git rev-parse HEAD
    ```
    List the top-level section ids for the TOC.
-1. **Generate every diagram first, via `diagram-design` (`profile: explainer`), and convert each with `scripts/diagram-to-jsx.sh`.** Do this before writing `App.tsx` — a page drafted first grows inline SVG placeholders that never get replaced. If a diagram feels like too much for the point it makes, cut the diagram; never substitute mermaid or hand-rolled SVG.
+1. **Diagrams first**, per §Diagrams: plan, draw, then one `diagram-to-jsx.sh <name> *.html` call. Do this before writing `App.tsx`, because a page drafted first grows SVG placeholders that never get replaced.
 2. Draft the content per the section menu, then write it as a single **`App.tsx`** (React + shadcn + the libs above) to the scratchpad. Render `<Theme/>` once, style via the vars, include the fixed side-rail TOC and commit-pinned source links. **Start the file with a `// @title: <Human Readable Title>` line** — that becomes the browser-tab and Artifact-gallery name; without it the title falls back to `<name>`.
 3. Build in one call:
    ```bash
@@ -188,13 +199,12 @@ Then **stop and let the user prune.** Expect "delete that", "too AI", "fix that 
 - [ ] Deprecations answer "gone" vs "kept-but-don't-use".
 - [ ] Interface changes split user-facing vs developer-facing, old→new.
 - [ ] At least one real diagram / before-after / mockup.
-- [ ] Every diagram came from `diagram-design` via `scripts/diagram-to-jsx.sh`: `grep -n "mermaid" App.tsx src/**/*.tsx` returns nothing, and every `src/diagrams/*.tsx` has a `<title>`/`<desc>` pair plus an intact `viewBox`.
-- [ ] Diagram SVGs are var-driven — `grep -oE '#[0-9a-fA-F]{6}' src/diagrams/*.tsx` returns nothing (the converter maps marker fills too; a leftover hex means it warned and was ignored) — and both themes were checked.
+- [ ] Every diagram went through `diagram-to-jsx.sh` (it enforces self-check, `viewBox`, `<title>`/`<desc>`, theme vars), and `grep -n mermaid App.tsx` returns nothing.
 - [ ] Every code/config example is real and verified against source.
 - [ ] `// @title:` set in `App.tsx`; confirm with `grep -o '<title>[^<]*' <name>/bundle.html` — never ship a template default.
 - [ ] `<Theme/>` rendered; styled via vars; any rich lib earns its place.
 - [ ] **Dark mode actually checked**, not assumed — toggle it and read the whole page.
-- [ ] No hardcoded colors: `grep -nE '(bg|text|border|from|to)-(white|black|gray|slate|zinc|neutral|stone|indigo|blue|red|green|amber)-?[0-9]*|#[0-9a-fA-F]{6}' App.tsx src/**/*.tsx` returns nothing outside `src/theme.tsx` and diagram files (which use vars per `theme-tokens.md`).
+- [ ] No hardcoded colors: `grep -nE '(bg|text|border|from|to)-(white|black|gray|slate|zinc|neutral|stone|indigo|blue|red|green|amber)-?[0-9]*|#[0-9a-fA-F]{6}' App.tsx src/**/*.tsx` returns nothing outside `src/theme.tsx` and `src/diagrams/` (the converter owns those).
 - [ ] No `shadow-*` class — elevation is `--surface` + `--border`.
 - [ ] 3+ sections → fixed side-rail TOC (vendored `Scrollspy`) with each top-level heading.
 - [ ] **Checked at ~390px and ~768px**, not just laptop width: no horizontal page scroll, no crushed grid, no one-word-per-line table, nothing under 14px.

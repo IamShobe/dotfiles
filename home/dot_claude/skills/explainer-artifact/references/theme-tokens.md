@@ -21,28 +21,6 @@ Prefer the CSS vars from `<Theme/>` (`@/theme`); these raw hexes are only for a 
 
 Editing the palette itself → edit `template/src/theme.tsx` (single source of truth).
 
-## diagram-design → explainer vars
+## Diagrams
 
-`diagram-design` names colors by semantic role and resolves them from its own `style-guide.md`. It ships both a light and a dark skin, but a generated diagram bakes **one** skin's hexes into the SVG — so an un-rewritten diagram is stuck in whichever mode it was drawn for. Rewrite the hexes to explainer vars and it follows the page instead.
-
-Run this over the extracted SVG (`sed -i ''` on macOS), then verify both themes:
-
-| diagram-design role | default hex (light skin) | → replace with |
-|---|---|---|
-| `paper` | `#f5f5f5` | `var(--surface)` |
-| `paper-2` | `#ececec` | `var(--bg)` |
-| `ink` | `#2d3142` | `var(--ink)` |
-| `muted` | `#4f5d75` | `var(--ink-2)` |
-| `soft` | `#7a8399` | `var(--ink-3)` |
-| `rule` | `rgba(45,49,66,0.12)` | `var(--border)` |
-| `rule-solid` | `#bfc0c0` | `var(--border-hi)` |
-| `accent` | `#eb6c36` | `var(--brand)` |
-| `accent-tint` | `rgba(235,108,54,0.08)` | `var(--brand-soft)` |
-| `link` | `#2e5aa8` | `var(--brand-ink)` |
-
-Two gotchas:
-
-- **`<marker>` fills don't inherit.** The three arrow markers (`arrow`, `arrow-accent`, `arrow-link`) carry their own `fill` — rewrite those too, or every arrowhead stays tangerine in dark mode while its line turns indigo.
-- **`fill="none"` and opacity-derived fills** (`ink @ 0.05`, `ink @ 0.03`) are `rgba()` of the ink hex, not the flat hex. Rewrite them to `color-mix(in srgb, var(--ink) 5%, transparent)` or leave them — low-alpha ink reads acceptably in both themes.
-
-The cleaner alternative, if you're generating several diagrams for one page: save a `diagram-design` profile whose tokens already **are** the explainer hexes (`/diagram-design:profile`), so the light skin lands correct with no rewrite — you still rewrite for dark-mode support.
+`scripts/diagram-to-jsx.sh` maps every diagram color to these vars: the explainer profile's hexes, diagram-design's default skin, and their `rgba()` tints, marker fills included. That's why a converted diagram follows light/dark on its own. Don't hand-edit colors in `src/diagrams/`. To support a new palette color, add it to the `HEX` / `RGB` tables in the converter, once, for every future diagram.
