@@ -76,6 +76,10 @@ resolve() {  # resolve <name> <sentinel> <url> <path>
 WAB="$(resolve web-artifacts-builder scripts/make-artifact.sh "$WAB_REPO" "$WAB_PATH")"
 DIAGRAM_DESIGN="$(resolve diagram-design SKILL.md "$DD_REPO" "$DD_PATH")"
 
+# references/diagram-brief.md is condensed from diagram-design 2.6; say so if it moved on.
+DD_VER="$(printf '%s' "$DIAGRAM_DESIGN" | grep -oE '/[0-9]+\.[0-9]+\.[0-9]+/' | tr -d / | head -1 || true)"
+case "$DD_VER" in ""|2.6.*) ;; *) log "⚠️  diagram-design is $DD_VER; references/diagram-brief.md matches 2.6.x. Check its type-*.md if a rule looks off." ;; esac
+
 # node on PATH (mise/nvm users often run in a bare non-login shell)
 if ! command -v node >/dev/null 2>&1 && command -v mise >/dev/null 2>&1; then
   PATH="$(dirname "$(mise which node)"):$PATH"; export PATH

@@ -65,7 +65,7 @@ def rgba(mo):
     v = RGB.get((r, g, b))
     return f'color-mix(in srgb, var(--{v}) {round(a*100)}%, transparent)' if v else mo[0]
 svg = re.sub(r'rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)', rgba, svg)
-svg = re.sub(r'color-mix\(in srgb,\s*var\(--brand\)\s*\d+%,\s*transparent\)', 'var(--brand-soft)', svg)
+svg = re.sub(r'color-mix\(in srgb,\s*var\(--brand\)\s*([1-9]|1[0-2])%,\s*transparent\)', 'var(--brand-soft)', svg)  # light tints only
 
 # Per-diagram ids: id="arrow" → id="<slug>-arrow", plus every reference to it.
 ids = {i for i in re.findall(r'\bid="([^"]+)"', svg) if not i.startswith(slug + '-')}
@@ -117,7 +117,7 @@ if not re.search(r'viewBox=', svg) or '<title' not in svg or '<desc' not in svg:
 comp = ''.join(w.capitalize() for w in slug.split('-'))
 body = '\n'.join('      ' + l if l.strip() else '' for l in svg.splitlines())
 open(out, 'w', encoding='utf-8').write(
-    f'export function {comp}() {{\n  return (\n    <div className="w-full overflow-x-auto">\n{body}\n    </div>\n  );\n}}\n')
+    f'export function {comp}() {{\n  return (\n    <div className="w-full min-w-0 max-w-full overflow-x-auto">\n{body}\n    </div>\n  );\n}}\n')
 
 left = sorted(set(re.findall(r'#[0-9a-fA-F]{6}\b|rgba?\([^)]*\)', svg)))
 note = f"  (off-palette, kept as drawn — don't hand-edit: {' '.join(left)})" if left else ''
