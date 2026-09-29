@@ -1,0 +1,76 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "iamshobe",
+  "owner": {
+    "name": "IamShobe",
+    "url": "https://github.com/IamShobe"
+  },
+  "description": "Agent skills from IamShobe's dotfiles: explainer pages, artifact tooling, chezmoi and terminal helpers.",
+  "plugins": [
+    {
+      "name": "explainer-artifact",
+      "description": "Visual, TLDR-first explainer page for a change, PR, or refactor.",
+      "source": "./home/dot_claude/skills/explainer-artifact",
+      "skills": [
+        "./"
+      ],
+      "dependencies": [
+        "web-artifacts-builder",
+        "diagram-design"
+      ]
+    },
+    {
+      "name": "web-artifacts-builder",
+      "description": "React + shadcn/ui artifact toolchain that bundles to one self-contained HTML file.",
+      "source": "./home/dot_claude/skills/web-artifacts-builder",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "diagram-design",
+      "description": "Editorial architecture, flow, sequence, and state diagrams (by Cathryn Lavery, MIT). Listed here as a dependency of explainer-artifact.",
+      "source": {
+        "source": "github",
+        "repo": "cathrynlavery/diagram-design"
+      }
+    },
+    {
+      "name": "chezmoi-helper",
+      "description": "Working with chezmoi: templates, encryption, cross-machine setup.",
+      "source": "./home/dot_claude/skills/chezmoi",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "dotfiles-sync",
+      "description": "Sync local config edits back into a chezmoi dotfiles repo.",
+      "source": "./home/dot_claude/skills/dotfiles-sync",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "wezterm-config",
+      "description": "Edit and validate wezterm.lua: keybindings, fonts, themes.",
+      "source": "./home/dot_claude/skills/wezterm-config",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "herdr",
+      "description": "Control the Herdr terminal multiplexer for coding agents.",
+      "source": "./home/dot_claude/skills/herdr",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "terminal-suite",
+      "description": "Bundle: chezmoi-helper, dotfiles-sync, wezterm-config, herdr.",
+      "source": "./bundles/terminal-suite"
+    }
+  ]
+}

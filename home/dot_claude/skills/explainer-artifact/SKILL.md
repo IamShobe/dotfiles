@@ -2,6 +2,10 @@
 name: explainer-artifact
 description: Build a human-facing "explainer" artifact that summarizes a change, feature, refactor, or migration — for teammates and reviewers, not machines. Heavy on visuals, TLDR-first, no reading fatigue. Covers what changed, what was deprecated, and which interfaces changed (user-facing AND developer-facing). Use when the user says "create a summary artifact", "explain what changed", "write up this feature/PR/refactor", "make a doc for the team", or asks to document a merged change visually.
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Skill, Artifact, AskUserQuestion
+compatibility: Needs Node 18+, pnpm or npm, python3, and git. Uses the web-artifacts-builder and diagram-design skills; scripts/ensure-deps.sh fetches any that are missing.
+metadata:
+  requires: "web-artifacts-builder diagram-design"
+  requires-sources: "IamShobe/dotfiles cathrynlavery/diagram-design"
 ---
 
 # Explainer Artifact
@@ -10,7 +14,7 @@ A one-page, **visual** explainer of a change — read by humans (teammates, revi
 
 This skill owns the **content** — what to say, in what order, how to compress it. It **builds on the `web-artifacts-builder` skill**, which owns the mechanics (React + shadcn/ui + rich libs → one self-contained `bundle.html`). You write an `App.tsx`; `web-artifacts-builder` bundles it. Don't hand-write raw HTML or vendor CDN scripts — that's obsolete.
 
-`web-artifacts-builder` ships in the same repo as this skill; `scripts/ensure-deps.sh` (step 0 below) locates it and installs its template deps on first use. Run it before building — never assume the toolchain is warm.
+**Dependencies.** This skill needs two other skills, `web-artifacts-builder` (build toolchain) and `diagram-design` (diagrams), plus the `explainer` diagram profile. `scripts/ensure-deps.sh` (step 0 below) resolves all three: it uses installed copies when present, fetches any missing skill into `.deps/`, installs the template's node deps, and installs the profile. It's idempotent. Run it before building; never assume the toolchain is warm.
 
 **Repo-agnostic.** Nothing here is tied to a particular codebase: the repo slug, commit SHA, and every example come from whatever checkout you're pointed at. The palette in `web-artifacts-builder`'s `template/src/theme.tsx` is a neutral default — swap those hexes to match your product.
 
@@ -84,8 +88,8 @@ Reach for these; build them with shadcn + the template's rich libs (all pre-inst
 
 `diagram-design` produces a standalone `.html` with one inline `<svg>`. You extract that `<svg>` and drop it into the page as a React component. Procedure:
 
-1. **Pick the type first.** `diagram-design` routes on what you're showing — architecture, flowchart, sequence, state machine, layer stack, timeline, data flow, dependency graph, and ~30 more. Load its SKILL.md and follow its type guide; don't freestyle.
-2. **Generate** it. The `explainer` profile is already saved at `~/.diagram-design/profiles/explainer.md` — its tokens *are* the explainer palette (both themes), so say `profile: explainer` and the diagram lands in-palette with nothing to re-skin. Don't run onboarding, don't re-save it, don't hand-tune hexes.
+1. **Pick the type first.** `diagram-design` routes on what you're showing — architecture, flowchart, sequence, state machine, layer stack, timeline, data flow, dependency graph, and ~30 more. Load it (the `diagram-design` skill, or read `$DIAGRAM_DESIGN/SKILL.md` if it isn't registered with your agent) and follow its type guide; don't freestyle.
+2. **Generate** it. The `explainer` profile is at `~/.diagram-design/profiles/explainer.md` (step 0 installs it from this skill's `assets/`) — its tokens *are* the explainer palette (both themes), so say `profile: explainer` and the diagram lands in-palette with nothing to re-skin. Don't run onboarding, don't re-save it, don't hand-tune hexes.
 3. **Convert in one command** — extracts the first `<svg>`, rewrites hexes to CSS vars (marker fills included), camelCases attributes, converts `class`/`style`/comments, self-closes tags, and strips `width`/`height` while keeping `viewBox`:
    ```bash
    bash <this-skill>/scripts/diagram-to-jsx.sh <diagram>.html <name>   # → src/diagrams/<name>.tsx
@@ -158,7 +162,7 @@ Rules, in the order they break:
 
 0. **Resolve the dependency** (idempotent; installs the template's deps on first use only) and capture the repo slug + SHA for permalinks:
    ```bash
-   WAB="$(bash <this-skill>/scripts/ensure-deps.sh)"   # → path to web-artifacts-builder
+   eval "$(bash <this-skill>/scripts/ensure-deps.sh)"   # sets $WAB and $DIAGRAM_DESIGN (skill dirs)
    git remote get-url origin && git rev-parse HEAD
    ```
    List the top-level section ids for the TOC.

@@ -31,59 +31,22 @@ chezmoi cd # opens a subshell in the source directory.
 
 ## Agent Skills
 
-This repo doubles as an [agent skills](https://skills.sh) source. The skills under
-`home/dot_claude/skills/` work with Claude Code, Cursor, Codex, opencode and
+This repo is also a skills source for Claude Code, Cursor, Codex and
 [70+ other agents](https://github.com/vercel-labs/skills#supported-agents).
+Skill list, dependencies and conventions: [`home/dot_claude/skills/`](home/dot_claude/skills/).
 
-| Skill | What it does |
-| --- | --- |
-| `explainer-artifact` | Builds a visual, TLDR-first explainer page for a change/PR/refactor — for teammates, not machines. |
-| `web-artifacts-builder` | The build toolchain: React + shadcn/ui + mermaid/recharts → one self-contained `bundle.html`. |
-| `chezmoi-helper` | Working with chezmoi: templating, encryption, cross-machine setup. |
-| `dotfiles-sync` | Syncs local config edits back into this repo to prevent drift. |
-| `wezterm-config` | Edits and validates `wezterm.lua` — keybindings, fonts, themes. |
-
-### Install (anyone)
-
-You do **not** need chezmoi to use these — install just the skills you want:
+**Claude Code** (installs dependencies automatically):
 
 ```bash
-# see what's available
-npx skills add IamShobe/dotfiles --list
-
-# install one, globally, for Claude Code
-npx skills add IamShobe/dotfiles --skill explainer-artifact -g -a claude-code
+claude plugin marketplace add IamShobe/dotfiles
+claude plugin install explainer-artifact@iamshobe
 ```
 
-> **`explainer-artifact` needs `web-artifacts-builder`** — install them together:
->
-> ```bash
-> npx skills add IamShobe/dotfiles \
->   --skill explainer-artifact --skill web-artifacts-builder -g -a claude-code
-> ```
-
-The build toolchain's `node_modules` (~290MB) is **not** committed. The first time
-the skill runs it bootstraps itself via `scripts/ensure-deps.sh` (~5s with pnpm);
-every run after that is a no-op. Requires Node 18+ and pnpm (or npm).
-
-To update or remove:
+**Any other agent:**
 
 ```bash
-npx skills update
-npx skills remove explainer-artifact
+npx skills add IamShobe/dotfiles --skill explainer-artifact -g
 ```
-
-### Install (me, via chezmoi)
-
-`chezmoi apply` already places these in `~/.claude/skills/`. Edit them in the source
-directory and re-apply:
-
-```bash
-chezmoi edit --apply ~/.claude/skills/explainer-artifact/SKILL.md
-```
-
-`node_modules`, `dist/` and `bundle.html` under any skill are listed in
-`home/.chezmoiignore`, so `chezmoi apply` never deletes an installed toolchain.
 
 ## Manage tools with mise
 ```bash
