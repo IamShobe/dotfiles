@@ -91,7 +91,7 @@ A diagram wider than ~1240px gets a warning with its effective text size: cut st
 
 ### 4. Write `App.tsx` and build
 
-Content only, with the kit (`references/kit.md` has the full API). First line: `// @title: <Human Title>`.
+Content only, with the kit (`references/kit.md` has the full API). First line: `// @title: <Human Title>`. Optional tab icon: `// @favicon: icon.png` (relative to App.tsx).
 
 ```tsx
 // @title: Perimeters Without Providers

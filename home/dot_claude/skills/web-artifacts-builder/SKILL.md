@@ -36,6 +36,8 @@ export default function App() { … }
 
 Without it the title falls back to `<name>`, so pick a human-readable `<name>` (`campaigns-review`, not `demo`). Never leave the placeholder `__ARTIFACT_TITLE__` in `template/index.html` hardcoded to a real name — every future artifact inherits it.
 
+**Tab icon** (optional): `// @favicon: icon.png` on its own line, path relative to the `App.tsx` you pass (or absolute). The build embeds the PNG/SVG as a data URI on every run; drop the line and the icon goes away.
+
 ## Rich libraries (pre-installed; import directly, Vite inlines them)
 
 Reach for one only when it beats plain JSX; unused imports tree-shake out. **Before using any lib, read its row in `references/libraries.md`** — per-lib best practices (theme-aware colors, the common gotcha, when *not* to use it).
