@@ -62,6 +62,31 @@ const next = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${esc}</title>`)
 if (next !== html) fs.writeFileSync(file, next)
 NODE
 
+# 3b. tab icon — `// @favicon: icon.png` (relative to App.tsx, or absolute) embeds that
+#     PNG/SVG as a data URI. A relative icon is copied next to <name>/src/App.tsx, so a
+#     rebuild without the App.tsx argument still finds it. Written every run, so removing
+#     the line clears it.
+FAVICON="$(sed -n 's|^[[:space:]]*//[[:space:]]*@favicon:[[:space:]]*\(.*\)$|\1|p' "$NAME/src/App.tsx" 2>/dev/null | head -1)"
+case "$FAVICON" in
+  ""|/*) ;;
+  *)
+    if [ -n "$APP" ] && [ "$APP" != "-" ]; then
+      mkdir -p "$(dirname "$NAME/src/$FAVICON")"
+      cp "$(dirname "$APP")/$FAVICON" "$NAME/src/$FAVICON"
+    fi
+    FAVICON="$NAME/src/$FAVICON" ;;
+esac
+[ -z "$FAVICON" ] || [ -f "$FAVICON" ] || { echo "❌ @favicon not found: $FAVICON"; exit 1; }
+node - "$NAME/index.html" "$FAVICON" <<'NODE'
+const fs = require('fs')
+const [file, icon] = process.argv.slice(2)
+const type = icon.endsWith('.svg') ? 'image/svg+xml' : 'image/png'
+const link = icon ? `<link rel="icon" type="${type}" href="data:${type};base64,${fs.readFileSync(icon).toString('base64')}" />` : '<link rel="icon" href="data:," />'
+const html = fs.readFileSync(file, 'utf8')
+const next = html.replace(/<link rel="icon"[^>]*>/, link)
+if (next !== html) fs.writeFileSync(file, next)
+NODE
+
 # 4. build
 bash "$HERE/build-artifact-fast.sh" "$NAME" >/dev/null
 
