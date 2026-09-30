@@ -11,7 +11,8 @@ _claude_bifrost_start() {
     source "$HOME/.config/bifrost/secrets.env"
     local az_bin="$(command -v az 2>/dev/null)"
     [[ -n "$az_bin" ]] || az_bin="$HOME/.local/share/mise/installs/azure-cli/latest/bin/az"
-    export PATH="${az_bin:h}:$PATH"
+    export BIFROST_REAL_AZ="$az_bin"
+    export PATH="$HOME/.local/share/bifrost-az:${az_bin:h}:$PATH"
     mkdir -p "$HOME/.cache/bifrost"
     nohup "$HOME/.local/bin/bifrost" -host 127.0.0.1 -port "$CLAUDE_BIFROST_PORT"       -app-dir "$HOME/.config/bifrost" -log-level warn >>"$HOME/.cache/bifrost/proxy.log" 2>&1 &!
   )
@@ -29,7 +30,7 @@ claude() {
   # OAuth stays owned by Claude Code; never replace it with a gateway token.
   local headers="${ANTHROPIC_CUSTOM_HEADERS:-}"
   headers="$(printf '%s\n' "$headers" | grep -ivE '^x-litellm-api-key:|^x-bf-direct-key:' )"
-  ANTHROPIC_BASE_URL="http://127.0.0.1:${CLAUDE_BIFROST_PORT}/anthropic"   ANTHROPIC_CUSTOM_HEADERS="$headers" command claude "$@"
+  ENABLE_TOOL_SEARCH="${ENABLE_TOOL_SEARCH:-true}" ANTHROPIC_BASE_URL="http://127.0.0.1:${CLAUDE_BIFROST_PORT}/anthropic"   ANTHROPIC_CUSTOM_HEADERS="$headers" command claude "$@"
 }
 claude-proxy() {
   case "$1" in

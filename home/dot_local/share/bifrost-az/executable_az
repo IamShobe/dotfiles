@@ -1,0 +1,61 @@
+#!/bin/bash
+# Caching shim for `az account get-access-token`, used by the local Bifrost gateway.
+# Every other az invocation passes straight through.
+find_real_az() {
+  if [[ -n "$BIFROST_REAL_AZ" && -x "$BIFROST_REAL_AZ" ]]; then
+    echo "$BIFROST_REAL_AZ"
+    return 0
+  fi
+  local self_dir dir
+  self_dir="$(cd "$(dirname "$0")" && pwd)"
+  IFS=: read -ra dirs <<<"$PATH"
+  for dir in "${dirs[@]}"; do
+    [[ "$dir" == "$self_dir" || ! -x "$dir/az" ]] && continue
+    echo "$dir/az"
+    return 0
+  done
+  return 1
+}
+
+REAL_AZ="$(find_real_az)" || { echo "bifrost-az: no real az on PATH" >&2; exit 127; }
+
+if [[ "$1" != "account" || "$2" != "get-access-token" ]]; then
+  exec "$REAL_AZ" "$@"
+fi
+
+REFRESH_MARGIN=300
+cache_dir="$HOME/.cache/bifrost/az-token"
+key="$(printf '%s\0' "$@" | shasum -a 256 | cut -c1-32)"
+cache_file="$cache_dir/$key.json"
+
+expires_on() {
+  grep -o '"expires_on": *[0-9]*' "$1" 2>/dev/null | grep -o '[0-9]*$'
+}
+
+if [[ -s "$cache_file" ]]; then
+  exp="$(expires_on "$cache_file")"
+  if [[ -n "$exp" ]] && (( exp - $(date +%s) > REFRESH_MARGIN )); then
+    cat "$cache_file"
+    exit 0
+  fi
+fi
+
+mkdir -p "$cache_dir" && chmod 700 "$cache_dir"
+tmp="$(mktemp "$cache_dir/.tmp.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+
+if ! "$REAL_AZ" "$@" >"$tmp"; then
+  # Refresh failed (offline, login expired): fall back to the cached token only while it is still valid.
+  exp="$(expires_on "$cache_file")"
+  if [[ -n "$exp" ]] && (( exp > $(date +%s) )); then
+    cat "$cache_file"
+    exit 0
+  fi
+  exit 1
+fi
+
+exp="$(expires_on "$tmp")"
+if [[ -n "$exp" ]]; then
+  chmod 600 "$tmp" && mv "$tmp" "$cache_file"
+fi
+cat "$cache_file" 2>/dev/null || cat "$tmp"
