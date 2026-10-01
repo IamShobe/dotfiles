@@ -30,11 +30,11 @@ Node missing (bare shell): `export PATH="$(dirname "$(mise which node)"):$PATH"`
 **Document title** (browser tab + Artifact gallery name). Put a `@title` comment on its own line in `App.tsx` — the build stamps it into `index.html` on every run:
 
 ```tsx
-// @title: Campaigns Data Model — Review
+// @title: Billing Data Model — Review
 export default function App() { … }
 ```
 
-Without it the title falls back to `<name>`, so pick a human-readable `<name>` (`campaigns-review`, not `demo`). Never leave the placeholder `__ARTIFACT_TITLE__` in `template/index.html` hardcoded to a real name — every future artifact inherits it.
+Without it the title falls back to `<name>`, so pick a human-readable `<name>` (`billing-review`, not `demo`). Never leave the placeholder `__ARTIFACT_TITLE__` in `template/index.html` hardcoded to a real name — every future artifact inherits it.
 
 ## Rich libraries (pre-installed; import directly, Vite inlines them)
 

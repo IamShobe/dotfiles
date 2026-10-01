@@ -29,7 +29,7 @@ The page is read top to bottom by someone who didn't write the change. Write it 
 
 - **One arc.** Context → what was wrong or missing → the core shift → how it works now → what changes for the reader → what to do next. Each section answers the question the previous one raised. Cut any section that doesn't move the arc.
 - **Introduce before you use.** Every new word (a new concept, an internal name, an acronym, a renamed thing) is defined in plain words at its **first** appearance, with `<Term def="…">`, before any heading, diagram or table relies on it. No forward references ("see below for what X is").
-- **One name per thing.** Pick one word for each concept and keep it everywhere: prose, diagram labels, tables, code comments. Don't let "perimeter", "boundary" and "scope" all mean the same thing.
+- **One name per thing.** Pick one word for each concept and keep it everywhere: prose, diagram labels, tables, code comments. Don't let "workspace", "project" and "space" all mean the same thing.
 - **Assume a smart outsider.** A teammate from another area: knows the product, not this code. Explain domain terms they'd lack, and skip what they already know.
 - **Carry one running example** through the page (the same request, record or user) instead of a new example per section.
 - **The takeaway test.** Read only the thesis plus each section's `takeaway`, in order. It must read as one coherent paragraph. If it doesn't, the structure is wrong: fix the order or cut, don't polish sentences.
@@ -94,7 +94,7 @@ A diagram wider than ~1240px gets a warning with its effective text size: cut st
 Content only, with the kit (`references/kit.md` has the full API). First line: `// @title: <Human Title>`.
 
 ```tsx
-// @title: Perimeters Without Providers
+// @title: Projects Without Owners
 import { Page, Section, BeforeAfter, Changes, P, Term, Src } from '@/explainer'
 import { HowItWorks } from '@/diagrams/how-it-works'
 export default function App() {

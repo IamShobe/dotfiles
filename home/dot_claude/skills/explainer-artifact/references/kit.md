@@ -5,7 +5,7 @@
 ## Shell
 
 ```tsx
-<Page meta={meta} eyebrow="PR #412 · merged" title="Perimeters no longer need a provider"
+<Page meta={meta} eyebrow="PR #412 · merged" title="Projects no longer need an owner"
       thesis="One sentence a non-author understands." pills={['api', 'db migration']}>
   <Section id="shift" title="The core shift" takeaway="The one line a skimmer must get.">…</Section>
   …

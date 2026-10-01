@@ -107,7 +107,7 @@ export function Mark({ children }: { children: ReactNode }) {
 }
 
 /**
- * First use of a new word: <Term def="a rule set scoped to one account">perimeter</Term>.
+ * First use of a new word: <Term def="a folder of related work shared by a team">project</Term>.
  * Renders the word in bold with its plain-words definition inline, once. After that, use the bare word.
  */
 export function Term({ def, children }: { def: ReactNode; children: ReactNode }) {
