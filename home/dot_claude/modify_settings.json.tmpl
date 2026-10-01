@@ -69,6 +69,19 @@ MANAGED = json.loads(r"""
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '{{ .chezmoi.homeDir }}/.claude/skills/no-smell/scripts/hook.sh'",
+            "timeout": 15,
+            "statusMessage": "no-smell scan"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {

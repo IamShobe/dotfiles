@@ -19,3 +19,12 @@ Global Claude memory lives at `~/.claude/memory/` (not `~/.claude/projects/*/mem
 # Signatures
 
 Never add an AI signature/credit line to commits, PRs, comments — no `Co-Authored-By: Claude` or similar. Should read as if the user wrote it.
+
+# Code standards (non-negotiable)
+
+Before writing or editing TS/Python, invoke the `no-smell` skill and run its pre-handoff checklist before saying "done" or opening a PR. Short version:
+- Branch on kinds with `ts-pattern` `.exhaustive()` — never `switch`, if-chains on the same field, or nested ternaries.
+- Parse every boundary with zod/pydantic `safeParse`, one schema, strict. No `as` casts, no `any`, no string-parsing IDs.
+- 2+ params → one destructured object (kwargs style).
+- Entry function first, reads as a short story; helpers below in call order. Functional, verbose names.
+- Use remeda / date-fns / cva / shadcn / tanstack-form / existing repo helpers instead of hand-rolling.
