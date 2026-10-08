@@ -1,5 +1,6 @@
 {{- /* Only generic settings belong here. Local providers never enter the source tree. */ -}}
 {{- $config := dict
+  "$schema" "https://www.getbifrost.ai/schema"
   "encryption_key" "env.BIFROST_ENCRYPTION_KEY"
   "setup_token" "env.BIFROST_SETUP_TOKEN"
   "client" (dict
