@@ -1,5 +1,8 @@
 #!/bin/bash
-# Install all enabled Claude Code plugins from settings.json (user scope).
+# Provision Claude Code plugins for this machine from the managed settings.json:
+# register every declared marketplace, then install every enabled plugin (user scope).
+# Marketplaces come first — `plugin install` fails if its marketplace is unknown,
+# which is how a fresh machine ends up with enabled-but-missing plugins.
 # Re-runs whenever the managed settings template changes.
 # settings hash: {{ include "dot_claude/modify_settings.json.tmpl" | sha256sum }}
 
@@ -7,6 +10,46 @@ set -euo pipefail
 
 command -v claude >/dev/null || { echo "claude CLI not found; skipping plugin install"; exit 0; }
 
+settings="${HOME}/.claude/settings.json"
+[ -f "${settings}" ] || { echo "no ${settings}; skipping plugin install"; exit 0; }
+
+# --- marketplaces -----------------------------------------------------------
+# Emit "<name>\t<source-arg>" for each declared marketplace not already registered.
+python3 - <<'EOF' | while IFS=$'\t' read -r name source_arg; do
+import json, os, pathlib, subprocess, sys
+
+settings = json.load(open(pathlib.Path.home() / ".claude/settings.json"))
+declared = settings.get("extraKnownMarketplaces", {})
+if not declared:
+    sys.exit(0)
+
+try:
+    listed = json.loads(
+        subprocess.run(
+            ["claude", "plugin", "marketplace", "list", "--json"],
+            capture_output=True, text=True, timeout=120,
+            env={**os.environ, "CLAUDE_DIRECT": "1"},
+        ).stdout
+    )
+    known = {entry.get("name") for entry in listed}
+except Exception:
+    known = set()  # can't tell: fall through and let `marketplace add` be the judge
+
+for name, spec in declared.items():
+    if name in known:
+        continue
+    source = spec.get("source", {})
+    # Only github sources carry a bare repo slug; url/path sources name their own target.
+    arg = source.get("repo") or source.get("url") or source.get("path")
+    if arg:
+        print(f"{name}\t{arg}")
+EOF
+  echo "Registering marketplace: ${name} (${source_arg})"
+  claude plugin marketplace add "${source_arg}" --scope user \
+    || echo "  WARNING: could not register marketplace ${name}; plugins from it will be skipped"
+done
+
+# --- plugins ----------------------------------------------------------------
 python3 - <<'EOF' | while read -r plugin; do
 import json, pathlib
 settings = json.load(open(pathlib.Path.home() / ".claude/settings.json"))
