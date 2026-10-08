@@ -5,8 +5,11 @@
 _claude_bifrost_up() {
   curl -sf -m 1 "http://127.0.0.1:${CLAUDE_BIFROST_PORT}/health" >/dev/null 2>&1
 }
+_claude_bifrost_available() {
+  [[ -x "$HOME/.local/bin/bifrost" && -f "$HOME/.config/bifrost/secrets.env" ]]
+}
 _claude_bifrost_start() {
-  [[ -x "$HOME/.local/bin/bifrost" && -f "$HOME/.config/bifrost/secrets.env" ]] || return 1
+  _claude_bifrost_available || return 1
   (
     source "$HOME/.config/bifrost/secrets.env"
     local az_bin="$(command -v az 2>/dev/null)"
@@ -21,12 +24,30 @@ _claude_bifrost_start() {
   print -u2 "Bifrost did not start; see ~/.cache/bifrost/proxy.log"
   return 1
 }
+_claude_direct() {
+  env -u ANTHROPIC_BASE_URL -u ANTHROPIC_CUSTOM_HEADERS command claude "$@"
+}
 claude() {
   if [[ -n "$CLAUDE_DIRECT" ]]; then
-    env -u ANTHROPIC_BASE_URL -u ANTHROPIC_CUSTOM_HEADERS claude "$@"
+    _claude_direct "$@"
     return
   fi
-  _claude_bifrost_up || _claude_bifrost_start || return 1
+  # Gateway is an optimization, never a gate: fall back to direct if absent.
+  if ! _claude_bifrost_up; then
+    if ! _claude_bifrost_available; then
+      local why=()
+      [[ -x "$HOME/.local/bin/bifrost" ]] || why+=("missing ~/.local/bin/bifrost")
+      [[ -f "$HOME/.config/bifrost/secrets.env" ]] || why+=("missing ~/.config/bifrost/secrets.env")
+      print -u2 "claude: Bifrost gateway not set up (${(j:, :)why}); running direct. Silence with CLAUDE_DIRECT=1."
+      _claude_direct "$@"
+      return
+    fi
+    if ! _claude_bifrost_start; then
+      print -u2 "Bifrost unavailable; running claude directly."
+      _claude_direct "$@"
+      return
+    fi
+  fi
   # OAuth stays owned by Claude Code; never replace it with a gateway token.
   local headers="${ANTHROPIC_CUSTOM_HEADERS:-}"
   headers="$(printf '%s\n' "$headers" | grep -ivE '^x-litellm-api-key:|^x-bf-direct-key:' )"
