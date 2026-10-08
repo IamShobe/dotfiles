@@ -1,0 +1,134 @@
+#!/bin/bash
+# Provision the local Bifrost gateway so `claude` routes through it on a fresh machine.
+#
+# Three things are machine-local and therefore NOT in the dotfiles repo; each one of
+# them, when missing, used to need manual debugging:
+#   1. the bifrost binary          -> downloaded here
+#   2. ~/.config/bifrost/secrets.env -> generated here (random secrets, never committed)
+#   3. governance enforcement flags  -> disabled here via the admin API
+#
+# (3) is the subtle one: Bifrost's first-run setup turns on enforce_auth_on_inference
+# (maximhq/bifrost#5767), which rejects every inference request with
+# "virtual key is required. Provide a virtual key via the x-bf-vk header" (HTTP 401)
+# unless a virtual key exists. We route Claude Code's own OAuth through the gateway and
+# define no virtual keys, so enforcement must be off.
+#
+# Safe to re-run: every step is skipped when already satisfied. Never fatal — the
+# claude wrapper falls back to a direct run if the gateway is unavailable.
+# config hash: {{ include "private_dot_config/bifrost/private_config.json.tmpl" | sha256sum }}
+
+set -euo pipefail
+
+BIFROST_BIN="${HOME}/.local/bin/bifrost"
+BIFROST_DIR="${HOME}/.config/bifrost"
+SECRETS="${BIFROST_DIR}/secrets.env"
+PORT="${CLAUDE_BIFROST_PORT:-4001}"
+
+# --- 1. binary ---------------------------------------------------------------
+if [ ! -x "${BIFROST_BIN}" ]; then
+  case "$(uname -s)" in
+    Darwin) os=darwin ;;
+    Linux)  os=linux ;;
+    *) echo "bifrost: unsupported OS $(uname -s); skipping"; exit 0 ;;
+  esac
+  case "$(uname -m)" in
+    arm64|aarch64) arch=arm64 ;;
+    x86_64|amd64)  arch=amd64 ;;
+    *) echo "bifrost: unsupported arch $(uname -m); skipping"; exit 0 ;;
+  esac
+
+  echo "Installing bifrost binary (${os}/${arch})..."
+  mkdir -p "${HOME}/.local/bin"
+  tmp="$(mktemp)"
+  if curl -fL --retry 2 -o "${tmp}" \
+      "https://downloads.getmaxim.ai/bifrost/latest/${os}/${arch}/bifrost-http"; then
+    chmod +x "${tmp}"
+    mv "${tmp}" "${BIFROST_BIN}"
+    # Unsigned download: clear the quarantine bit or macOS refuses to exec it.
+    [ "${os}" = darwin ] && xattr -d com.apple.quarantine "${BIFROST_BIN}" 2>/dev/null || true
+    echo "  installed ${BIFROST_BIN}"
+  else
+    rm -f "${tmp}"
+    echo "  WARNING: download failed; claude will run direct until this is fixed"
+    exit 0
+  fi
+fi
+
+# --- 2. secrets --------------------------------------------------------------
+# Referenced as env.* from config.json. Values are arbitrary; they only need to be
+# stable and secret, so generate them once per machine.
+if [ ! -f "${SECRETS}" ]; then
+  echo "Generating ${SECRETS}..."
+  mkdir -p "${BIFROST_DIR}"
+  umask 177
+  {
+    echo "# Generated per-machine by chezmoi. Never commit."
+    echo "export BIFROST_ENCRYPTION_KEY='$(openssl rand -base64 32)'"
+    echo "export BIFROST_ADMIN_PASSWORD='$(openssl rand -base64 24)'"
+    echo "export BIFROST_SETUP_TOKEN='$(openssl rand -hex 32)'"
+  } > "${SECRETS}"
+  echo "  admin password: see ${SECRETS}"
+fi
+
+# --- 3. governance flags -----------------------------------------------------
+# These live in Bifrost's SQLite config.db, not config.json, so chezmoi cannot
+# manage them declaratively — they have to be set through the running admin API.
+command -v python3 >/dev/null || { echo "python3 missing; skipping governance fixup"; exit 0; }
+
+set -a
+# shellcheck disable=SC1090
+. "${SECRETS}"
+set +a
+
+gateway_up() { curl -sf -m 1 "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; }
+
+started_here=0
+if ! gateway_up; then
+  echo "Starting bifrost to apply governance settings..."
+  mkdir -p "${HOME}/.cache/bifrost"
+  nohup "${BIFROST_BIN}" -host 127.0.0.1 -port "${PORT}" \
+    -app-dir "${BIFROST_DIR}" -log-level warn \
+    >>"${HOME}/.cache/bifrost/proxy.log" 2>&1 &
+  started_here=1
+  for _ in $(seq 1 60); do gateway_up && break; sleep 0.5; done
+fi
+
+if ! gateway_up; then
+  echo "  WARNING: bifrost did not start; see ~/.cache/bifrost/proxy.log"
+  exit 0
+fi
+
+auth="admin:${BIFROST_ADMIN_PASSWORD}"
+live="$(curl -sf -m 10 -u "${auth}" "http://127.0.0.1:${PORT}/api/config" || true)"
+
+if [ -n "${live}" ]; then
+  payload="$(printf '%s' "${live}" | python3 -c '
+import json, sys
+cfg = json.load(sys.stdin).get("client_config", {})
+# Bifrost omits these keys entirely once they are false, so absent == disabled.
+if not cfg.get("enforce_auth_on_inference") and not cfg.get("enforce_governance_header"):
+    sys.exit(1)  # already correct: nothing to do
+cfg = dict(cfg)
+cfg["enforce_auth_on_inference"] = False
+cfg["enforce_governance_header"] = False
+# GET reports 0 but PUT validation demands >= 1; logging is off so this is inert.
+if cfg.get("log_retention_days", 0) < 1:
+    cfg["log_retention_days"] = 1
+json.dump({"client_config": cfg}, sys.stdout)
+' 2>/dev/null)" || payload=""
+
+  if [ -n "${payload}" ]; then
+    echo "Disabling Bifrost virtual-key enforcement (we use Claude Code OAuth)..."
+    printf '%s' "${payload}" | curl -sf -m 15 -X PUT -u "${auth}" \
+      -H 'content-type: application/json' --data @- \
+      "http://127.0.0.1:${PORT}/api/config" >/dev/null \
+      && echo "  enforcement disabled" \
+      || echo "  WARNING: could not update config; expect 401 on inference"
+  fi
+fi
+
+if [ "${started_here}" = 1 ]; then
+  pkill -f "bifrost -host 127.0.0.1 -port ${PORT}" 2>/dev/null || true
+fi
+
+echo "Bifrost ready: claude-proxy status"
