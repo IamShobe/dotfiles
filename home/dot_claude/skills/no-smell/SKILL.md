@@ -63,6 +63,26 @@ const webhookSchema = z
 - `startsWith`, `split('-')[1]` or a regex on an ID means the data model is
   wrong. Carry a typed field, or return it from the server. Fix the model;
   don't patch the call site.
+- A hand-written list of a type's field names (`const STATE_FIELDS = ['status',
+  'shippedAt', …]`) to pick, omit or classify them means the schema is missing a
+  concept. Declare the category where the fields are defined: split the schema
+  into named groups (`orderSpecFields`, `fulfilmentFields`) composed with
+  spread, add a compile-time check that the groups are disjoint, and export the
+  group's schema. Consumers then use it (`GroupSchema.safeParse(x)` /
+  `.keyof()`), so a new field is classified when it is declared, not forgotten
+  in a far-off list.
+
+```ts
+const orderSpecFields = { sku: z.string(), quantity: z.number() } as const
+const fulfilmentFields = { status: FulfilmentStatus, shippedAt: z.iso.datetime().optional() } as const
+export const FulfilmentSchema = z.object(fulfilmentFields)
+export const OrderSchema = z.object({ ...orderSpecFields, ...fulfilmentFields })
+// consumer: show this order with another warehouse's fulfilment
+const fulfilment = FulfilmentSchema.safeParse(otherWarehouseOrder)
+const shown = fulfilment.success
+  ? { ...R.omit(order, FulfilmentSchema.keyof().options), ...fulfilment.data }
+  : order
+```
 
 ## 3. Layout: the module reads as a story
 
