@@ -1,0 +1,117 @@
+#!/usr/bin/env zsh
+# Remove herdr worktrees whose PR is merged. Dry run unless --apply.
+# A worktree is kept when it is open in a herdr workspace, has uncommitted
+# changes, has commits not on any remote, or its PR is not merged.
+#
+#   herdr-prune-worktrees            # show what would be removed
+#   herdr-prune-worktrees --apply    # remove it
+#   herdr-prune-worktrees --closed   # also treat closed (unmerged) PRs as done
+
+setopt pipe_fail no_nomatch
+zmodload zsh/datetime
+
+apply=false
+include_closed=false
+for arg in "$@"; do
+  case $arg in
+    --apply) apply=true ;;
+    --closed) include_closed=true ;;
+    *) print -u2 "unknown option: $arg"; exit 2 ;;
+  esac
+done
+
+worktrees_root=~/.herdr/worktrees
+protected_names=(gitops-main)
+recent_activity_seconds=$((24 * 60 * 60))
+freed_any=false
+herdr_pane_cwds=""
+
+main() {
+  print "free before: $(free_space)"
+  for checkout in $(list_herdr_checkouts); do
+    prune_if_merged "$checkout"
+  done
+  if $apply && $freed_any; then
+    git worktree prune 2>/dev/null
+    (cd ~/git/act-security/act && mise x -- pnpm store prune >/dev/null 2>&1)
+  fi
+  print "free after:  $(free_space)"
+  $apply || print "dry run — rerun with --apply to remove"
+}
+
+list_herdr_checkouts() {
+  for dir in $worktrees_root/*/*(N/) $worktrees_root/*(N/); do
+    [[ -f $dir/.git ]] && print -- $dir
+  done
+}
+
+prune_if_merged() {
+  local checkout=$1
+  local name=${checkout#$worktrees_root/}
+  local main_repo=${$(git -C $checkout rev-parse --path-format=absolute --git-common-dir):h}
+  local branch=$(git -C $checkout branch --show-current)
+
+  if (( ${protected_names[(Ie)$name]} )); then keep $name "protected"; return; fi
+  if is_open_in_herdr $main_repo $checkout; then keep $name "open in herdr"; return; fi
+  if has_recent_commit $checkout; then keep $name "commit in last 24h"; return; fi
+  if has_uncommitted_changes $checkout; then keep $name "uncommitted changes"; return; fi
+  if [[ -z $branch ]]; then keep $name "detached HEAD"; return; fi
+
+  local pr_state=$(pr_state_for $checkout $branch)
+  if ! is_done $pr_state; then keep $name "PR ${pr_state:-none}"; return; fi
+  if has_commits_after_pr $checkout $branch; then keep $name "commits after PR"; return; fi
+
+  remove $main_repo $checkout $name $pr_state
+}
+
+is_open_in_herdr() {
+  local checkout=$2
+  [[ -z $herdr_pane_cwds ]] && herdr_pane_cwds=$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | .cwd, .foreground_cwd')
+  print -- $herdr_pane_cwds | grep -qE "^${checkout}(/|$)"
+}
+
+has_recent_commit() {
+  local last_commit=$(git -C $1 log -1 --format=%ct 2>/dev/null)
+  (( EPOCHSECONDS - ${last_commit:-0} < recent_activity_seconds ))
+}
+
+has_uncommitted_changes() {
+  [[ -n $(git -C $1 status --porcelain 2>/dev/null | grep -v '^?? \.mise/') ]]
+}
+
+pr_state_for() {
+  local checkout=$1 branch=$2
+  local repo=$(cd $checkout && gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null)
+  gh pr list -R $repo --head $branch --state all --json state -q '.[0].state' 2>/dev/null
+}
+
+is_done() {
+  [[ $1 == MERGED ]] || { $include_closed && [[ $1 == CLOSED ]] }
+}
+
+has_commits_after_pr() {
+  local checkout=$1 branch=$2
+  git -C $checkout fetch -q origin $branch 2>/dev/null || return 1
+  [[ -n $(git -C $checkout log --oneline origin/$branch..HEAD 2>/dev/null) ]]
+}
+
+remove() {
+  local main_repo=$1 checkout=$2 name=$3 pr_state=$4
+  if ! $apply; then print "would remove  $name  ($pr_state)"; return; fi
+  if git -C $main_repo worktree remove --force $checkout; then
+    print "removed       $name  ($pr_state)"
+    freed_any=true
+  else
+    print "FAILED        $name"
+  fi
+}
+
+keep() {
+  print "keep          $1  ($2)"
+}
+
+free_space() {
+  df -h / | awk 'NR==2 {print $4}'
+}
+
+main

@@ -3,8 +3,8 @@
 //
 // Every component is theme-driven (var(--…) only), reflows below md, and keeps
 // wide content in its own overflow-x box, so App.tsx stays content-only.
-import { Children, createContext, isValidElement, useContext, useRef } from 'react'
-import type { ReactElement, ReactNode } from 'react'
+import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useRef } from 'react'
+import type { ReactElement, ReactNode, RefObject } from 'react'
 import { Highlight, themes } from 'prism-react-renderer'
 import { ArrowRight } from 'lucide-react'
 import { Scrollspy } from '@/components/ui/scrollspy'
@@ -35,13 +35,18 @@ export function Src({ path, lines, children }: { path: string; lines?: string; c
 
 // ---------- page shell ----------
 
-type SectionProps = { id: string; title: string; takeaway?: ReactNode; children?: ReactNode }
+type SectionProps = { id: string; title: string; group?: string; takeaway?: ReactNode; children?: ReactNode }
+type TocEntry = { id: string; title: string; group: string | undefined }
+type TocGroup = { group: string | undefined; entries: TocEntry[] }
 
 const RAIL_CSS = `
 .xk-rail a{display:flex;align-items:center;color:var(--ink-3);text-decoration:none;transition:color .18s;font-size:13px;line-height:1.35}
 .xk-rail a>span{font-weight:600}.xk-rail a:not([data-active])>span{font-weight:400}
 .xk-rail a::before{content:"";flex:0 0 auto;width:.9em;height:.9em;margin-right:.45rem;border-radius:99px;background:var(--border-hi);transform:scale(.4);transition:background .18s,transform .18s}
 .xk-rail a[data-active]{color:var(--brand)}.xk-rail a[data-active]::before{background:var(--brand);transform:scale(1)}
+.xk-rail .xk-group{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:.9rem 0 .35rem}
+.xk-rail .xk-group:first-child{margin-top:0}
+.xk-rail{scrollbar-width:thin}
 .xk-prose{max-width:88ch}`
 
 /**
@@ -52,10 +57,11 @@ export function Page({ meta = {}, eyebrow, title, thesis, pills = [], children }
   meta?: Meta; eyebrow?: ReactNode; title: ReactNode; thesis: ReactNode; pills?: ReactNode[]; children?: ReactNode
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const sections = Children.toArray(children)
-    .filter((c): c is ReactElement<SectionProps> => isValidElement(c) && c.type === Section)
-    .map(c => ({ id: c.props.id, title: c.props.title }))
+  const railRef = useRef<HTMLElement>(null)
+  const sections = collectSections(children)
+  const groups = groupSections(sections)
   const rail = sections.length >= 3
+  useActiveEntryInView({ scrollRef, railRef })
   return (
     <MetaCtx.Provider value={meta}>
       <Theme />
@@ -64,23 +70,92 @@ export function Page({ meta = {}, eyebrow, title, thesis, pills = [], children }
       <div ref={scrollRef} className="h-screen overflow-y-auto" style={{ background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif' }}>
         {rail && (
           <Scrollspy targetRef={scrollRef} offset={96} history={false} className="contents">
-            <nav className="xk-rail fixed left-5 top-1/2 -translate-y-1/2 hidden lg:flex flex-col gap-2 w-44" aria-label="Contents">
-              {sections.map(s => <a key={s.id} href={`#${s.id}`} data-scrollspy-anchor={s.id}><span>{s.title}</span></a>)}
+            <nav ref={railRef} className="xk-rail fixed left-5 top-10 bottom-6 hidden lg:flex flex-col gap-2 w-48 overflow-y-auto pr-2" aria-label="Contents">
+              {groups.map(({ group, entries }) => (
+                <Fragment key={group ?? entries[0]?.id}>
+                  {group && <p className="xk-group">{group}</p>}
+                  {entries.map(s => <a key={s.id} href={`#${s.id}`} data-scrollspy-anchor={s.id}><span>{s.title}</span></a>)}
+                </Fragment>
+              ))}
             </nav>
           </Scrollspy>
         )}
-        <main className={`w-full max-w-[1280px] 2xl:max-w-[1480px] px-4 md:px-8 pb-24 ${rail ? 'lg:pl-56' : 'mx-auto'}`}>
+        <main className={`w-full max-w-[1280px] 2xl:max-w-[1480px] px-4 md:px-8 pb-24 ${rail ? 'lg:pl-60' : 'mx-auto'}`}>
           <header className="pt-10 md:pt-16 pb-8 md:pb-12">
             {eyebrow && <p className="mono text-xs uppercase tracking-[0.16em] mb-3" style={{ color: 'var(--brand)' }}>{eyebrow}</p>}
             <h1 className="text-3xl md:text-5xl font-semibold tracking-tight leading-tight" style={{ color: 'var(--ink)' }}>{title}</h1>
             <p data-thesis className="xk-prose text-lg md:text-xl mt-4 leading-relaxed" style={{ color: 'var(--ink-2)' }}>{thesis}</p>
             {pills.length > 0 && <div className="flex flex-wrap gap-2 mt-5">{pills.map((p, i) => <Chip key={i}>{p}</Chip>)}</div>}
+            {rail && groups.some(g => g.group) && <ContentsOverview groups={groups} />}
           </header>
-          {children}
+          {withPartDividers(children)}
         </main>
       </div>
     </MetaCtx.Provider>
   )
+}
+
+function collectSections(children: ReactNode): TocEntry[] {
+  return Children.toArray(children)
+    .filter((c): c is ReactElement<SectionProps> => isValidElement(c) && c.type === Section)
+    .map(c => ({ id: c.props.id, title: c.props.title, group: c.props.group }))
+}
+
+function groupSections(sections: TocEntry[]): TocGroup[] {
+  return sections.reduce<TocGroup[]>((groups, entry) => {
+    const last = groups.at(-1)
+    if (last && last.group === entry.group) last.entries.push(entry)
+    else groups.push({ group: entry.group, entries: [entry] })
+    return groups
+  }, [])
+}
+
+function useActiveEntryInView({ scrollRef, railRef }: {
+  scrollRef: RefObject<HTMLDivElement | null>; railRef: RefObject<HTMLElement | null>
+}) {
+  useEffect(() => {
+    const scroller = scrollRef.current
+    if (!scroller) return
+    const reveal = () => railRef.current?.querySelector('[data-active]')?.scrollIntoView({ block: 'nearest' })
+    scroller.addEventListener('scroll', reveal, { passive: true })
+    return () => scroller.removeEventListener('scroll', reveal)
+  }, [scrollRef, railRef])
+}
+
+/** Grouped contents under the hero: every part with its sections, readable at any width. */
+function ContentsOverview({ groups }: { groups: TocGroup[] }) {
+  return (
+    <nav aria-label="Parts" className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {groups.map(({ group, entries }, index) => (
+        <div key={group ?? index} className="rounded-lg p-4" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <p className="mono text-xs uppercase tracking-[0.14em] mb-2" style={{ color: 'var(--brand)' }}>{`Part ${index + 1}`}{group ? ` · ${group}` : ''}</p>
+          <ol className="grid gap-1 text-sm">
+            {entries.map(e => <li key={e.id}><a href={`#${e.id}`} style={{ color: 'var(--ink-2)' }}>{e.title}</a></li>)}
+          </ol>
+        </div>
+      ))}
+    </nav>
+  )
+}
+
+/** Inserts a part heading before the first section of each new group. */
+function withPartDividers(children: ReactNode): ReactNode {
+  let previous: string | undefined
+  let part = 0
+  return Children.toArray(children).map(child => {
+    if (!isValidElement<SectionProps>(child) || child.type !== Section) return child
+    const group = child.props.group
+    const starts = group !== undefined && group !== previous
+    previous = group
+    if (!starts) return child
+    part += 1
+    return (
+      <Fragment key={`part-${child.props.id}`}>
+        <p className="mono text-xs uppercase tracking-[0.18em] pt-12 -mb-6" style={{ color: 'var(--brand)' }}>{`Part ${part} · ${group}`}</p>
+        {child}
+      </Fragment>
+    )
+  })
 }
 
 /** A top-level section. `takeaway` is the one line a skimmer must get. */
