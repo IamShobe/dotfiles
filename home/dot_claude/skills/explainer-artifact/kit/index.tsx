@@ -3,10 +3,10 @@
 //
 // Every component is theme-driven (var(--…) only), reflows below md, and keeps
 // wide content in its own overflow-x box, so App.tsx stays content-only.
-import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useRef } from 'react'
-import type { ReactElement, ReactNode, RefObject } from 'react'
+import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useRef, useState } from 'react'
+import type { MouseEvent, ReactElement, ReactNode, RefObject } from 'react'
 import { Highlight, themes } from 'prism-react-renderer'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Check } from 'lucide-react'
 import { Scrollspy } from '@/components/ui/scrollspy'
 import { Theme } from '@/theme'
 
@@ -47,7 +47,11 @@ const RAIL_CSS = `
 .xk-rail .xk-group{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:.9rem 0 .35rem}
 .xk-rail .xk-group:first-child{margin-top:0}
 .xk-rail{scrollbar-width:thin}
-.xk-prose{max-width:88ch}`
+.xk-prose{max-width:88ch}
+.xk-anchor{display:inline-flex;align-items:center;margin-left:.5rem;font-size:.7em;color:var(--ink-3);text-decoration:none;opacity:0;transition:opacity .15s,color .15s}
+.xk-heading:hover .xk-anchor,.xk-anchor:focus-visible{opacity:1}.xk-anchor:hover{color:var(--brand)}
+@media (hover:none){.xk-anchor{opacity:.5}}
+section[id]{scroll-margin-top:1.5rem}`
 
 /**
  * The whole page: theme, fonts, own scroll container, hero, side-rail TOC.
@@ -62,6 +66,7 @@ export function Page({ meta = {}, eyebrow, title, thesis, pills = [], children }
   const groups = groupSections(sections)
   const rail = sections.length >= 3
   useActiveEntryInView({ scrollRef, railRef })
+  useScrollToLinkedSection({ scrollRef })
   return (
     <MetaCtx.Provider value={meta}>
       <Theme />
@@ -162,11 +167,46 @@ function withPartDividers(children: ReactNode): ReactNode {
 export function Section({ id, title, takeaway, children }: SectionProps) {
   return (
     <section id={id} className="py-10 md:py-14" style={{ borderTop: '1px solid var(--border)' }}>
-      <h2 className="text-2xl md:text-3xl font-semibold tracking-tight" style={{ color: 'var(--ink)' }}>{title}</h2>
+      <h2 className="xk-heading text-2xl md:text-3xl font-semibold tracking-tight" style={{ color: 'var(--ink)' }}>
+        {title}
+        <SectionLink sectionId={id} />
+      </h2>
       {takeaway && <p data-takeaway className="xk-prose text-base md:text-lg mt-2 font-medium" style={{ color: 'var(--ink)' }}>{takeaway}</p>}
       <div className="mt-6 grid gap-6 min-w-0">{children}</div>
     </section>
   )
+}
+
+const COPIED_FEEDBACK_MS = 1500
+
+/** Hover "#" after a section title: puts the section in the URL and copies the link. */
+function SectionLink({ sectionId }: { sectionId: string }) {
+  const [copied, setCopied] = useState(false)
+  const copySectionLink = async (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    const url = new URL(window.location.href)
+    url.hash = sectionId
+    history.replaceState(null, '', url)
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' })
+    const written = await navigator.clipboard?.writeText(url.toString()).then(() => true, () => false)
+    if (!written) return
+    setCopied(true)
+    setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
+  }
+  return (
+    <a href={`#${sectionId}`} onClick={copySectionLink} data-noprose className="xk-anchor mono" aria-label="Copy link to this section">
+      {copied ? <Check size={16} /> : '#'}
+    </a>
+  )
+}
+
+/** Scroll to the section named in the URL once the page has rendered it. */
+function useScrollToLinkedSection({ scrollRef }: { scrollRef: RefObject<HTMLDivElement | null> }) {
+  useEffect(() => {
+    const sectionId = decodeURIComponent(window.location.hash.slice(1))
+    if (!sectionId || !scrollRef.current) return
+    document.getElementById(sectionId)?.scrollIntoView()
+  }, [scrollRef])
 }
 
 // ---------- text ----------
