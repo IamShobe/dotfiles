@@ -655,8 +655,9 @@ def render_line(spec: dict):
                     svg.el('top', 'circle', cx=x(j), cy=y(v), r=4, fill=col)
                 svg.text('labels', x(j), y(v) - 10, fmt(v), size=8, mono=True, fill=INK if is_f else MUTED,
                          anchor='middle', weight=600 if is_f else None)
-        last = max((j for j, v in enumerate(vs) if v is not None))
-        ends.append((i, s, vs[last], y(vs[last]) + 4, last))
+        filled = [j for j, v in enumerate(vs) if v is not None]
+        if filled:
+            ends.append((i, s, vs[filled[-1]], y(vs[filled[-1]]) + 4, filled[-1]))
     ly_end = _dodge([e[3] for e in ends], 14, T + 4, B + 4)
     for (i, s, v, _, last), ly in zip(ends, ly_end):
         is_f = i == focal
