@@ -22,7 +22,7 @@ collect_changed_files() {
 
 if [[ ${1:-} == "--" ]]; then shift; files=$(printf '%s\n' "$@"); else files=$(collect_changed_files "${1:-}"); fi
 
-ts=(); ts_src=(); py=()
+ts=(); ts_src=(); py=(); yaml=()
 while IFS= read -r f; do
   [[ -f $f ]] || continue
   case $f in
@@ -31,12 +31,14 @@ while IFS= read -r f; do
       ts+=("$f")
       [[ $f =~ (\.test\.|\.spec\.|/__tests__/|/__integration__/|/test/|/tests/) ]] || ts_src+=("$f") ;;
     *.py) py+=("$f") ;;
+    *.yaml|*.yml|*.tpl) yaml+=("$f") ;;
   esac
 done <<< "$files"
 
 hits=0; reviews=0
 TS_NOISE='^[^:]+:[0-9]+:\s*(//|/\*|\*)|no-smell:|binary file matches'
 PY_NOISE='^[^:]+:[0-9]+:\s*#|no-smell:|binary file matches'
+YAML_NOISE=$PY_NOISE
 
 # scan <smell|review> <noise-filter> <label> <fix> <pattern> <exclude-pattern|-> files...
 #   smell  = fails the scan; review = printed for a human look, does not fail
@@ -102,6 +104,11 @@ if (( ${#py[@]} )); then
        '^\s*elif\s+[\w.]+\s*==' - "${py[@]}"
 fi
 
+if (( ${#yaml[@]} )); then
+  scan review "$YAML_NOISE" "infra patching app behaviour" "fix it in the app (e.g. drain on SIGTERM in code), unless the infra is the real problem" \
+       '^\s*(preStop|terminationGracePeriodSeconds|initialDelaySeconds)\s*:|\w*(SHUTDOWN|DRAIN|GRACEFUL)\w*\s*:|setTimeout\(|\bsleep\s+\d' - "${yaml[@]}"
+fi
+
 echo
-echo "scanned ${#ts[@]} ts + ${#py[@]} py files; smells: $hits; for review: $reviews"
+echo "scanned ${#ts[@]} ts + ${#py[@]} py + ${#yaml[@]} yaml files; smells: $hits; for review: $reviews"
 (( hits == 0 ))

@@ -1,0 +1,10 @@
+lifecycle:
+  preStop:
+    exec:
+      command: ["node", "-e", "setTimeout(() => {}, 10000)"]
+terminationGracePeriodSeconds: 40
+configMap:
+  data:
+    SERVER_SHUTDOWN_TIMEOUT: "20"
+    # preStop: a comment is not a hit
+    PORT: "3000"

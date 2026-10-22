@@ -1,6 +1,6 @@
 # Diagram brief
 
-**Rendered types come from a JSON spec. Don't hand-draw them.** For the 23 ⚙ types in
+**Rendered types come from a JSON spec. Don't hand-draw them.** For the 24 ⚙ types in
 `diagram-types.md`, write a spec and let the renderer do the geometry: routing,
 masks, fanned attach points, the legend and the 4px grid are all correct by construction.
 

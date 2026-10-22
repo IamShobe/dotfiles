@@ -13,4 +13,7 @@ grep -q '^src/smelly.ts:6:' <<< "$out" || { echo "MISSED smelly.ts:6 (review)"; 
 grep -q '^src/smelly.ts:9:' <<< "$out" || { echo "MISSED smelly.ts:9 (review)"; fail=1; }
 for n in 2 3 4 6; do grep -q "^src/smelly.py:$n:" <<< "$out" || { echo "MISSED smelly.py:$n"; fail=1; }; done
 grep -q '^src/smelly.py:7:' <<< "$out" && { echo "FALSE POSITIVE smelly.py:7 (comment)"; fail=1; }
+out=$(bash "$check" -- src/patch.yaml)
+for n in 2 4 5 8; do grep -q "^src/patch.yaml:$n:" <<< "$out" || { echo "MISSED patch.yaml:$n (review)"; fail=1; }; done
+for n in 9 10; do grep -q "^src/patch.yaml:$n:" <<< "$out" && { echo "FALSE POSITIVE patch.yaml:$n"; fail=1; }; done
 (( fail )) && exit 1; echo "check.sh: all fixtures pass"

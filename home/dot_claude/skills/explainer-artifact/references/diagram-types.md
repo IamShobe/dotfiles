@@ -27,6 +27,7 @@ diagram-design has 41 types. ⚙ = rendered from a JSON spec (`render.py --examp
 | Did it get faster or smaller? Per endpoint/package, before → after | **dumbbell** (few rows) · **slopegraph** (many) | ⚙ |
 | Where did the time/bytes go? A budget from start to end | **waterfall** | ⚙ |
 | One number per thing (bundle per package, tests per suite) | bar | ⚙ |
+| Is it going up or down? A trend over 3–12 points (errors by week, latency across releases), with event markers | line | ⚙ |
 | Where is the hotspot? (failures by service × week) | heatmap | ⚙ |
 | What should we do next? (impact × effort) | quadrant | ⚙ |
 | Test pyramid shift, or a filtering funnel with counts | pyramid | ⚙ |
@@ -38,7 +39,6 @@ diagram-design has 41 types. ⚙ = rendered from a JSON spec (`render.py --examp
 | What ships now vs later? (MVP cut) | story-map | ✎ |
 | Who can read/write what, per role? (RBAC change) | dp-security-matrix | ✎ |
 | Build vs buy, a component moving toward commodity | wardley | ✎ |
-| Trends over time (latency across releases) | line | ✎ |
 | Two variables per item (size vs TTI per route) | scatter | ✎ |
 | Part of a whole where size is the story (bundle by package) | treemap | ✎ |
 | Old and new implementation overlap during a migration | venn | ✎ |

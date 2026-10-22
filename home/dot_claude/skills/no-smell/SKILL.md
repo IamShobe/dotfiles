@@ -151,6 +151,22 @@ were asked repeatedly. Search the repo first, then use these:
   no unused resources, no knobs nobody asked for. Check that the access or
   config doesn't already exist before you add it.
 
+## 8. Fix the app, not around it
+
+When an app misbehaves (drops requests on shutdown, starts slowly, leaks,
+times out), fix the app. Infra knobs that hide the behaviour are a patch:
+the next service copies the bug, and dev/PDE still has it.
+
+- No `preStop` sleeps, stretched `terminationGracePeriodSeconds`, shutdown or
+  drain timeouts in env vars, inflated probe delays or retry middlewares to
+  hide what the process does wrong.
+- Put the behaviour in code, in a shared helper when a second service needs
+  it (e.g. one `drainOnTermination` used by every HTTP server).
+- If the framework is the problem (a preset that exits on SIGTERM), replace
+  the entry point or configure it in code, not in the deployment.
+- Infra changes are fine when the infra itself is the thing being fixed
+  (capacity, routing, a real platform limit). Say why in the PR.
+
 ## Enforcement
 
 A PostToolUse hook runs `scripts/hook.sh` after every Edit/Write of a TS or
@@ -162,7 +178,8 @@ you silence the branch scan below.
 
 ## Before saying "done" / opening a PR
 
-Run the branch-wide scan from the repo root. It covers committed, staged,
+Run the branch-wide scan from the repo root (in a gitops repo too: it flags
+YAML that patches app behaviour for review). It covers committed, staged,
 unstaged and untracked changes against the merge-base:
 
 ```bash

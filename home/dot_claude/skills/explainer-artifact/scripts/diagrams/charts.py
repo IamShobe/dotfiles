@@ -1,4 +1,4 @@
-"""Chart engines: bar (+ horizontal), dumbbell, slopegraph, waterfall.
+"""Chart engines: bar (+ horizontal), dumbbell, line, slopegraph, waterfall.
 
 Layout grammar from diagram-design's type-bar.md (incl. dumbbell), type-line.md
 (slopegraph) and type-waterfall.md, on the house 1000-wide frame (plot x 80→960,
@@ -606,9 +606,156 @@ WATERFALL_EXAMPLE = {
 }
 
 
+# ---------- line ----------
+
+LINE_DASHES = (None, '6 4', '2 3', '10 3 2 3')   # non-focal series: one ink tone, told apart by dash and end label
+
+
+def render_line(spec: dict):
+    need(spec, 'x', 'series')
+    xs, series = spec['x'], spec['series']
+    check_count('line points', len(xs), 3, 12, 'aggregate into periods (weeks, months)',
+                'two points is a slopegraph or a dumbbell; one is a sentence')
+    check_count('line series', len(series), 1, 5, 'more than 5 lines is mush — split into two charts or cut', 'add a series')
+    data = [(s, _line_values(s, i, len(xs))) for i, s in enumerate(series)]
+    focal = one_focal([s for s, _ in data], 'series')
+    present = [v for _, vs in data for v in vs if v is not None]
+    if not present:
+        raise SpecError('every value is null — nothing to draw')
+
+    svg = Svg(width=1000, height=500)
+    gutter = snap_up(max(text_width(s['name'], 11, weight=600) for s, _ in data) + 56)
+    L, R, T, B = 80, 960 - gutter, 40, 420
+    f, c, ticks = nice_domain(min(present), max(present), zero=bool(spec.get('zero', True)))
+    y = lambda v: round(B - (v - f) / (c - f) * (B - T), 1)
+    pitch = (R - L) / (len(xs) - 1)
+    x = lambda i: round(L + pitch * i, 1)
+    _line_axes(svg, spec, xs, ticks, f, c, x, y, L, R, T, B, pitch)
+    _line_markers(svg, spec, len(xs), x, T, B)
+
+    rest = [i for i in range(len(data)) if i != focal]
+    ends = []
+    for i, (s, vs) in enumerate(data):
+        is_f = i == focal
+        col = ACCENT if is_f else tint('ink', 0.72)
+        dash = None if is_f else LINE_DASHES[rest.index(i) % len(LINE_DASHES)]
+        for seg in _line_segments(vs):
+            pts = ' '.join(f'{x(j):g},{y(v):g}' for j, v in seg)
+            svg.el('top' if is_f else 'edges', 'polyline', data_series=s['name'],
+                   data_values=','.join(fmt(v) for _, v in seg), data_from=str(seg[0][0]),
+                   points=pts, fill='none', stroke=col, stroke_width=1.8 if is_f else 1.2,
+                   stroke_linejoin='round', stroke_dasharray=dash)
+            if len(seg) == 1 and not is_f:
+                svg.el('edges', 'circle', cx=x(seg[0][0]), cy=y(seg[0][1]), r=2.5, fill=col)
+        if is_f or spec.get('values') == 'all':
+            for j, v in enumerate(vs):
+                if v is None:
+                    continue
+                if is_f:
+                    svg.el('top', 'circle', cx=x(j), cy=y(v), r=4, fill=col)
+                svg.text('labels', x(j), y(v) - 10, fmt(v), size=8, mono=True, fill=INK if is_f else MUTED,
+                         anchor='middle', weight=600 if is_f else None)
+        last = max((j for j, v in enumerate(vs) if v is not None))
+        ends.append((i, s, vs[last], y(vs[last]) + 4, last))
+    ly_end = _dodge([e[3] for e in ends], 14, T + 4, B + 4)
+    for (i, s, v, _, last), ly in zip(ends, ly_end):
+        is_f = i == focal
+        lx = x(last) + 10 if last < len(xs) - 1 else R + 10
+        svg.el('labels', 'text', s['name'], data_series=s['name'], data_role='name', x=lx, y=round(ly, 1), fill=INK,
+               font_size=11, font_weight=600 if is_f else 500, font_family=SANS)
+        svg.el('labels', 'text', fmt(v), data_series=s['name'], data_end='last', x=lx + text_width(s['name'], 11, weight=600) + 6,
+               y=round(ly, 1), fill=MUTED, font_size=9, font_family=MONO)
+
+    k = keys(spec)
+    for i, (s, _) in enumerate(data):
+        if i == focal:
+            key_line_dot(svg, ACCENT, 1.8, 4, k.get('focal') or s.get('note') or s['name'])
+        else:
+            _key_dashed(svg, tint('ink', 0.72), LINE_DASHES[rest.index(i) % len(LINE_DASHES)], s['name'])
+    ly = 468
+    svg.height = ly
+    unit = spec.get('unit', '')
+    unit_s = f' {unit}' if unit and len(unit) <= 4 else ''
+    legend_note(svg, ly, spec.get('note') or f'axis {fmt(f)}–{fmt(c)}{unit_s}{" · gaps are missing data" if any(v is None for _, vs in data for v in vs) else ""}')
+    return svg, ly
+
+
+def _line_values(s, i: int, n: int):
+    for kk in ('name', 'values'):
+        if kk not in s:
+            raise SpecError(f'series[{i}] needs "name" and "values"')
+    vs = s['values']
+    if not isinstance(vs, list) or len(vs) != n:
+        raise SpecError(f"series '{s['name']}' has {len(vs) if isinstance(vs, list) else '?'} values for {n} x labels — "
+                        f'one per label, null where there is no data (never interpolate)')
+    return [None if v is None else round(num(v, f"series '{s['name']}' value {j}"), 2) for j, v in enumerate(vs)]
+
+
+def _line_segments(vs):
+    """Runs of consecutive non-null points; a null breaks the line instead of being bridged."""
+    seg = []
+    for j, v in enumerate(vs):
+        if v is None:
+            if seg:
+                yield seg
+            seg = []
+        else:
+            seg.append((j, v))
+    if seg:
+        yield seg
+
+
+def _line_axes(svg, spec, xs, ticks, f, c, x, y, L, R, T, B, pitch):
+    for t in ticks:
+        if t != f:
+            svg.el('zones', 'line', x1=L, y1=y(t), x2=R, y2=y(t), stroke=GRID_TOP if t == c else GRID, stroke_width=0.8)
+        svg.text('labels', 72, y(t) + 4, fmt(t), size=8, mono=True, fill=MUTED, anchor='end')
+    svg.el('zones', 'line', x1=L, y1=y(f), x2=R, y2=y(f), stroke=AXIS, stroke_width=1)
+    if spec.get('unit'):
+        axis_title_rotated(svg, spec['unit'])
+    for j, lab in enumerate(xs):
+        lab = str(lab)
+        if text_width(lab, 8, True) + len(lab) * 0.48 > pitch - 4 and len(xs) > 2:
+            raise SpecError(f"x label '{lab}' doesn't fit a {pitch:.0f}px step at {len(xs)} points — shorten it")
+        svg.el('labels', 'text', lab.upper(), data_x=str(j), x=x(j), y=440, fill=MUTED, font_size=8, font_family=MONO,
+               letter_spacing='0.06em', text_anchor='middle')
+
+
+def _line_markers(svg, spec, n: int, x, T, B):
+    """Vertical event rules (a deploy, a cutover) at an x index; `at` may be fractional to sit between points."""
+    for m in spec.get('markers', []):
+        at = num(m.get('at'), 'marker "at"')
+        if not 0 <= at <= n - 1:
+            raise SpecError(f'marker "at" {fmt(at)} is outside the x range 0–{n - 1}')
+        mx = round(x(0) + (x(n - 1) - x(0)) * at / (n - 1), 1)
+        svg.el('zones', 'line', x1=mx, y1=T - 8, x2=mx, y2=B, stroke=AXIS, stroke_width=1, stroke_dasharray='3 3')
+        svg.text('labels', mx + 4, T - 12, str(m.get('label', '')), size=8, mono=True, fill=MUTED, upper=True, spacing='0.06em')
+
+
+def _key_dashed(svg: Svg, color: str, dash, label: str) -> None:
+    d = f' stroke-dasharray="{dash}"' if dash else ''
+    svg.key(f'glyph:<path d="M {{x}} {{y}} h 24" stroke="{color}" stroke-width="1.2" fill="none"{d}/>', label)
+
+
+LINE_EXAMPLE = {
+    "type": "line", "slug": "errors-by-week",
+    "title": "Timeouts fell after the retry fix; validation errors did not",
+    "desc": "Failed requests per 1,000 by week and cause for six weeks: timeouts dropped from 9 to 2 after the retry fix shipped in week 3, while validation errors stayed near 4.",
+    "unit": "failed per 1,000",
+    "x": ["wk 1", "wk 2", "wk 3", "wk 4", "wk 5", "wk 6"],
+    "series": [
+        {"name": "timeouts", "values": [9, 8.5, 6, 3, 2.2, 2], "focal": True, "note": "timeouts · fixed in week 3"},
+        {"name": "validation", "values": [4, 4.4, 3.8, 4.1, None, 4.3]},
+        {"name": "auth", "values": [1, 1.2, 0.9, 1.1, 1, 0.8]},
+    ],
+    "markers": [{"at": 2, "label": "retry fix"}],
+}
+
+
 TYPES = {
     'bar': (render_bar, BAR_EXAMPLE, 'one value per category (4–8, or 12 horizontal), one focal bar; axis from 0'),
     'dumbbell': (render_dumbbell, DUMBBELL_EXAMPLE, 'two values per row (before/after) where the gap is the message; 4–8 rows'),
     'slopegraph': (render_slopegraph, SLOPEGRAPH_EXAMPLE, 'several series across exactly two states: direction, steepness, crossings'),
+    'line': (render_line, LINE_EXAMPLE, 'a trend over 3–12 ordered points, 1–5 series, one focal; nulls break the line, markers flag events'),
     'waterfall': (render_waterfall, WATERFALL_EXAMPLE, 'start total → signed contributions → end total that must reconcile'),
 }

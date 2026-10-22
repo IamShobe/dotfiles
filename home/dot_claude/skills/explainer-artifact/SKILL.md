@@ -73,7 +73,7 @@ Then plan the diagrams, **at most 3**, one line each: `<slug> · <type> · <the 
 
 Every diagram follows diagram-design's rules. Never use mermaid or hand-rolled boxes and arrows.
 
-**⚙ rendered types (23, most of what an explainer needs):** write one `specs.json` (an array, one spec per diagram). Start from `python3 $S/scripts/diagrams/render.py --example <type>`. Then:
+**⚙ rendered types (24, most of what an explainer needs):** write one `specs.json` (an array, one spec per diagram). Start from `python3 $S/scripts/diagrams/render.py --example <type>`. Then:
 
 Rendering happens inside the build (step 4). To check specs on their own first:
 
