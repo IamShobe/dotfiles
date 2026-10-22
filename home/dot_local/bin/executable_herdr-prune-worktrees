@@ -2,6 +2,8 @@
 # Remove herdr worktrees whose PR is merged. Dry run unless --apply.
 # A worktree is kept when it is open in a herdr workspace, has uncommitted
 # changes, has commits not on any remote, or its PR is not merged.
+# Worktree names listed one per line in ~/.config/herdr-prune-worktrees/protected
+# (e.g. "infra-main" or "myrepo/some-worktree") are never removed.
 #
 #   herdr-prune-worktrees            # show what would be removed
 #   herdr-prune-worktrees --apply    # remove it
@@ -21,9 +23,10 @@ for arg in "$@"; do
 done
 
 worktrees_root=~/.herdr/worktrees
-protected_names=(gitops-main)
+protected_names_file=~/.config/herdr-prune-worktrees/protected
+protected_names=(${(f)"$(cat $protected_names_file 2>/dev/null)"})
 recent_activity_seconds=$((24 * 60 * 60))
-freed_any=false
+typeset -U repos_with_removals=()
 herdr_pane_cwds=""
 
 main() {
@@ -31,10 +34,9 @@ main() {
   for checkout in $(list_herdr_checkouts); do
     prune_if_merged "$checkout"
   done
-  if $apply && $freed_any; then
-    git worktree prune 2>/dev/null
-    (cd ~/git/act-security/act && mise x -- pnpm store prune >/dev/null 2>&1)
-  fi
+  for repo in $repos_with_removals; do
+    prune_package_store $repo
+  done
   print "free after:  $(free_space)"
   $apply || print "dry run — rerun with --apply to remove"
 }
@@ -100,10 +102,17 @@ remove() {
   if ! $apply; then print "would remove  $name  ($pr_state)"; return; fi
   if git -C $main_repo worktree remove --force $checkout; then
     print "removed       $name  ($pr_state)"
-    freed_any=true
+    repos_with_removals+=($main_repo)
   else
     print "FAILED        $name"
   fi
+}
+
+prune_package_store() {
+  local repo=$1
+  git -C $repo worktree prune
+  [[ -f $repo/pnpm-lock.yaml ]] || return
+  (cd $repo && pnpm store prune >/dev/null 2>&1) && print "pruned pnpm store for ${repo:t}"
 }
 
 keep() {
