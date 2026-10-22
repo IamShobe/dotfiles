@@ -663,8 +663,9 @@ def render_line(spec: dict):
         lx = x(last) + 10 if last < len(xs) - 1 else R + 10
         svg.el('labels', 'text', s['name'], data_series=s['name'], data_role='name', x=lx, y=round(ly, 1), fill=INK,
                font_size=11, font_weight=600 if is_f else 500, font_family=SANS)
-        svg.el('labels', 'text', fmt(v), data_series=s['name'], data_end='last', x=lx + text_width(s['name'], 11, weight=600) + 6,
-               y=round(ly, 1), fill=MUTED, font_size=9, font_family=MONO)
+        if not (is_f or spec.get('values') == 'all'):
+            svg.el('labels', 'text', fmt(v), data_series=s['name'], data_end='last', x=lx + text_width(s['name'], 11, weight=600) + 6,
+                   y=round(ly, 1), fill=MUTED, font_size=9, font_family=MONO)
 
     k = keys(spec)
     for i, (s, _) in enumerate(data):
