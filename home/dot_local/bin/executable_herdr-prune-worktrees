@@ -26,9 +26,10 @@ done
 worktrees_root=~/.herdr/worktrees
 protected_names_file=~/.config/herdr-prune-worktrees/protected
 protected_names=(${(f)"$(cat $protected_names_file 2>/dev/null)"})
-recent_activity_seconds=$((24 * 60 * 60))
+recent_activity_seconds=$((60 * 60))
 typeset -U repos_with_removals=()
 herdr_pane_cwds=""
+process_cwds=""
 
 main() {
   print "free before: $(free_space)"
@@ -56,7 +57,8 @@ prune_if_merged() {
 
   if (( ${protected_names[(Ie)$name]} )); then keep $name "protected"; return; fi
   if is_open_in_herdr $main_repo $checkout; then keep $name "open in herdr"; return; fi
-  if was_used_recently $checkout; then keep $name "used in last 24h"; return; fi
+  if has_process_running_inside $checkout; then keep $name "process running inside"; return; fi
+  if was_used_recently $checkout; then keep $name "used in last hour"; return; fi
   if has_uncommitted_changes $checkout; then keep $name "uncommitted changes"; return; fi
   if [[ -z $branch ]]; then keep $name "detached HEAD"; return; fi
 
@@ -71,6 +73,12 @@ is_open_in_herdr() {
   local checkout=$2
   [[ -z $herdr_pane_cwds ]] && herdr_pane_cwds=$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | .cwd, .foreground_cwd')
   print -- $herdr_pane_cwds | grep -qE "^${checkout}(/|$)"
+}
+
+has_process_running_inside() {
+  local checkout=$1
+  [[ -z $process_cwds ]] && process_cwds=$(lsof -a -d cwd -u $USER -Fn 2>/dev/null | sed -n 's/^n//p')
+  print -- $process_cwds | grep -qE "^${checkout}(/|$)"
 }
 
 was_used_recently() {
