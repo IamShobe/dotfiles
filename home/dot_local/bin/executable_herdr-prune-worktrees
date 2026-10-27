@@ -11,6 +11,7 @@
 
 setopt pipe_fail no_nomatch
 zmodload zsh/datetime
+zmodload -F zsh/stat b:zstat
 
 apply=false
 include_closed=false
@@ -55,7 +56,7 @@ prune_if_merged() {
 
   if (( ${protected_names[(Ie)$name]} )); then keep $name "protected"; return; fi
   if is_open_in_herdr $main_repo $checkout; then keep $name "open in herdr"; return; fi
-  if has_recent_commit $checkout; then keep $name "commit in last 24h"; return; fi
+  if was_used_recently $checkout; then keep $name "used in last 24h"; return; fi
   if has_uncommitted_changes $checkout; then keep $name "uncommitted changes"; return; fi
   if [[ -z $branch ]]; then keep $name "detached HEAD"; return; fi
 
@@ -72,9 +73,10 @@ is_open_in_herdr() {
   print -- $herdr_pane_cwds | grep -qE "^${checkout}(/|$)"
 }
 
-has_recent_commit() {
-  local last_commit=$(git -C $1 log -1 --format=%ct 2>/dev/null)
-  (( EPOCHSECONDS - ${last_commit:-0} < recent_activity_seconds ))
+was_used_recently() {
+  local worktree_reflog="$(git -C $1 rev-parse --path-format=absolute --git-dir)/logs/HEAD"
+  local last_used=$(zstat +mtime $worktree_reflog 2>/dev/null)
+  (( EPOCHSECONDS - ${last_used:-0} < recent_activity_seconds ))
 }
 
 has_uncommitted_changes() {
@@ -83,8 +85,8 @@ has_uncommitted_changes() {
 
 pr_state_for() {
   local checkout=$1 branch=$2
-  local repo=$(cd $checkout && gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null)
-  gh pr list -R $repo --head $branch --state all --json state -q '.[0].state' 2>/dev/null
+  local repo=$(cd $checkout && gh repo view --json nameWithOwner -q .nameWithOwner 2>&1) || { print -u2 "gh repo view failed in $checkout: $repo"; return }
+  gh pr list -R $repo --head $branch --state all --json state -q '.[0].state'
 }
 
 is_done() {
