@@ -18,6 +18,10 @@ import sys
 
 MANAGED = json.loads(r"""
 {
+  "env": {
+    "NODE_OPTIONS": "--require {{ .chezmoi.homeDir }}/.claude/hooks/tsc-limit.cjs",
+    "TSC_MAX_PARALLEL": "3"
+  },
   "attribution": {
     "commit": "",
     "pr": "",
