@@ -2,6 +2,9 @@
 // NODE_OPTIONS=--require. Any process that is not tsc returns on the first check.
 //
 //   TSC_MAX_PARALLEL   slots shared by all tsc processes (default 3)
+//
+// TypeScript 7's launcher execve()s into the native compiler under the same pid,
+// so the exit handler never runs there; the slot is reclaimed once that pid is dead.
 const tscEntry = /[\\/]typescript[\\/](bin[\\/]tsc|lib[\\/]tsc\.js)$/
 
 if (tscEntry.test(process.argv[1] ?? '')) waitForTscSlot()
