@@ -31,25 +31,26 @@ chezmoi cd # opens a subshell in the source directory.
 
 ## Agent Skills
 
-This repo is also a skills source for Claude Code, Cursor, Codex and
-[70+ other agents](https://github.com/vercel-labs/skills#supported-agents).
+This repo is also a skills source and Claude Code plugin marketplace (`iamshobe`)
+for Claude Code, Codex, Cursor and other agents.
 Skill list, dependencies and conventions: [`skills/`](skills/).
 
-**Claude Code** (installs dependencies automatically):
+**Claude Code** (plugins; dependencies install automatically):
 
 ```bash
 claude plugin marketplace add IamShobe/dotfiles
-claude plugin install explainer-artifact@iamshobe
+claude plugin install explainer-artifact@iamshobe   # visual explainer pages for a change or PR
+claude plugin install no-smell@iamshobe             # TS/Python code standards + edit-time hook
 ```
 
-**Any other agent**, with [skillshare](https://github.com/runkids/skillshare) (install the
-dependencies too; see [`skills/`](skills/)):
+**Any other agent**, with [skillshare](https://github.com/runkids/skillshare):
 
 ```bash
-skillshare install IamShobe/dotfiles -s explainer-artifact,web-artifacts-builder -g
-skillshare install cathrynlavery/diagram-design/skills/diagram-design -g
+skillshare install IamShobe/dotfiles/skills/no-smell -g
 skillshare sync
 ```
+
+Dependencies, the `no-smell` hook for skill-only installs, and the full list: [`skills/`](skills/README.md#install).
 
 ## Manage tools with mise
 ```bash

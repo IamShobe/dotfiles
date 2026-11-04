@@ -6,20 +6,32 @@ This folder is the [skillshare](https://github.com/runkids/skillshare) source: `
 | --- | --- | --- |
 | [`explainer-artifact`](explainer-artifact/) | Visual, TLDR-first explainer page for a change, PR, or refactor. | `web-artifacts-builder`, `diagram-design`, Node 18+, python3, git |
 | [`web-artifacts-builder`](web-artifacts-builder/) | React + shadcn/ui toolchain → one self-contained `bundle.html`. | Node 18+, pnpm or npm |
+| [`no-smell`](no-smell/) | TypeScript/Python code standards, plus a hook that flags smells each edit introduces. | git, jq (for the hook) |
 | [`chezmoi`](chezmoi/) | (`chezmoi-helper`) Templates, encryption, cross-machine setup. | chezmoi |
 | [`dotfiles-sync`](dotfiles-sync/) | Syncs local config edits back into this repo. | chezmoi |
-| [`wezterm-config`](wezterm-config/) | Edits and validates `wezterm.lua`. | WezTerm |
-| [`herdr`](herdr/) | Controls the Herdr app (`herdr-app` + `hc`). | Herdr app |
+| [`wezterm-config`](wezterm## Install
 
-## Install
+Everything installs straight from this public repo. Pick the way that fits the agent.
 
-**Claude Code.** Dependencies install automatically:
+### Claude Code: plugins (recommended)
+
+Add the marketplace once, then install what you want. Dependencies come along automatically.
 
 ```bash
 claude plugin marketplace add IamShobe/dotfiles
+
 claude plugin install explainer-artifact@iamshobe
 # ✔ Successfully installed plugin: explainer-artifact@iamshobe (+ 2 dependencies: diagram-design, web-artifacts-builder)
+
+claude plugin install no-smell@iamshobe
+# ✔ Successfully installed plugin: no-smell@iamshobe
 ```
+
+- **`explainer-artifact`**: on first use, `scripts/ensure-deps.sh` finds the two dependencies,
+  installs the node toolchain (~290MB, about a minute, once) and the `explainer` diagram profile.
+- **`no-smell`**: the plugin also installs its `PostToolUse` hook, so every Edit/Write of a TS or
+  Python file is scanned and Claude gets back only the smells that edit introduced. Needs `git`
+  and `jq` on `PATH`.
 
 **Whole terminal setup** (chezmoi-helper, dotfiles-sync, wezterm-config, herdr) in one install:
 
@@ -28,29 +40,62 @@ claude plugin install terminal-suite@iamshobe
 ```
 
 It's a bundle: [`bundles/terminal-suite`](../bundles/terminal-suite/.claude-plugin/plugin.json)
-holds only a `dependencies` list. If skillshare already links these skills into `~/.claude/skills`,
-skip the bundle. Installing it too would load each skill twice.
-
-**Cursor, Codex, opencode, and other agents.** Use [skillshare](https://github.com/runkids/skillshare),
-which installs from GitHub, records the source so `skillshare update` keeps it current, and
-links into every agent you add as a target. Skills don't declare dependencies to each other,
-so install a skill's dependencies with it:
-
-```bash
-skillshare install IamShobe/dotfiles -s explainer-artifact,web-artifacts-builder -g
-skillshare install cathrynlavery/diagram-design/skills/diagram-design -g
-skillshare sync
-```
-
-On first run, `explainer-artifact`'s `scripts/ensure-deps.sh` finds both skills wherever
-they were installed, installs the node toolchain (~290MB, not committed) and the
-`explainer` diagram profile. It takes about a minute, and later runs do nothing. It
-doesn't download skills: if one is missing it stops and prints the install command.
+holds only a `dependencies` list.
 
 Update or remove:
 
 ```bash
-claude plugin update explainer-artifact@iamshobe   # or: skillshare update explainer-artifact
+claude plugin marketplace update iamshobe
+claude plugin update explainer-artifact@iamshobe
+claude plugin uninstall explainer-artifact@iamshobe && claude plugin prune
+```
+
+### Any agent (Claude Code, Codex, Cursor, opencode, …): skillshare
+
+[skillshare](https://github.com/runkids/skillshare) installs from GitHub, records the source so
+`skillshare update` keeps it current, and links the skills into every agent you add as a target.
+Skills don't declare dependencies to each other, so install a skill's dependencies with it:
+
+```bash
+# explainer-artifact and its two dependencies
+skillshare install IamShobe/dotfiles/skills/explainer-artifact -g
+skillshare install IamShobe/dotfiles/skills/web-artifacts-builder -g
+skillshare install cathrynlavery/diagram-design/skills/diagram-design -g
+
+# no-smell
+skillshare install IamShobe/dotfiles/skills/no-smell -g
+
+skillshare sync
+```
+
+`ensure-deps.sh` doesn't download skills: if one is missing it stops and prints the install command.
+
+A skills-folder install doesn't come with the `no-smell` hook. To get it in Claude Code, add this to
+`~/.claude/settings.json`, with the path to wherever the skill is linked:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/skills/no-smell/scripts/hook.sh",
+            "timeout": 15,
+            "statusMessage": "no-smell scan"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Don't combine the two ways for the same skill: the plugin and the linked skill would both load.
+
+tifact@iamshobe   # or: skillshare update explainer-artifact
 claude plugin uninstall explainer-artifact@iamshobe && claude plugin prune
 ```
 

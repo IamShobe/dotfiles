@@ -170,7 +170,8 @@ the next service copies the bug, and dev/PDE still has it.
 ## Enforcement
 
 A PostToolUse hook runs `scripts/hook.sh` after every Edit/Write of a TS or
-Python file. It reports only smells the edit **introduced** (lines already in
+Python file (the `no-smell` plugin installs it; with a skill-only install, wire it
+up as the README shows). It reports only smells the edit **introduced** (lines already in
 HEAD are ignored), and the report comes back to you as feedback. When one
 arrives, fix it right away, or mark a deliberate exception on that line with
 `// no-smell: <reason>` (`# no-smell:` in Python). That comment is also how
@@ -180,10 +181,12 @@ you silence the branch scan below.
 
 Run the branch-wide scan from the repo root (in a gitops repo too: it flags
 YAML that patches app behaviour for review). It covers committed, staged,
-unstaged and untracked changes against the merge-base:
+unstaged and untracked changes against the merge-base. `<skill dir>` is this
+skill's base directory (shown when the skill loads; it differs between a plugin
+and a skills-folder install):
 
 ```bash
-bash ~/.claude/skills/no-smell/scripts/check.sh            # or: check.sh <base-ref> | check.sh -- <files>
+bash "<skill dir>/scripts/check.sh"            # or: check.sh <base-ref> | check.sh -- <files>
 ```
 
 `== SMELL` lines fail the scan; fix each one or justify it with `no-smell:`.
@@ -193,4 +196,4 @@ check what regex can't: the entry point reads as a story, names are specific,
 nothing is hand-rolled that a library or repo helper already does, and every
 `Promise.all` choice is deliberate.
 
-If you change `check.sh`, run `bash ~/.claude/skills/no-smell/tests/run.sh`.
+If you change `check.sh`, run `bash "<skill dir>/tests/run.sh"`.

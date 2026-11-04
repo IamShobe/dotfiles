@@ -2,7 +2,6 @@
 # Regression test for check.sh: clean fixtures must not be flagged, every smelly line must be.
 set -uo pipefail
 here=$(cd "$(dirname "$0")" && pwd); check="$here/../scripts/check.sh"
-[[ -f $check ]] || check="$here/../scripts/executable_check.sh"
 cd "$here/fixtures" || exit 2
 fail=0
 out=$(bash "$check" -- src/clean.ts src/__tests__/mock.spec.ts); status=$?

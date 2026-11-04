@@ -5,7 +5,7 @@
     "name": "IamShobe",
     "url": "https://github.com/IamShobe"
   },
-  "description": "Agent skills from IamShobe's dotfiles: explainer pages, artifact tooling, chezmoi and terminal helpers.",
+  "description": "Agent skills from IamShobe's dotfiles: explainer pages, artifact tooling, code standards, chezmoi and terminal helpers.",
   "plugins": [
     {
       "name": "explainer-artifact",
@@ -33,6 +33,29 @@
       "source": {
         "source": "github",
         "repo": "cathrynlavery/diagram-design"
+      }
+    },
+    {
+      "name": "no-smell",
+      "description": "Code standards for TypeScript and Python (ts-pattern, strict zod/pydantic parsing, kwargs params, story-first layout), with a PostToolUse hook that flags smells each edit introduces.",
+      "source": "./skills/no-smell",
+      "skills": [
+        "./"
+      ],
+      "hooks": {
+        "PostToolUse": [
+          {
+            "matcher": "Edit|Write|MultiEdit",
+            "hooks": [
+              {
+                "type": "command",
+                "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/hook.sh\"",
+                "timeout": 15,
+                "statusMessage": "no-smell scan"
+              }
+            ]
+          }
+        ]
       }
     },
     {
