@@ -1,0 +1,51 @@
+#!/usr/bin/env python3
+"""Shepherdr's settings (~/.herdr/shepherdr.json): the agent each role runs, kept the same on every machine.
+
+chezmoi pipes the current file in on stdin and takes the result from stdout. Only the roles below
+under "everywhere" are managed; everything else the settings window writes (per-space overrides,
+machine rows, task and other settings) stays as it is on this machine.
+
+Workers run GPT-6.1 Sol through the Bifrost gateway: Shepherdr starts them in a login zsh, so the
+`claude` wrapper (~/.zshrc.d/claude-bifrost.zsh) routes them. The Assistant is started by
+herdr-core directly, without that wrapper, so it has to stay on an Anthropic model.
+
+Change a role in the settings window and the next `chezmoi apply` puts it back: change it here.
+"""
+
+import json
+import sys
+
+MANAGED_ROLES = {
+    "coordinator": {"agent": "claude", "model": "opus[1m]", "effort": "medium", "fast": False, "perm": "auto"},
+    "worker": {"agent": "claude", "model": "gpt-6.1-sol[1m]", "effort": "medium", "fast": False, "perm": "auto"},
+    "reviewer": {"agent": "claude", "model": "opus", "effort": "medium", "fast": False, "perm": "auto"},
+}
+NEW_FILE = {"version": 1}
+
+
+def main() -> None:
+    raw = sys.stdin.read()
+    current = read_current_settings(raw=raw)
+    if current is None:
+        sys.stdout.write(raw)  # never destroy a file that can't be parsed
+        return
+    json.dump(with_managed_roles(settings=current), sys.stdout, indent=2)
+    sys.stdout.write("\n")
+
+
+def read_current_settings(*, raw: str) -> dict | None:
+    if not raw.strip():
+        return dict(NEW_FILE)
+    try:
+        parsed = json.loads(raw)  # no-smell: stdlib-only chezmoi modify script; app-owned JSON round-tripped as-is
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def with_managed_roles(*, settings: dict) -> dict:
+    everywhere = {**settings.get("everywhere", {}), **MANAGED_ROLES}
+    return {**settings, "everywhere": everywhere}
+
+
+main()

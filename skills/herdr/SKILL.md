@@ -90,7 +90,9 @@ Everything here is rebuilt on a new machine by the dotfiles repo:
 Brewfile (`herdr-app` cask, `skillshare`), `run_onchange_after_8-install-herdr-shepherdr.sh.tmpl`
 (Shepherdr at a pinned release + `.herdr/customize-shepherdr.py`: agents list, working spinner,
 skillshare panel, `sections-api` holder, active layout), `~/.config/herdr-app/{keys,settings}.json`,
-`mods/{skillshare,sections-api}`, `~/.local/bin/herdr-sections`.
+`mods/{skillshare,sections-api}`, `~/.local/bin/herdr-sections`, and Shepherdr's role agents
+(`~/.herdr/shepherdr.json` via `dot_herdr/modify_shepherdr.json`: Assistant and Reviewer on Opus,
+Workers on GPT-6.1 Sol through Bifrost; change roles there, not only in the settings window).
 
 - Changing a Shepherdr file (layout, a Shepherdr mod)? Change `.herdr/customize-shepherdr.py` in the
   chezmoi source instead, then run it: hand edits are lost on the next `shepherdr update`.
