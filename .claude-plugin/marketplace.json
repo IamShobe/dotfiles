@@ -83,16 +83,8 @@
       ]
     },
     {
-      "name": "herdr",
-      "description": "Control the Herdr app (herdr-app + hc): spaces, sections, tabs, panes and agents.",
-      "source": "./skills/herdr",
-      "skills": [
-        "./"
-      ]
-    },
-    {
       "name": "terminal-suite",
-      "description": "Bundle: chezmoi-helper, dotfiles-sync, wezterm-config, herdr.",
+      "description": "Bundle: chezmoi-helper, dotfiles-sync, wezterm-config.",
       "source": "./bundles/terminal-suite"
     }
   ]

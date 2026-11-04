@@ -1,7 +1,7 @@
 {
   "name": "terminal-suite",
   "version": "1.0.0",
-  "description": "IamShobe's terminal setup skills in one install: chezmoi, dotfiles-sync, wezterm-config, herdr.",
+  "description": "IamShobe's terminal setup skills in one install: chezmoi, dotfiles-sync, wezterm-config.",
   "author": {
     "name": "IamShobe",
     "url": "https://github.com/IamShobe"
@@ -9,7 +9,6 @@
   "dependencies": [
     "chezmoi-helper",
     "dotfiles-sync",
-    "wezterm-config",
-    "herdr"
+    "wezterm-config"
   ]
 }

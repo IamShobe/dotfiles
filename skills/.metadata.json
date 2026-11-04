@@ -232,6 +232,19 @@
         "SKILL.md": "sha256:c00eeea0e13e74fe4a9d84ba0a8542205a1b736d65f13134fe1a6647eb14976f"
       }
     },
+    "herdr": {
+      "source": "github.com/herdrdev/herdr/skills/herdr",
+      "type": "github-subdir",
+      "installed_at": "2026-11-04T17:08:44.151228+02:00",
+      "repo_url": "https://github.com/herdrdev/herdr.git",
+      "subdir": "skills/herdr",
+      "version": "ee5bfb5",
+      "tree_hash": "2be0d86d481d1bb29c62e11ef37b78d27d01b478",
+      "commit": "ee5bfb5041bb3e4a49d591c72308aae3c81ecdde",
+      "file_hashes": {
+        "SKILL.md": "sha256:fbd9d502767f7dff29c211505a0bd9ba34e980ed4cc456247e2adc1642883984"
+      }
+    },
     "tuicr": {
       "source": "github.com/agavra/tuicr/skills/tuicr",
       "type": "github-subdir",

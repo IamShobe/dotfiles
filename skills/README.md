@@ -33,7 +33,7 @@ claude plugin install no-smell@iamshobe
   Python file is scanned and Claude gets back only the smells that edit introduced. Needs `git`
   and `jq` on `PATH`.
 
-**Whole terminal setup** (chezmoi-helper, dotfiles-sync, wezterm-config, herdr) in one install:
+**Whole terminal setup** (chezmoi-helper, dotfiles-sync, wezterm-config) in one install:
 
 ```bash
 claude plugin install terminal-suite@iamshobe
