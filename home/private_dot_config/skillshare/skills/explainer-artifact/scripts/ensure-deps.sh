@@ -21,7 +21,7 @@ DEPS="$SKILL/.deps"
 
 # Where each dependency comes from when it has to be fetched.
 WAB_REPO="https://github.com/IamShobe/dotfiles.git"
-WAB_PATH="home/dot_claude/skills/web-artifacts-builder"
+WAB_PATH="home/private_dot_config/skillshare/skills/web-artifacts-builder"
 DD_REPO="https://github.com/cathrynlavery/diagram-design.git"
 DD_PATH="skills/diagram-design"
 

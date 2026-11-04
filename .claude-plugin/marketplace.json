@@ -10,7 +10,7 @@
     {
       "name": "explainer-artifact",
       "description": "Visual, TLDR-first explainer page for a change, PR, or refactor.",
-      "source": "./home/dot_claude/skills/explainer-artifact",
+      "source": "./home/private_dot_config/skillshare/skills/explainer-artifact",
       "skills": [
         "./"
       ],
@@ -22,7 +22,7 @@
     {
       "name": "web-artifacts-builder",
       "description": "React + shadcn/ui artifact toolchain that bundles to one self-contained HTML file.",
-      "source": "./home/dot_claude/skills/web-artifacts-builder",
+      "source": "./home/private_dot_config/skillshare/skills/web-artifacts-builder",
       "skills": [
         "./"
       ]
@@ -38,7 +38,7 @@
     {
       "name": "chezmoi-helper",
       "description": "Working with chezmoi: templates, encryption, cross-machine setup.",
-      "source": "./home/dot_claude/skills/chezmoi",
+      "source": "./home/private_dot_config/skillshare/skills/chezmoi",
       "skills": [
         "./"
       ]
@@ -46,7 +46,7 @@
     {
       "name": "dotfiles-sync",
       "description": "Sync local config edits back into a chezmoi dotfiles repo.",
-      "source": "./home/dot_claude/skills/dotfiles-sync",
+      "source": "./home/private_dot_config/skillshare/skills/dotfiles-sync",
       "skills": [
         "./"
       ]
@@ -54,15 +54,15 @@
     {
       "name": "wezterm-config",
       "description": "Edit and validate wezterm.lua: keybindings, fonts, themes.",
-      "source": "./home/dot_claude/skills/wezterm-config",
+      "source": "./home/private_dot_config/skillshare/skills/wezterm-config",
       "skills": [
         "./"
       ]
     },
     {
       "name": "herdr",
-      "description": "Control the Herdr terminal multiplexer for coding agents.",
-      "source": "./home/dot_claude/skills/herdr",
+      "description": "Control the Herdr app (herdr-app + hc): spaces, sections, tabs, panes and agents.",
+      "source": "./home/private_dot_config/skillshare/skills/herdr",
       "skills": [
         "./"
       ]

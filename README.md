@@ -33,7 +33,7 @@ chezmoi cd # opens a subshell in the source directory.
 
 This repo is also a skills source for Claude Code, Cursor, Codex and
 [70+ other agents](https://github.com/vercel-labs/skills#supported-agents).
-Skill list, dependencies and conventions: [`home/dot_claude/skills/`](home/dot_claude/skills/).
+Skill list, dependencies and conventions: [`home/private_dot_config/skillshare/skills/`](home/private_dot_config/skillshare/skills/).
 
 **Claude Code** (installs dependencies automatically):
 

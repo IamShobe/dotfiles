@@ -1,13 +1,27 @@
-# Build output & installed deps inside skills — generated on the target machine by
-# `ensure-deps.sh`, never tracked in the dotfiles repo.
-.claude/skills/*/template/node_modules/**
-.claude/skills/*/template/dist/**
-.claude/skills/*/template/bundle.html
+# Skills live in the skillshare source (~/.config/skillshare/skills) and skillshare links
+# them into ~/.claude/skills. Each skill's own .gitignore is the single source of truth for
+# what's generated on the machine: it's turned into ignore rules here. A pattern without a
+# slash matches anywhere in the skill; one with a slash is anchored at the skill root.
+# Comments and negations (!) are skipped.
+{{- range $f := glob (joinPath .chezmoi.sourceDir "private_dot_config/skillshare/skills/*/dot_gitignore") }}
+{{-   $skill := printf ".config/skillshare/skills/%s" (base (dir $f)) }}
+{{-   range $raw := splitList "\n" (include $f) }}
+{{-     $line := trim $raw }}
+{{-     if and $line (not (hasPrefix "#" $line)) (not (hasPrefix "!" $line)) }}
+{{-       $pat := trimSuffix "/" (trimPrefix "/" $line) }}
+{{-       if contains "/" $pat }}
+{{ $skill }}/{{ $pat }}
+{{ $skill }}/{{ $pat }}/**
+{{-       else }}
+{{ $skill }}/**/{{ $pat }}
+{{ $skill }}/**/{{ $pat }}/**
+{{-       end }}
+{{-     end }}
+{{-   end }}
+{{- end }}
 
 # Bifrost runtime and private provider data: never import into dotfiles.
 .config/bifrost/*
 !.config/bifrost/config.json
 .cache/bifrost/**
 .local/state/proxy-migration-backup/**
-.claude/skills/**/__pycache__/**
-.claude/skills/*/.deps/**

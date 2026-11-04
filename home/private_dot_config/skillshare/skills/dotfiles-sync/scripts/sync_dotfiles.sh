@@ -9,7 +9,6 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Tracked file mappings: local_path -> chezmoi_path
@@ -19,31 +18,14 @@ declare -A TRACKED_FILES=(
     ["${HOME_DIR}/.claude/hooks/notify.py"]="dot_claude/hooks/executable_notify.py"
     ["${HOME_DIR}/.claude/hooks/notify.sh"]="dot_claude/hooks/executable_notify.sh"
     ["${HOME_DIR}/.claude/hooks/focus-wezterm.sh"]="dot_claude/hooks/executable_focus-wezterm.sh"
-    ["${HOME_DIR}/.claude/skills/chezmoi/SKILL.md"]="dot_claude/skills/chezmoi/SKILL.md"
-    ["${HOME_DIR}/.claude/skills/chezmoi/evals/evals.json"]="dot_claude/skills/chezmoi/evals/evals.json"
-    ["${HOME_DIR}/.claude/skills/wezterm-config/SKILL.md"]="dot_claude/skills/wezterm-config/SKILL.md"
+    ["${HOME_DIR}/.config/skillshare/skills/chezmoi/SKILL.md"]="private_dot_config/skillshare/skills/chezmoi/SKILL.md"
+    ["${HOME_DIR}/.config/skillshare/skills/chezmoi/evals/evals.json"]="private_dot_config/skillshare/skills/chezmoi/evals/evals.json"
+    ["${HOME_DIR}/.config/skillshare/skills/wezterm-config/SKILL.md"]="private_dot_config/skillshare/skills/wezterm-config/SKILL.md"
     ["${HOME_DIR}/.claude/settings.json"]="dot_claude/dot_settings.json.tmpl"
     ["${HOME_DIR}/.claude/memory/MEMORY.md"]="dot_claude/memory/MEMORY.md"
     ["${HOME_DIR}/.config/wezterm/wezterm.lua"]="private_dot_config/wezterm/wezterm.lua"
     ["${HOME_DIR}/.mise.toml"]="dot_mise.toml"
     ["${HOME_DIR}/.mise.lock"]="dot_mise.lock"
-)
-
-# Common global config files that might be useful to track
-declare -a CANDIDATE_CONFIGS=(
-    ".gitconfig"
-    ".gitignore_global"
-    ".zshrc"
-    ".bashrc"
-    ".ssh/config"
-    ".config/nvim/init.vim"
-    ".config/nvim/init.lua"
-    ".config/helix/config.toml"
-    ".config/ripgrep/.ripgreprc"
-    ".config/fd/.fdrc"
-    ".config/bat/config"
-    ".config/dircolors"
-    ".hushlogin"
 )
 
 echo -e "${BLUE}🔍 Scanning for changes in tracked files...${NC}\n"
@@ -150,85 +132,4 @@ if git push origin main 2>/dev/null; then
 else
     echo -e "${YELLOW}⚠️  Could not push to remote. Please push manually.${NC}"
     echo "Run: cd ~/.local/share/chezmoi && git push origin main"
-fi
-
-# Check for untracked global configs that might be useful to share
-echo ""
-echo -e "${CYAN}🔎 Checking for untracked global configurations...${NC}"
-
-CANDIDATE_NEW_FILES=()
-for config in "${CANDIDATE_CONFIGS[@]}"; do
-    local_file="${HOME_DIR}/${config}"
-
-    # Skip if file doesn't exist
-    if [ ! -f "$local_file" ]; then
-        continue
-    fi
-
-    # Check if already tracked
-    if [ -v TRACKED_FILES["$local_file"] ]; then
-        continue
-    fi
-
-    CANDIDATE_NEW_FILES+=("$local_file")
-done
-
-if [ ${#CANDIDATE_NEW_FILES[@]} -gt 0 ]; then
-    echo -e "${YELLOW}Found untracked configs that might be useful to share:${NC}"
-    for file in "${CANDIDATE_NEW_FILES[@]}"; do
-        filename=$(basename "$file")
-        echo "  • $(echo $file | sed "s|^$HOME_DIR|~|")"
-    done
-    echo ""
-    read -p "Would you like to review and add these to chezmoi? (yes/no): " -r
-    echo ""
-
-    if [[ $REPLY =~ ^[Yy]es$ ]]; then
-        echo -e "${BLUE}📝 Reviewing files to add...${NC}"
-        echo "Note: Files will be added to chezmoi with proper privacy settings"
-        echo ""
-
-        for file in "${CANDIDATE_NEW_FILES[@]}"; do
-            relative_path=$(echo "$file" | sed "s|^$HOME_DIR/||")
-            echo -e "${CYAN}File: ${relative_path}${NC}"
-            echo "Preview (first 10 lines):"
-            head -10 "$file" | sed 's/^/  /'
-            echo ""
-
-            read -p "Add $relative_path to chezmoi? (yes/no/skip-all): " -r
-            if [[ $REPLY =~ ^[Yy]es$ ]]; then
-                # Determine chezmoi path (use private_ prefix for sensitive files)
-                if [[ "$relative_path" =~ ^\.ssh/ ]] || [[ "$relative_path" =~ ^\.git ]]; then
-                    chezmoi_file="private_${relative_path//./_}"
-                else
-                    chezmoi_file="dot_${relative_path//./_}"
-                fi
-
-                chezmoi_full_path="${CHEZMOI_SOURCE}/${chezmoi_file}"
-                mkdir -p "$(dirname "$chezmoi_full_path")"
-                cp "$file" "$chezmoi_full_path"
-
-                echo -e "${GREEN}✓ Added $relative_path${NC}"
-                echo ""
-            elif [[ $REPLY =~ ^[Ss]kip ]]; then
-                echo -e "${YELLOW}Skipping additional files...${NC}"
-                break
-            fi
-        done
-
-        # Commit any new files
-        cd "$CHEZMOI_SOURCE/.."
-        if git status --porcelain | grep -q "^??"; then
-            echo ""
-            echo -e "${BLUE}📦 Committing new configurations...${NC}"
-            git add home/
-            git commit -m "Add global configuration files to chezmoi
-
-Share common configuration files across machines:
-- Git configs, shell configurations, editor settings, tool configs"
-            git push origin main 2>/dev/null && echo -e "${GREEN}✓ New configs pushed${NC}" || echo -e "${YELLOW}⚠️  Please push manually${NC}"
-        fi
-    fi
-else
-    echo -e "${GREEN}✓ No new untracked configs found${NC}"
 fi

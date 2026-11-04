@@ -1,0 +1,6 @@
+# Generated on the machine; never tracked (git, skillshare, chezmoi via .chezmoiignore).
+__pycache__/
+.DS_Store
+template/node_modules/
+template/dist/
+template/bundle.html
