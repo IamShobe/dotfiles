@@ -9,6 +9,10 @@
 
 Idempotent: what's already there is left alone. When a Shepherdr update moved the code a patch
 anchors on, it says so and skips that patch instead of guessing.
+
+Shepherdr's installer keeps a file the person changed and puts its own version beside it as
+<file>.new. Every change to these files lives in this script, so the .new is taken (the update
+lands) and the tweaks are applied to it again.
 """
 
 import json
@@ -49,10 +53,18 @@ def main() -> int:
     if not LAYOUT_FILE.exists():
         print(f"no {LAYOUT_FILE}: Shepherdr isn't installed; nothing to customize")
         return 0
+    for patched_file in (LAYOUT_FILE, SPACES_MOD_FILE):
+        take_shepherdr_update(path=patched_file)
     customize_layout(layout_file=LAYOUT_FILE)
     add_working_spinner(mod_file=SPACES_MOD_FILE)
     make_layout_active(layout_name=LAYOUT_NAME)
     return 0
+
+
+def take_shepherdr_update(*, path: pathlib.Path) -> None:
+    shepherdr_version = path.with_name(path.name + ".new")
+    if shepherdr_version.exists():
+        os.replace(shepherdr_version, path)
 
 
 def customize_layout(*, layout_file: pathlib.Path) -> None:

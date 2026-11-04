@@ -69,9 +69,14 @@ prune_if_merged() {
   remove $main_repo $checkout $name $pr_state
 }
 
+# Open in Herdr: a terminal of the Herdr app (herdr-core, `hc ls`) or a pane of the legacy TUI
+# (`herdr pane list`) has its folder inside the checkout.
 is_open_in_herdr() {
   local checkout=$2
-  [[ -z $herdr_pane_cwds ]] && herdr_pane_cwds=$(herdr pane list 2>/dev/null | jq -r '.result.panes[] | .cwd, .foreground_cwd')
+  [[ -z $herdr_pane_cwds ]] && herdr_pane_cwds=$(
+    hc ls --json 2>/dev/null | jq -r '.terminals[].cwd // empty'
+    herdr pane list 2>/dev/null | jq -r '.result.panes[] | .cwd, .foreground_cwd'
+  )
   print -- $herdr_pane_cwds | grep -qE "^${checkout}(/|$)"
 }
 

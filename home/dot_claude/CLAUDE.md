@@ -11,7 +11,7 @@ Use `gh` CLI for all GitHub work (authenticated as IamShobe). No GitHub MCP serv
 # Herdr
 
 "Herdr" means the Herdr **app** (`herdr-app` + `hc`, Shepherdr layout), never the legacy `herdr` TUI CLI. Load the `herdr` skill first; it defers to `herdr-app --skill` / `hc --skill`.
-- "New herdr workspace" = a space: `herdr-app do space.new --name … --folder …` with **no** `--argv` (Shepherdr opens its Assistant). Worktree work: make the worktree, then the space on it.
+- "New herdr workspace" = a space: `herdr-app do space.new --name … --folder …` with **no** `--argv` (Shepherdr opens its Assistant), then a fitting emoji icon (`herdr-sections icon <id> <emoji>`). Worktree work: make the worktree, then the space on it.
 - Sections, icons, pins: `herdr-sections` (never hand-edit `shared.json`; the app overwrites it).
 
 # Personal Obsidian vault

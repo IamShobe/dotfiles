@@ -46,6 +46,9 @@ herdr-app do space.new --name "DAG executor" --folder ~/git/act-security/act
 
 - Worktree work: create the git worktree first (the user's convention: `~/.herdr/worktrees/<repo>/<branch>`),
   then `--folder` it. Every worktree is its own space; group related spaces with a section.
+- **Always give it a fitting icon** right after creating it: one emoji that says what the work is
+  (🕸️ a DAG/graph engine, 🔐 auth/SCIM, 🐛 a bug hunt, 📊 analytics, 🚀 a release, 🧪 an experiment):
+  `herdr-sections icon <space-id> <emoji>` (id from `herdr-app ls`). Don't reuse another space's icon.
 - Put it in a section right away when the user names one (below).
 - `space.rename`, `space.move`, `space.select`, `space.close --confirmed true` (only spaces you made
   or the user asked to close).
