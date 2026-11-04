@@ -1,0 +1,25 @@
+{{- /* chezmoi's default commit message, but paths outside home/ (the repo's skills/) are
+       named by repo path: targetRelPath fails on them and would abort the auto-commit. */ -}}
+{{- with .chezmoi.status }}
+{{- range .Ordinary -}}
+{{ $name := .Path }}{{ if hasPrefix "../" .Path }}{{ $name = trimPrefix "../" .Path }}{{ else }}{{ $name = targetRelPath .Path }}{{ end -}}
+{{ if and (eq .X 'A') (eq .Y '.') -}}Add {{ $name }}
+{{ else if and (eq .X 'D') (eq .Y '.') -}}Remove {{ $name }}
+{{ else if and (eq .X 'M') (eq .Y '.') -}}Update {{ $name }}
+{{ else }}{{ warnf "unsupported XY: %c%c" .X .Y }}
+{{ end }}
+{{- end -}}
+{{- range .RenamedOrCopied -}}
+{{ $name := .Path }}{{ if hasPrefix "../" .Path }}{{ $name = trimPrefix "../" .Path }}{{ else }}{{ $name = targetRelPath .Path }}{{ end -}}
+{{ if and (eq .X 'R') (eq .Y '.') }}Change attributes of {{ $name }}
+{{ else if and (eq .X 'C') (eq .Y '.') -}}Copy {{ .OrigPath }} to {{ $name }}
+{{ else }}{{ warnf "unsupported XY: %c%c" .X .Y }}
+{{ end }}
+{{- end -}}
+{{- range .Unmerged -}}
+{{ warnf "unmerged files" }}
+{{- end -}}
+{{- range .Untracked -}}
+{{ warnf "untracked files" }}
+{{- end -}}
+{{- end -}}
