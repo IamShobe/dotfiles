@@ -2,3 +2,5 @@ brew "htop"
 brew "pngpaste"
 brew "rtk"
 brew "terminal-notifier"
+cask "herdr-app" unless File.exist?("/Applications/Herdr.app")  # this machine: installed from the website
+brew "skillshare"

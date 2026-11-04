@@ -1,0 +1,15 @@
+#!/bin/bash
+# Skills and plugins through skillshare. Its source is this repo's skills/ folder; its config
+# (~/.config/skillshare/config.yaml) is managed here. Restores what skillshare installed from
+# upstream (skills/.metadata.json) and its plugins, then links everything into each agent.
+# Re-runs when the config or the committed install list changes.
+# config: {{ include "private_dot_config/skillshare/config.yaml" | sha256sum }}
+# installs: {{ output "git" "-C" .chezmoi.workingTree "rev-parse" "HEAD:skills/.metadata.json" | trim }}
+
+set -euo pipefail
+
+command -v skillshare >/dev/null || { echo "skillshare not installed (brew bundle installs it); skipping"; exit 0; }
+
+skillshare install -g
+skillshare plugin sync -g --json >/dev/null
+skillshare sync -g

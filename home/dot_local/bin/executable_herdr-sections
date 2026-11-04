@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Sections, icons and pins of the Herdr app's spaces sidebar (Shepherdr's spaces-chat), from a shell.
+
+  herdr-sections list
+  herdr-sections create <name> [space-id ...]      made if missing; the spaces move into it
+  herdr-sections move <space-id> <section>         or --top to take it out of every section
+  herdr-sections rename <section> <new-name>
+  herdr-sections delete <section>                  its spaces go back to the top
+  herdr-sections fold <section> on|off
+  herdr-sections icon <space-id> <emoji>           or --none for the "#" again
+  herdr-sections pin <space-id> on|off
+
+Space ids come from `herdr-app ls`. The change is made inside the app by the sections-api mod
+(shared state written from outside gets overwritten), so the app must be running with a layout
+that holds that mod (the Shepherdr layout, via .herdr/customize-shepherdr.py).
+"""
+
+import argparse
+import json
+import pathlib
+import subprocess
+import sys
+import time
+
+DATA_DIR = pathlib.Path.home() / ".config/herdr-app/data"
+REQUEST_FILE = DATA_DIR / "sections-req.json"
+RESULT_FILE = DATA_DIR / "sections-res.json"
+ANSWER_TIMEOUT_S = 5.0
+POLL_INTERVAL_S = 0.1
+
+
+def main() -> int:
+    args = parse_arguments(argv=sys.argv[1:])
+    ops = ops_for_command(args=args)
+    result_text = ask_sections_api(ops=ops)
+    print(result_text)
+    return 0 if '"ok": true' in result_text else 1
+
+
+def parse_arguments(*, argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="herdr-sections", description=__doc__.splitlines()[0])
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("list")
+    create = commands.add_parser("create")
+    create.add_argument("name")
+    create.add_argument("spaces", nargs="*")
+    move = commands.add_parser("move")
+    move.add_argument("space")
+    move.add_argument("section", nargs="?")
+    move.add_argument("--top", action="store_true")
+    rename = commands.add_parser("rename")
+    rename.add_argument("section")
+    rename.add_argument("name")
+    delete = commands.add_parser("delete")
+    delete.add_argument("section")
+    fold = commands.add_parser("fold")
+    fold.add_argument("section")
+    fold.add_argument("state", choices=["on", "off"])
+    icon = commands.add_parser("icon")
+    icon.add_argument("space")
+    icon.add_argument("emoji", nargs="?")
+    icon.add_argument("--none", action="store_true")
+    pin = commands.add_parser("pin")
+    pin.add_argument("space")
+    pin.add_argument("state", choices=["on", "off"])
+    args = parser.parse_args(argv)
+    if args.command == "move" and not args.top and not args.section:
+        parser.error("move needs a section name, or --top")
+    if args.command == "icon" and not args.none and not args.emoji:
+        parser.error("icon needs an emoji, or --none")
+    return args
+
+
+def ops_for_command(*, args: argparse.Namespace) -> list[dict[str, object]]:
+    match args.command:
+        case "list":
+            return []
+        case "create":
+            return [{"op": "create", "name": args.name, "spaces": args.spaces}]
+        case "move":
+            return [{"op": "move", "space": args.space, "section": None if args.top else args.section}]
+        case "rename":
+            return [{"op": "rename", "section": args.section, "name": args.name}]
+        case "delete":
+            return [{"op": "delete", "section": args.section}]
+        case "fold":
+            return [{"op": "fold", "section": args.section, "folded": args.state == "on"}]
+        case "icon":
+            return [{"op": "icon", "space": args.space, "icon": None if args.none else args.emoji}]
+        case "pin":
+            return [{"op": "pin", "space": args.space, "pinned": args.state == "on"}]
+        case unknown:
+            raise SystemExit(f"unknown command {unknown}")  # argparse rejects these first
+
+
+def ask_sections_api(*, ops: list[dict[str, object]]) -> str:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    RESULT_FILE.unlink(missing_ok=True)
+    REQUEST_FILE.write_text(json.dumps({"ops": ops}))
+    delivered = subprocess.run(["herdr-app", "do", "sections-api.apply"], capture_output=True, text=True)
+    if delivered.returncode != 0:
+        REQUEST_FILE.unlink(missing_ok=True)
+        raise SystemExit(f"herdr-sections: the app didn't take the request (is Herdr running with the Shepherdr layout?)\n{delivered.stderr.strip()}")
+    return wait_for_result()
+
+
+def wait_for_result() -> str:
+    deadline = time.monotonic() + ANSWER_TIMEOUT_S
+    while time.monotonic() < deadline:
+        if RESULT_FILE.exists():
+            return RESULT_FILE.read_text()
+        time.sleep(POLL_INTERVAL_S)
+    raise SystemExit("herdr-sections: no answer from the sections-api mod (is it in the active layout?)")
+
+
+if __name__ == "__main__":
+    sys.exit(main())

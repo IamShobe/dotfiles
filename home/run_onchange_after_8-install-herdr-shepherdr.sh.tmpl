@@ -1,0 +1,24 @@
+#!/bin/bash
+# The Herdr app's UI: Shepherdr (layout, mods, helpers) at a pinned release, installed by its own
+# installer so `shepherdr update` keeps working, then this machine's tweaks on top
+# (.herdr/customize-shepherdr.py: agents list, working spinner, skillshare panel, active layout).
+# Re-runs when the pin or the tweaks change. Herdr itself comes from the Brewfile (cask herdr-app).
+# tweaks: {{ include ".herdr/customize-shepherdr.py" | sha256sum }}
+
+set -euo pipefail
+
+SHEPHERDR_REPO="https://github.com/eliasstravik/shepherdr.git"
+SHEPHERDR_PIN="a9db92112833fcc2a2cf8cff92390c7c3bf394c0"  # v3.0.0 + changelog
+SHEPHERDR_CHECKOUT="${HOME}/.local/share/shepherdr"
+
+if [ ! -d /Applications/Herdr.app ] && ! command -v herdr-app >/dev/null; then
+  echo "Herdr app not installed (brew bundle installs cask herdr-app); skipping Shepherdr"
+  exit 0
+fi
+
+[ -d "${SHEPHERDR_CHECKOUT}/.git" ] || git clone -q "${SHEPHERDR_REPO}" "${SHEPHERDR_CHECKOUT}"
+git -C "${SHEPHERDR_CHECKOUT}" fetch -q origin
+git -C "${SHEPHERDR_CHECKOUT}" -c advice.detachedHead=false checkout -q "${SHEPHERDR_PIN}"
+
+python3 "${SHEPHERDR_CHECKOUT}/bin/shepherdr" install --source "${SHEPHERDR_CHECKOUT}" --yes --keys keep
+python3 "{{ joinPath .chezmoi.sourceDir ".herdr/customize-shepherdr.py" }}"
