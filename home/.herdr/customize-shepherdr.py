@@ -2,7 +2,9 @@
 """Re-apply this machine's tweaks on top of a Shepherdr install (run after `shepherdr install`).
 
   - The stock agents list under the spaces list in the sidebar.
-  - The skillshare panel: a toggle beside the tab bar and a column beside the work area.
+  - The skillshare panel: a toggle beside the tab bar and a block beside the work area.
+  - Shepherdr's single-child wrappers (e.g. the `panel` column its buttons show and hide) put back
+    when something collapsed them, checked against the pristine layout in the Shepherdr checkout.
   - A spinner on a space's row (and on the collapsed rail) while one of its agents works.
   - The sections-api mod in a 0px block, so `herdr-sections` can change sidebar sections.
   - Shepherdr as the active layout.
@@ -32,10 +34,13 @@ LAYOUT_NAME = "shepherdr"
 
 AGENTS_BLOCK = {"id": "agents", "type": "block", "size": {"weight": 1}, "min": 90, "content": {"mod": "agents"}}
 SKILLSHARE_TOGGLE = {"id": "skillshare-toggle", "type": "block", "content": {"mod": "skillshare", "props": {"role": "toggle"}}, "size": {"px": 118}}
+# One block, not a column holding one: a single-child wrapper is what gets collapsed, and the
+# toggle shows and hides this id.
 SKILLSHARE_PANEL = {
-    "id": "skillshare-panel", "type": "column", "hidden": True, "size": {"px": 400}, "min": 320, "max": 720,
-    "children": [{"id": "skillshare", "type": "block", "content": {"mod": "skillshare"}}],
+    "id": "skillshare-panel", "type": "block", "hidden": True, "size": {"px": 400}, "min": 320, "max": 720,
+    "content": {"mod": "skillshare"},
 }
+PRISTINE_LAYOUT_FILE = pathlib.Path.home() / ".local/share/shepherdr/layouts/shepherdr.json"
 SECTIONS_API_HOLDER = {"id": "sections-api", "type": "block", "size": {"px": 0}, "content": {"mod": "sections-api"}}
 TAB_BAR_HEIGHT = {"px": 42}
 
@@ -69,6 +74,7 @@ def take_shepherdr_update(*, path: pathlib.Path) -> None:
 
 def customize_layout(*, layout_file: pathlib.Path) -> None:
     layout = json.loads(layout_file.read_text())  # no-smell: Herdr's layout file, round-tripped untouched apart from our nodes
+    restore_collapsed_wrappers(layout=layout)
     add_agents_list(layout=layout)
     add_skillshare_toggle(layout=layout)
     add_skillshare_panel(layout=layout)
@@ -102,13 +108,50 @@ def add_skillshare_toggle(*, layout: JsonObject) -> None:
 
 
 def add_skillshare_panel(*, layout: JsonObject) -> None:
-    if find_node(node=layout, node_id="skillshare-panel"):
-        return
     work_body = find_node(node=layout, node_id="work-body")
     if work_body is None:
         warn("layout has no work-body node; skillshare panel not added")
         return
-    work_body["children"].append(SKILLSHARE_PANEL)
+    # Older shapes: a "skillshare-panel" column around a "skillshare" block, or that block alone
+    # after the column was collapsed. Both become the single block.
+    old_shapes = {"skillshare-panel", "skillshare"}
+    kept = [child for child in work_body["children"] if child.get("id") not in old_shapes]
+    work_body["children"] = [*kept, SKILLSHARE_PANEL]
+
+
+def restore_collapsed_wrappers(*, layout: JsonObject) -> None:
+    if not PRISTINE_LAYOUT_FILE.exists():
+        return
+    pristine = json.loads(PRISTINE_LAYOUT_FILE.read_text())  # no-smell: Shepherdr's own layout file, read only
+    for wrapper in single_child_containers(node=pristine):
+        wrap_child_again(layout=layout, wrapper=wrapper)
+
+
+def single_child_containers(*, node: JsonObject) -> list[JsonObject]:
+    children = node.get("children", [])
+    here = [node] if len(children) == 1 and node.get("id") else []
+    return here + [found for child in children for found in single_child_containers(node=child)]
+
+
+def wrap_child_again(*, layout: JsonObject, wrapper: JsonObject) -> None:
+    child_id = wrapper["children"][0].get("id")
+    if find_node(node=layout, node_id=wrapper["id"]) or not child_id:
+        return
+    parent = find_parent(node=layout, child_id=child_id)
+    if parent is None:
+        return
+    index = next(i for i, child in enumerate(parent["children"]) if child.get("id") == child_id)
+    parent["children"][index] = {**wrapper, "children": [parent["children"][index]]}
+
+
+def find_parent(*, node: JsonObject, child_id: str) -> JsonObject | None:
+    for child in node.get("children", []):
+        if child.get("id") == child_id:
+            return node
+        found = find_parent(node=child, child_id=child_id)
+        if found is not None:
+            return found
+    return None
 
 
 def add_sections_api_holder(*, layout: JsonObject) -> None:
