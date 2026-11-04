@@ -10,6 +10,8 @@ set -euo pipefail
 
 command -v skillshare >/dev/null || { echo "skillshare not installed (brew bundle installs it); skipping"; exit 0; }
 
+# skillshare's documented restore on another machine (docs: how-to/sharing/cross-machine-sync):
+# installs from .metadata.json, then skills/agents/extras/MCP/hooks, then plugins (never in --all).
 skillshare install -g
-skillshare plugin sync -g --json >/dev/null
-skillshare sync -g
+skillshare sync --all -g
+skillshare sync plugins --no-tui -g

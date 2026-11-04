@@ -4,6 +4,7 @@ sources:
   skills: ~/.local/share/chezmoi/skills
   agents: ~/.config/skillshare/agents
 mode: merge
+preserve_tilde_on_save: true
 targets:
   claude:
     skills:
