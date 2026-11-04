@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/runkids/skillshare/main/schemas/config.schema.json
+
+sources:
+  skills: ~/.local/share/chezmoi/skills
+  agents: ~/.config/skillshare/agents
+mode: merge
+targets:
+  claude:
+    skills:
+      path: ~/.claude/skills
+ignore:
+  - .DS_Store
+  - .git/
+  - __pycache__/
+  - node_modules/
+audit:
+  block_threshold: CRITICAL
+plugins:
+  version: 2
+  packages:
+    diagram-design:
+      source: https://github.com/cathrynlavery/diagram-design
+      plugin: diagram-design
+      bindings:
+        claude:
+          source: https://github.com/cathrynlavery/diagram-design
+          plugin: diagram-design

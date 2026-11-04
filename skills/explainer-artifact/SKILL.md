@@ -2,7 +2,7 @@
 name: explainer-artifact
 description: Build a human-facing "explainer" artifact that summarizes a change, feature, refactor, or migration — for teammates and reviewers, not machines. Heavy on visuals, TLDR-first, no reading fatigue. Covers what changed, what was deprecated, and which interfaces changed (user-facing AND developer-facing). Use when the user says "create a summary artifact", "explain what changed", "write up this feature/PR/refactor", "make a doc for the team", or asks to document a merged change visually.
 allowed-tools: Read, Edit, Write, Bash, Grep, Glob, Skill, Agent, Artifact, AskUserQuestion
-compatibility: Needs Node 18+, pnpm or npm, python3, and git. Uses the web-artifacts-builder and diagram-design skills; scripts/ensure-deps.sh fetches any that are missing.
+compatibility: Needs Node 18+, pnpm or npm, python3, and git. Uses the web-artifacts-builder and diagram-design skills (installed by skillshare or the iamshobe marketplace); scripts/ensure-deps.sh finds them and installs the template node packages.
 metadata:
   requires: "web-artifacts-builder diagram-design"
   requires-sources: "IamShobe/dotfiles cathrynlavery/diagram-design"

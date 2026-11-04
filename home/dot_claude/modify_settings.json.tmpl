@@ -9,6 +9,9 @@ no other machine should carry:
     BlueBear daemon, which is not present on every machine.
   - `model` — chosen per machine.
   - `modelPicker` — extra /model rows for machine-local gateway models (workplace).
+  - `enabledPlugins` / `extraKnownMarketplaces` entries this template doesn't name —
+    plugins another manager installed here (skillshare owns diagram-design). Entries
+    named here still win.
 
 Anything else in this template is authoritative and overwrites the local value.
 """
@@ -135,8 +138,7 @@ MANAGED = json.loads(r"""
     "frontend-design@claude-plugins-official": true,
     "gopls-lsp@claude-plugins-official": true,
     "claude-api@anthropic-agent-skills": true,
-    "i-have-adhd@i-have-adhd": true,
-    "diagram-design@diagram-design": true
+    "i-have-adhd@i-have-adhd": true
   },
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
@@ -150,12 +152,6 @@ MANAGED = json.loads(r"""
         "source": "github",
         "repo": "ayghri/i-have-adhd"
       }
-    },
-    "diagram-design": {
-      "source": {
-        "source": "github",
-        "repo": "cathrynlavery/diagram-design"
-      }
     }
   }
 }
@@ -163,6 +159,8 @@ MANAGED = json.loads(r"""
 
 # Keys left to whatever the machine already has.
 LOCAL_ONLY_KEYS = ("model", "modelPicker")  # modelPicker: workplace models, per machine
+# Keys merged entry by entry: the machine's entries survive, the template's win.
+MERGED_KEYS = ("enabledPlugins", "extraKnownMarketplaces")
 
 
 def is_local_hook(command):
@@ -184,6 +182,9 @@ def main():
         if key in current:
             result[key] = current[key]
 
+    for key in MERGED_KEYS:
+        result[key] = merge_machine_entries(managed=MANAGED.get(key, {}), machine=current.get(key, {}))
+
     merged_hooks = {
         event: [dict(entry) for entry in entries]
         for event, entries in MANAGED.get("hooks", {}).items()
@@ -201,6 +202,11 @@ def main():
     result["hooks"] = merged_hooks
     json.dump(result, sys.stdout, indent=2)
     sys.stdout.write("\n")
+
+
+def merge_machine_entries(*, managed, machine):
+    """Entries only this machine has stay; entries the template names take its value."""
+    return {**machine, **managed}
 
 
 main()

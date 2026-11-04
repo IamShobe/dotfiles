@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Resolve everything explainer-artifact needs, fetching whatever is missing:
+# Locate what explainer-artifact needs and prepare it for this machine:
 #
 #   web-artifacts-builder  skill  build toolchain (template node_modules installed here)
 #   diagram-design         skill  diagram generator
 #   explainer profile      file   ~/.diagram-design/profiles/explainer.md
 #
-# Installed copies win (any agent's skills dir, Claude Code plugins). A missing
-# skill is sparse-cloned into this skill's .deps/ so the skill works no matter
-# which installer put it here. Idempotent: later runs only print the paths.
+# Installing the two skills is the package manager's job, not this script's:
+# skillshare (or the iamshobe marketplace, whose explainer-artifact plugin depends
+# on both) installs and updates them. This finds them wherever they were put,
+# installs the template's node packages once, and copies the profile.
+# Idempotent: later runs only print the paths.
 #
 # Prints shell assignments on stdout — eval them:
 #   eval "$(bash scripts/ensure-deps.sh)"   # → $WAB, $DIAGRAM_DESIGN
@@ -17,13 +19,6 @@ log() { printf '%s\n' "$*" >&2; }   # chatter to stderr; stdout is eval'd
 die() { log "❌ $*"; exit 1; }
 
 SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEPS="$SKILL/.deps"
-
-# Where each dependency comes from when it has to be fetched.
-WAB_REPO="https://github.com/IamShobe/dotfiles.git"
-WAB_PATH="home/private_dot_config/skillshare/skills/web-artifacts-builder"
-DD_REPO="https://github.com/cathrynlavery/diagram-design.git"
-DD_PATH="skills/diagram-design"
 
 # find_skill <name> <sentinel file relative to the skill dir>
 # Sibling first (same skills dir, any agent), then the usual global locations.
@@ -36,7 +31,6 @@ find_skill() {
     "$SKILL/../$name"
     "$SKILL/../../$name/*"
     "$SKILL/../../$name/*/skills/$name"
-    "$DEPS/$name"
     "$cc/skills/$name"
     "$HOME/.agents/skills/$name"
     "$cc/plugins/cache/*/$name/*"
@@ -51,30 +45,14 @@ find_skill() {
   return 1
 }
 
-# fetch_skill <name> <git url> <path in repo> — shallow sparse clone into .deps/
-fetch_skill() {
-  local name="$1" url="$2" path="$3" tmp
-  command -v git >/dev/null 2>&1 || die "git not found — needed to fetch $name."
-  log "→ $name not installed; fetching it from $url …"
-  tmp="$(mktemp -d)"
-  git clone -q --depth 1 --filter=blob:none --sparse "$url" "$tmp/repo" >&2 \
-    || { rm -rf "$tmp"; die "could not clone $url"; }
-  git -C "$tmp/repo" sparse-checkout set "$path" >&2
-  [ -f "$tmp/repo/$path/SKILL.md" ] || { rm -rf "$tmp"; die "$path/SKILL.md missing in $url"; }
-  mkdir -p "$DEPS"
-  rm -rf "${DEPS:?}/$name"
-  mv "$tmp/repo/$path" "$DEPS/$name"
-  rm -rf "$tmp"
-  log "✅ $name → $DEPS/$name"
+require_skill() {  # require_skill <name> <sentinel> <how to install it>
+  find_skill "$1" "$2" || die "$1 is not installed. Install it: $3"
 }
 
-resolve() {  # resolve <name> <sentinel> <url> <path>
-  find_skill "$1" "$2" || { fetch_skill "$1" "$3" "$4" >&2; find_skill "$1" "$2"; } \
-    || die "$1 still missing after fetch."
-}
-
-WAB="$(resolve web-artifacts-builder scripts/make-artifact.sh "$WAB_REPO" "$WAB_PATH")"
-DIAGRAM_DESIGN="$(resolve diagram-design SKILL.md "$DD_REPO" "$DD_PATH")"
+WAB="$(require_skill web-artifacts-builder scripts/make-artifact.sh \
+  "skillshare install IamShobe/dotfiles/skills/web-artifacts-builder, or the iamshobe marketplace plugin")"
+DIAGRAM_DESIGN="$(require_skill diagram-design SKILL.md \
+  "skillshare plugin add https://github.com/cathrynlavery/diagram-design --plugin diagram-design --target claude")"
 
 # references/diagram-brief.md is condensed from diagram-design 2.6; say so if it moved on.
 DD_VER="$(printf '%s' "$DIAGRAM_DESIGN" | grep -oE '/[0-9]+\.[0-9]+\.[0-9]+/' | tr -d / | head -1 || true)"

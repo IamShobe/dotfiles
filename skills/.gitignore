@@ -1,0 +1,8 @@
+# Skills that live only on this machine (skillshare still links them).
+/coder-herdr/
+/graphify/
+/never-throw-typescript/
+# Skills installed by skillshare from their upstream repos (recorded in skillshare's config.yaml).
+/archify/
+/find-skills/
+/tuicr/

@@ -33,7 +33,7 @@ chezmoi cd # opens a subshell in the source directory.
 
 This repo is also a skills source for Claude Code, Cursor, Codex and
 [70+ other agents](https://github.com/vercel-labs/skills#supported-agents).
-Skill list, dependencies and conventions: [`home/private_dot_config/skillshare/skills/`](home/private_dot_config/skillshare/skills/).
+Skill list, dependencies and conventions: [`skills/`](skills/).
 
 **Claude Code** (installs dependencies automatically):
 
@@ -42,10 +42,13 @@ claude plugin marketplace add IamShobe/dotfiles
 claude plugin install explainer-artifact@iamshobe
 ```
 
-**Any other agent:**
+**Any other agent**, with [skillshare](https://github.com/runkids/skillshare) (install the
+dependencies too; see [`skills/`](skills/)):
 
 ```bash
-npx skills add IamShobe/dotfiles --skill explainer-artifact -g
+skillshare install IamShobe/dotfiles -s explainer-artifact,web-artifacts-builder -g
+skillshare install cathrynlavery/diagram-design/skills/diagram-design -g
+skillshare sync
 ```
 
 ## Manage tools with mise

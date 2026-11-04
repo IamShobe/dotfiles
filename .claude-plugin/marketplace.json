@@ -10,7 +10,7 @@
     {
       "name": "explainer-artifact",
       "description": "Visual, TLDR-first explainer page for a change, PR, or refactor.",
-      "source": "./home/private_dot_config/skillshare/skills/explainer-artifact",
+      "source": "./skills/explainer-artifact",
       "skills": [
         "./"
       ],
@@ -22,7 +22,7 @@
     {
       "name": "web-artifacts-builder",
       "description": "React + shadcn/ui artifact toolchain that bundles to one self-contained HTML file.",
-      "source": "./home/private_dot_config/skillshare/skills/web-artifacts-builder",
+      "source": "./skills/web-artifacts-builder",
       "skills": [
         "./"
       ]
@@ -38,7 +38,7 @@
     {
       "name": "chezmoi-helper",
       "description": "Working with chezmoi: templates, encryption, cross-machine setup.",
-      "source": "./home/private_dot_config/skillshare/skills/chezmoi",
+      "source": "./skills/chezmoi",
       "skills": [
         "./"
       ]
@@ -46,7 +46,7 @@
     {
       "name": "dotfiles-sync",
       "description": "Sync local config edits back into a chezmoi dotfiles repo.",
-      "source": "./home/private_dot_config/skillshare/skills/dotfiles-sync",
+      "source": "./skills/dotfiles-sync",
       "skills": [
         "./"
       ]
@@ -54,7 +54,7 @@
     {
       "name": "wezterm-config",
       "description": "Edit and validate wezterm.lua: keybindings, fonts, themes.",
-      "source": "./home/private_dot_config/skillshare/skills/wezterm-config",
+      "source": "./skills/wezterm-config",
       "skills": [
         "./"
       ]
@@ -62,7 +62,7 @@
     {
       "name": "herdr",
       "description": "Control the Herdr app (herdr-app + hc): spaces, sections, tabs, panes and agents.",
-      "source": "./home/private_dot_config/skillshare/skills/herdr",
+      "source": "./skills/herdr",
       "skills": [
         "./"
       ]

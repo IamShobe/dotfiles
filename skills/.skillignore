@@ -1,3 +1,2 @@
 # Not skills: dependency trees inside skills ship their own SKILL.md files.
 node_modules/
-.deps/
