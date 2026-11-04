@@ -61,6 +61,27 @@ MANAGED = json.loads(r"""
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "^(startup|resume|clear|compact)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh '{{ .chezmoi.homeDir }}/.config/herdr-app/mods/chat/session-note.sh'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh '{{ .chezmoi.homeDir }}/.config/herdr-app/mods/chat/ask-hook.sh'",
+            "timeout": 1800
+          }
+        ]
       }
     ],
     "PreToolUse": [
