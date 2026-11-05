@@ -1,18 +1,36 @@
 #!/bin/bash
 # Caching shim for `az account get-access-token`, used by the local Bifrost gateway.
 # Every other az invocation passes straight through.
+
+# Never call ourselves: if the "real" az leads back here (a mise shim for an uninstalled
+# azure-cli falls through to the next az on PATH, which is this shim), every call would start
+# another copy and fork until the machine stalls. The first copy marks the chain; a copy that
+# finds the mark stops.
+if [[ -n "${BIFROST_AZ_SHIM_ACTIVE:-}" ]]; then
+  echo "bifrost-az: the real az resolves back to this shim; install azure-cli or set BIFROST_REAL_AZ" >&2
+  exit 127
+fi
+export BIFROST_AZ_SHIM_ACTIVE=1
+# The real az: never this shim and never a mise shim (a shim for a tool that isn't active in the
+# current folder falls through to the next az on PATH, i.e. back here). In order:
+# $BIFROST_REAL_AZ, the newest azure-cli mise has installed, then PATH.
 find_real_az() {
-  if [[ -n "$BIFROST_REAL_AZ" && -x "$BIFROST_REAL_AZ" ]]; then
-    echo "$BIFROST_REAL_AZ"
+  local self_dir candidate dir
+  self_dir="$(cd "$(dirname "$0")" && pwd -P)"
+  is_real_az() {
+    local c="$1"
+    [[ -n "$c" && -x "$c" ]] || return 1
+    [[ "$c" == */mise/shims/* ]] && return 1
+    [[ "$(cd "$(dirname "$c")" && pwd -P)" == "$self_dir" ]] && return 1
     return 0
-  fi
-  local self_dir dir
-  self_dir="$(cd "$(dirname "$0")" && pwd)"
+  }
+  if is_real_az "${BIFROST_REAL_AZ:-}"; then echo "$BIFROST_REAL_AZ"; return 0; fi
+  for candidate in $(ls -d "$HOME"/.local/share/mise/installs/{pipx-azure-cli,azure-cli}/*/bin/az 2>/dev/null | sort -t/ -k9 -V -r); do
+    if is_real_az "$candidate"; then echo "$candidate"; return 0; fi
+  done
   IFS=: read -ra dirs <<<"$PATH"
   for dir in "${dirs[@]}"; do
-    [[ "$dir" == "$self_dir" || ! -x "$dir/az" ]] && continue
-    echo "$dir/az"
-    return 0
+    if is_real_az "$dir/az"; then echo "$dir/az"; return 0; fi
   done
   return 1
 }
