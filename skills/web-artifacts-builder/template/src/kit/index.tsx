@@ -54,7 +54,8 @@ const RAIL_CSS = `
 @media (hover:none){.xk-anchor{opacity:.5}}
 section[id]{scroll-margin-top:1.5rem}
 .xk-shift-row{transition:background .15s}.xk-shift-row:hover>*{box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--ink) 3%,transparent)}
-.xk-shift-row:hover .xk-shift-label{color:var(--ink)}`
+.xk-shift-row:hover .xk-shift-label{color:var(--ink)}
+.xk-change-row{transition:background .15s}.xk-change-row:hover{background:color-mix(in srgb,var(--ink) 3%,transparent)}`
 
 /**
  * The whole page: theme, fonts, own scroll container, hero, side-rail TOC.
@@ -537,7 +538,7 @@ function ChangeLine({ change, isFirst }: { change: InterfaceChange; isFirst: boo
   const kind = changeKindOf(change)
   const tone = CHANGE_TONE[kind]
   return (
-    <div className="xk-shift-row grid grid-cols-[1.75rem_1fr] md:grid-cols-[1.75rem_minmax(11rem,16rem)_1fr] gap-x-3 gap-y-1.5 px-4 py-3 min-w-0 items-start"
+    <div className="xk-change-row grid grid-cols-[1.75rem_1fr] md:grid-cols-[1.75rem_minmax(11rem,16rem)_1fr] gap-x-3 gap-y-1.5 px-4 py-3 min-w-0 items-start"
       style={{ borderTop: isFirst ? undefined : '1px solid var(--border)' }}>
       <span title={kind} className="mono grid place-items-center w-6 h-6 rounded-full font-semibold" style={{ color: tone.color, background: tone.fill }}>{tone.sign}</span>
       <ChangeName change={change} kind={kind} />
