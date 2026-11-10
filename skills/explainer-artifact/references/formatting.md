@@ -19,7 +19,7 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 
 | Content | Block |
 |---|---|
-| The whole story at a glance (the first section) | `<Tldr>` + the page's main `<BeforeAfter>` |
+| The whole story at a glance (the first section) | `<Tldr>` (what broke, why, fix, status, what you do) + the page's main `<BeforeAfter>` |
 | A behavior, rule or state that changed | `<BeforeAfter example rows result caption>` |
 | What a change does to data (rows, tables, records) | `<BeforeAfter>`, one row per table, `hint` = what one row is |
 | A list of things that were added, changed or removed (config, APIs, rules) | `<Changes>` |
@@ -32,11 +32,30 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 
 ## TL;DR first, then the story
 
-- **The first section is the TL;DR: facts, then the picture.** A `<Tldr>` fact list answers the questions a reader comes with, one line each: *Impact* (who was hit, how much, since when), *Cause*, *Fix*, *Status* (shipped where, with `<Ref>` links; what the reader must do, if anything). Then the page's main `<BeforeAfter>` on the running example. No takeaway sentence and no `caption` there: the fact list already says it. A reader who stops here has the full picture; every later section is the long version of one row.
+- **The first section is the TL;DR: facts, then the picture.** A `<Tldr>` answers the questions a reader comes with, one row each, in this order: *What broke* (or *What's new*), *Why*, *The fix*, *Status* (`<Ref>` links, merged vs deployed said honestly), *What you do* (the one next action, or "Nothing" plus when it resolves itself). Then the page's main `<BeforeAfter>` on the running example. No takeaway sentence and no `caption` there: the rows already say it. A reader who stops here has the full picture; every later section is the long version of one row.
+- **Readable in seconds.** Write the TL;DR for a reader with no working memory to spare:
+  - each `statement` is ≤ 8 plain words and leads with the outcome ("Act staff locked out", not "An issue was found where…");
+  - every number, count, date and frequency moves out of the sentence into a `facts` pill ("6 people", "every 6 hours", "since Nov 4"), so the eye picks numbers up without parsing;
+  - one idea per row, no em-dash clauses, no "which means";
+  - the last row is the reader's next action; "Nothing" is a valid, valuable answer.
 - **A document, not a pitch.** The TL;DR is dense and factual: counts, dates, names, links. Big cards, slogans and arrows between boxes are cut.
 - **The TL;DR speaks plain words only.** It comes before any `<Term>`, so it uses no internal names, no acronyms and no new concepts: "stored on the platform", not "the directory". `verify.sh` fails a term used before its `<Term>`.
 - **Group the rest into 3–4 parts that tell the story**, with `group` on each `<Section>`: typically *What went wrong* → *The fix* → *Shipping* → *What's next* (or *Why* → *How it works* → *What changes for you*). The rail numbers the parts and lights up the one being read. A part holds 1–3 sections.
 - **Section titles say what the reader learns, in ≤ 4 words** ("How Sam's order failed", "Database changes"), so the rail reads as a table of contents of the story, not a list of headings.
+
+```tsx
+<Tldr items={[
+  { label: 'What broke', tone: 'problem', statement: 'Orders cancelled with a valid card on file', facts: ['312 orders', 'since Mar 3'] },
+  { label: 'Why', tone: 'neutral', statement: 'Checkout tried only the first card', facts: ['first card expired'] },
+  { label: 'The fix', tone: 'change', statement: 'Checkout tries every saved card', facts: ['cancel only if all fail'] },
+  { label: 'Status', tone: 'result', statement: <>✓ Merged: <Ref href="https://…/pull/42">shop#42</Ref></>, facts: ['deploys Thursday'] },
+  { label: 'What you do', tone: 'action', statement: 'Nothing', facts: ['retries run on deploy'] },
+]} />
+```
+
+## Readable everywhere
+
+The TL;DR rules hold for the whole page, at a lower density: lead with the outcome, plain short sentences, numbers where the eye can find them, lists of ≤ 5 items (split longer ones into "now" and "later"), and every section's takeaway is one sentence a tired reader understands on first read. When a paragraph needs a second read, it gets shorter or becomes a block.
 
 ## Introduce before you use
 

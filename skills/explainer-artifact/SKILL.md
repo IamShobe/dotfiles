@@ -18,7 +18,7 @@ This skill owns the **story**: structure, formatting and content. Everything mec
 
 ## Non-negotiables
 
-- **TL;DR first, and visual.** The hero states the thesis in one sentence; the first section is a TL;DR: a compact `<Tldr>` fact list (impact, cause, fix, status) and the main before → after, in plain words. Only then the long version. Every section opens with its takeaway.
+- **TL;DR first, and visual.** The hero states the thesis in one sentence; the first section is a TL;DR: a `<Tldr>` (what broke, why, the fix, status, what you do; ≤ 8-word statements, numbers as pills) and the main before → after, in plain words. Only then the long version. Every section opens with its takeaway.
 - **Visual over prose: the glance test.** Every block makes its point to a reader who reads no sentence in it: one concrete example, values not sentences, outcome first, explanation last. The principles and which block fits which content: `references/formatting.md`. No prose block over ~3 lines.
 - **No filler.** No vanity-metric strips ("5 files removed!"), no restating the obvious, no marketing voice, no hedging. If a line wouldn't survive "so what?", delete it.
 - **Real examples only.** Actual identifiers, code and names from the change, verified against source. A wrong example is worse than none.
@@ -60,7 +60,7 @@ Write the thesis and one takeaway per section, and run the takeaway test on them
 | Section | Kit |
 |---|---|
 | Hero: eyebrow (ticket and PRs as `<Ref>` links, status), title, thesis, context pills | `<Page eyebrow title thesis pills>` |
-| TL;DR: impact, cause, fix, status in plain words, then the picture | `<Tldr>` fact list + the core shift as `<BeforeAfter example rows result>` |
+| TL;DR: what broke, why, the fix, status, what you do — then the picture | `<Tldr>` + the core shift as `<BeforeAfter example rows result>` |
 | What changed for users (only if user-facing) | `<BeforeAfter example …>`, mockup |
 | How it works: the new flow | one diagram in `<Figure>` |
 | Interface changes | `<Changes>` (user-facing and developer-facing kept separate) |
@@ -131,7 +131,7 @@ Then **stop and let the user prune** ("delete that", "too AI"). Edit, `$WAB/scri
 ## Final check (content only; `verify.sh` covers the rest)
 
 - [ ] The takeaway paragraph `verify.sh` prints reads as one coherent story.
-- [ ] The first section is the TL;DR: a fact list (impact with numbers, cause, fix, status with links) and the main example, in plain words; the rail shows 3–4 named parts with short titles.
+- [ ] The TL;DR reads in seconds: ≤ 8-word statements leading with the outcome, numbers in `facts` pills, status honest (merged ≠ deployed) with links, a next-action row; then the main example. The rail shows 3–4 named parts with short titles.
 - [ ] Every ticket, PR and doc is a `<Ref>` link, every code mention a `<Src>`; the status in the eyebrow is current.
 - [ ] Each diagram's type fits the question its section answers (`$WAB/references/diagram-types.md`), not a default.
 - [ ] Every block passes the glance test (`references/formatting.md`): one example, values not sentences, outcome first, the difference marked, the explanation last. No table of sentences.

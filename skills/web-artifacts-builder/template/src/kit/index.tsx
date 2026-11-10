@@ -329,34 +329,40 @@ export function Grid({ cols = 2, children }: { cols?: 2 | 3 | 4; children: React
   return <div className={`grid grid-cols-1 ${c} gap-4 min-w-0`}>{children}</div>
 }
 
-type TldrTone = 'problem' | 'change' | 'result' | 'neutral'
-type TldrItem = { label: ReactNode; statement: ReactNode; example?: ReactNode; tone?: TldrTone }
+type TldrTone = 'problem' | 'change' | 'result' | 'action' | 'neutral'
+type TldrItem = { label: ReactNode; statement: ReactNode; facts?: ReactNode[]; tone?: TldrTone }
 
 const TLDR_TONE = {
-  problem: 'var(--rm)', change: 'var(--brand-ink)', result: 'var(--add)', neutral: 'var(--ink-3)',
+  problem: 'var(--rm)', change: 'var(--brand-ink)', result: 'var(--add)', action: 'var(--ink)', neutral: 'var(--ink-3)',
 } as const satisfies Record<TldrTone, string>
 
 /**
- * The page at a glance: one row per question a reader has (impact, cause, fix, status), a colored
- * label and a one-line answer with its detail in a lighter tone. Compact by design: it sits above
- * the page's main example, not instead of it.
+ * The page at a glance, readable in seconds: one row per question (what broke, why, the fix, status,
+ * what you do), a colored label, a statement of ≤ 8 words and its numbers as `facts` pills.
  */
 export function Tldr({ items }: { items: TldrItem[] }) {
   return (
-    <dl className="grid min-w-0 rounded-lg overflow-hidden text-sm md:text-[15px]" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+    <dl className="grid min-w-0 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
       {items.map((item, index) => (
-        <div key={index} className="grid grid-cols-1 md:grid-cols-[7rem_1fr] gap-x-4 gap-y-0.5 px-4 py-2.5 min-w-0"
+        <div key={index} className="grid grid-cols-1 md:grid-cols-[8.5rem_1fr] gap-x-4 gap-y-1 px-4 py-3 min-w-0 items-center"
           style={{ borderTop: index ? '1px solid var(--border)' : undefined }}>
-          <dt className={`${SMALL_CAPS} md:pt-0.5 flex items-center gap-2`} style={{ color: TLDR_TONE[item.tone ?? 'neutral'] }}>
+          <dt className={`${SMALL_CAPS} flex items-center gap-2`} style={{ color: TLDR_TONE[item.tone ?? 'neutral'] }}>
             <span aria-hidden className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: TLDR_TONE[item.tone ?? 'neutral'] }} />{item.label}
           </dt>
-          <dd className="min-w-0 leading-relaxed">
-            <span className="font-medium" style={{ color: 'var(--ink)' }}>{item.statement}</span>
-            {item.example && <span style={{ color: 'var(--ink-3)' }}> — {item.example}</span>}
+          <dd className="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className="text-base font-medium" style={{ color: 'var(--ink)' }}>{item.statement}</span>
+            {item.facts?.map((fact, factIndex) => <FactPill key={factIndex}>{fact}</FactPill>)}
           </dd>
         </div>
       ))}
     </dl>
+  )
+}
+
+function FactPill({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-block text-sm px-2 py-0.5 rounded-md tabular-nums whitespace-nowrap"
+      style={{ color: 'var(--ink-2)', background: 'color-mix(in srgb, var(--ink) 6%, transparent)' }}>{children}</span>
   )
 }
 
