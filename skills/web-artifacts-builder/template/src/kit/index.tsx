@@ -4,9 +4,9 @@
 // Every component is theme-driven (var(--…) only), reflows below md, and keeps
 // wide content in its own overflow-x box, so App.tsx stays content-only.
 import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useRef, useState } from 'react'
-import type { CSSProperties, MouseEvent, ReactElement, ReactNode, RefObject } from 'react'
+import type { MouseEvent, ReactElement, ReactNode, RefObject } from 'react'
 import { Highlight, themes } from 'prism-react-renderer'
-import { ArrowRight, Check } from 'lucide-react'
+import { ArrowRight, Check, X } from 'lucide-react'
 import { Scrollspy } from '@/components/ui/scrollspy'
 import { Theme } from '@/theme'
 
@@ -234,6 +234,11 @@ export function Id({ children }: { children: ReactNode }) {
   return <code className="mono px-1 py-px rounded" style={{ fontSize: 'max(12px, 0.9em)', background: 'var(--brand-soft)', color: 'var(--brand-ink)' }}>{children}</code>
 }
 
+/** Something that no longer exists, inside an example value: <Gone>Backoffice account</Gone>. */
+export function Gone({ children }: { children: ReactNode }) {
+  return <s className="decoration-1" style={{ color: 'var(--ink-3)' }}>{children}</s>
+}
+
 type Kind = 'add' | 'rm' | 'change' | 'keep' | 'neutral'
 const KIND: Record<Kind, { fg: string; bg: string; sign: string }> = {
   add: { fg: 'var(--add)', bg: 'var(--add-soft)', sign: '+ ' },
@@ -269,66 +274,101 @@ export function Grid({ cols = 2, children }: { cols?: 2 | 3 | 4; children: React
 }
 
 type ShiftRow = { aspect: ReactNode; before: ReactNode; after: ReactNode }
+type ShiftResult = { before: ReactNode; after: ReactNode }
 
-const BEFORE_CELL = { background: 'color-mix(in srgb, var(--ink) 4%, transparent)', color: 'var(--ink-2)', borderLeft: '3px solid var(--border-hi)' }
-const AFTER_CELL = { background: 'var(--brand-soft)', color: 'var(--ink)', borderLeft: '3px solid var(--brand)' }
+const BEFORE_FILL = 'color-mix(in srgb, var(--ink) 4%, transparent)'
+const AFTER_FILL = 'var(--brand-soft)'
+const SHIFT_COLUMNS = 'md:grid-cols-[minmax(6rem,9rem)_1fr_1fr]'
+const SMALL_CAPS = 'mono text-xs uppercase tracking-[0.12em]'
 
 /**
- * Old → new. Prefer `rows`: one row per aspect, its before and after on the same line,
- * so the reader compares pairs instead of matching bullets across two cards.
- * `before`/`after` (free-form) is for things that don't split into aspects: mockups, screenshots.
+ * Old → new, shown on one concrete example. `example` names it ("Ido: one person, two sign-ins"),
+ * each row is a short label with compact example values (ids, chips, a few words), `result` is the
+ * outcome on both sides, and `caption` is the one-sentence description at the end.
+ * Free-form `before`/`after` is for what doesn't split into rows: mockups, screenshots.
  */
-export function BeforeAfter({ rows, before, after, beforeLabel = 'Before', afterLabel = 'After' }: {
-  rows?: ShiftRow[]; before?: ReactNode; after?: ReactNode; beforeLabel?: ReactNode; afterLabel?: ReactNode
+export function BeforeAfter({ example, rows, result, caption, before, after, beforeLabel = 'Before', afterLabel = 'After' }: {
+  example?: ReactNode; rows?: ShiftRow[]; result?: ShiftResult; caption?: ReactNode
+  before?: ReactNode; after?: ReactNode; beforeLabel?: ReactNode; afterLabel?: ReactNode
 }) {
-  if (rows) return <ShiftRows rows={rows} beforeLabel={beforeLabel} afterLabel={afterLabel} />
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-4 items-stretch min-w-0">
-      <ShiftPanel label={beforeLabel} style={BEFORE_CELL}>{before}</ShiftPanel>
-      <div className="hidden md:flex items-center" style={{ color: 'var(--ink-3)' }}><ArrowRight size={20} /></div>
-      <ShiftPanel label={afterLabel} style={AFTER_CELL} labelColor="var(--brand-ink)">{after}</ShiftPanel>
-    </div>
+    <figure className="grid gap-3 min-w-0">
+      {rows
+        ? <ShiftExample example={example} rows={rows} result={result} beforeLabel={beforeLabel} afterLabel={afterLabel} />
+        : <ShiftPanels before={before} after={after} beforeLabel={beforeLabel} afterLabel={afterLabel} />}
+      {caption && <figcaption className="xk-prose leading-relaxed" style={{ color: 'var(--ink-2)' }}>{caption}</figcaption>}
+    </figure>
   )
 }
 
-function ShiftRows({ rows, beforeLabel, afterLabel }: { rows: ShiftRow[]; beforeLabel: ReactNode; afterLabel: ReactNode }) {
-  const columns = 'md:grid-cols-[minmax(7rem,12rem)_1fr_1.25rem_1fr]'
-  const headLabel = 'mono text-xs uppercase tracking-[0.14em]'
+function ShiftExample({ example, rows, result, beforeLabel, afterLabel }: {
+  example?: ReactNode; rows: ShiftRow[]; result?: ShiftResult; beforeLabel: ReactNode; afterLabel: ReactNode
+}) {
   return (
-    <div className="grid gap-2 min-w-0" role="table">
-      <div className={`hidden md:grid ${columns} gap-3 px-1`} role="row">
+    <div className="min-w-0 rounded-lg overflow-hidden text-sm" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+      {example && (
+        <p className="px-4 py-2.5 flex flex-wrap gap-x-2 items-baseline" style={{ borderBottom: '1px solid var(--border)', color: 'var(--ink)' }}>
+          <span className={SMALL_CAPS} style={{ color: 'var(--ink-3)' }}>Example</span>
+          <span className="font-medium">{example}</span>
+        </p>
+      )}
+      <div className={`hidden md:grid ${SHIFT_COLUMNS}`}>
         <span />
-        <span className={headLabel} style={{ color: 'var(--ink-3)' }} role="columnheader">{beforeLabel}</span>
-        <span />
-        <span className={headLabel} style={{ color: 'var(--brand-ink)' }} role="columnheader">{afterLabel}</span>
+        <span className={`${SMALL_CAPS} px-4 pt-3 pb-1.5`} style={{ color: 'var(--ink-3)' }}>{beforeLabel}</span>
+        <span className={`${SMALL_CAPS} px-4 pt-3 pb-1.5`} style={{ color: 'var(--brand-ink)' }}>{afterLabel}</span>
       </div>
       {rows.map((row, index) => (
-        <div key={index} className={`grid grid-cols-1 ${columns} gap-2 md:gap-3 items-stretch min-w-0 rounded-lg md:rounded-none p-3 md:p-0 border md:border-0`}
-          style={{ borderColor: 'var(--border)' }} role="row">
-          <p className="font-medium md:pt-2.5 min-w-0" style={{ color: 'var(--ink)' }} role="rowheader">{row.aspect}</p>
-          <ShiftCell label={beforeLabel} style={BEFORE_CELL}>{row.before}</ShiftCell>
-          <div className="hidden md:flex items-center justify-center" style={{ color: 'var(--ink-3)' }}><ArrowRight size={16} /></div>
-          <ShiftCell label={afterLabel} style={AFTER_CELL} labelColor="var(--brand-ink)">{row.after}</ShiftCell>
-        </div>
+        <ShiftLine key={index} label={row.aspect} before={row.before} after={row.after} beforeLabel={beforeLabel} afterLabel={afterLabel} />
       ))}
+      {result && (
+        <ShiftLine label="Result" beforeLabel={beforeLabel} afterLabel={afterLabel} emphasis
+          before={<ResultMark ok={false}>{result.before}</ResultMark>} after={<ResultMark ok>{result.after}</ResultMark>} />
+      )}
     </div>
   )
 }
 
-function ShiftCell({ label, style, labelColor = 'var(--ink-3)', children }: { label: ReactNode; style: CSSProperties; labelColor?: string; children: ReactNode }) {
+function ShiftLine({ label, before, after, beforeLabel, afterLabel, emphasis = false }: {
+  label: ReactNode; before: ReactNode; after: ReactNode; beforeLabel: ReactNode; afterLabel: ReactNode; emphasis?: boolean
+}) {
   return (
-    <div className="min-w-0 rounded-md px-3 py-2.5 leading-relaxed" style={style} role="cell">
-      <span className="md:hidden block mono text-xs uppercase tracking-[0.14em] mb-1" style={{ color: labelColor }}>{label}</span>
+    <div className={`grid grid-cols-1 ${SHIFT_COLUMNS} min-w-0 ${emphasis ? 'font-medium' : ''}`} style={{ borderTop: '1px solid var(--border)' }}>
+      <span className="px-4 pt-2.5 md:py-2.5 min-w-0" style={{ color: 'var(--ink-3)' }}>{label}</span>
+      <ShiftValue label={beforeLabel} fill={BEFORE_FILL} color="var(--ink-2)">{before}</ShiftValue>
+      <ShiftValue label={afterLabel} fill={AFTER_FILL} color="var(--ink)">{after}</ShiftValue>
+    </div>
+  )
+}
+
+function ShiftValue({ label, fill, color, children }: { label: ReactNode; fill: string; color: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0 px-4 py-2.5 flex flex-wrap items-center gap-x-2 gap-y-1" style={{ background: fill, color }}>
+      <span className={`md:hidden ${SMALL_CAPS} w-full`} style={{ color: 'var(--ink-3)' }}>{label}</span>
       {children}
     </div>
   )
 }
 
-function ShiftPanel({ label, style, labelColor = 'var(--ink-3)', children }: { label: ReactNode; style: CSSProperties; labelColor?: string; children: ReactNode }) {
+function ResultMark({ ok, children }: { ok: boolean; children: ReactNode }) {
+  const Icon = ok ? Check : X
+  return <><Icon size={16} style={{ color: ok ? 'var(--add)' : 'var(--rm)', flexShrink: 0 }} /><span>{children}</span></>
+}
+
+function ShiftPanels({ before, after, beforeLabel, afterLabel }: { before: ReactNode; after: ReactNode; beforeLabel: ReactNode; afterLabel: ReactNode }) {
   return (
-    <div className="min-w-0 rounded-lg p-4 md:p-5" style={style}>
-      <p className="mono text-xs uppercase tracking-[0.14em] mb-2" style={{ color: labelColor }}>{label}</p>
-      <div className="grid gap-3 min-w-0 leading-relaxed">{children}</div>
+    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 md:gap-4 items-stretch min-w-0">
+      <ShiftPanel label={beforeLabel} fill={BEFORE_FILL} labelColor="var(--ink-3)">{before}</ShiftPanel>
+      <div className="hidden md:flex items-center" style={{ color: 'var(--ink-3)' }}><ArrowRight size={20} /></div>
+      <ShiftPanel label={afterLabel} fill={AFTER_FILL} labelColor="var(--brand-ink)">{after}</ShiftPanel>
+    </div>
+  )
+}
+
+function ShiftPanel({ label, fill, labelColor, children }: { label: ReactNode; fill: string; labelColor: string; children: ReactNode }) {
+  return (
+    <div className="min-w-0 rounded-lg p-4 md:p-5" style={{ background: fill, border: '1px solid var(--border)' }}>
+      <p className={`${SMALL_CAPS} mb-2`} style={{ color: labelColor }}>{label}</p>
+      <div className="grid gap-3 min-w-0 leading-relaxed" style={{ color: 'var(--ink)' }}>{children}</div>
     </div>
   )
 }
@@ -388,6 +428,67 @@ export function Table({ columns, rows, mono = [] }: { columns: ReactNode[]; rows
           </tr>
         ))}</tbody>
       </table>
+    </div>
+  )
+}
+
+type InterfaceChange = { name: ReactNode; before?: ReactNode; after?: ReactNode; note?: ReactNode }
+type ChangeKind = 'added' | 'removed' | 'changed'
+
+const CHIP_KIND = { added: 'add', removed: 'rm', changed: 'change' } as const satisfies Record<ChangeKind, string>
+
+/**
+ * Interface changes, one block per thing that changed: its name and status first,
+ * then what it was and what it is now. Only `after` = added, only `before` = removed.
+ */
+export function Changes({ rows }: { rows: InterfaceChange[] }) {
+  return (
+    <div className="grid min-w-0 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+      {rows.map((change, index) => <ChangeBlock key={index} change={change} isFirst={index === 0} />)}
+    </div>
+  )
+}
+
+function ChangeBlock({ change, isFirst }: { change: InterfaceChange; isFirst: boolean }) {
+  const kind = changeKindOf(change)
+  return (
+    <div className="grid gap-2.5 p-4 md:px-5 min-w-0" style={{ borderTop: isFirst ? undefined : '1px solid var(--border)' }}>
+      <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-medium" style={{ color: 'var(--ink)' }}>
+        <Chip kind={CHIP_KIND[kind]}>{kind}</Chip>
+        <span className="min-w-0">{change.name}</span>
+      </p>
+      <dl className="grid grid-cols-[3.25rem_1fr] gap-x-3 gap-y-1.5 min-w-0 leading-relaxed">
+        {change.before && <ChangeLine label="Was" color="var(--ink-3)">{change.before}</ChangeLine>}
+        {change.after && <ChangeLine label="Now" color="var(--ink)">{change.after}</ChangeLine>}
+      </dl>
+      {change.note && <p className="text-sm" style={{ color: 'var(--ink-3)' }}>{change.note}</p>}
+    </div>
+  )
+}
+
+function changeKindOf(change: InterfaceChange): ChangeKind {
+  if (!change.before) return 'added'
+  if (!change.after) return 'removed'
+  return 'changed'
+}
+
+function ChangeLine({ label, color, children }: { label: string; color: string; children: ReactNode }) {
+  return <>
+    <dt className="mono text-xs uppercase tracking-[0.12em] pt-1" style={{ color: 'var(--ink-3)' }}>{label}</dt>
+    <dd className="min-w-0" style={{ color }}>{children}</dd>
+  </>
+}
+
+/** Deprecations: gone for good vs kept as fallback (don't build on those). */
+export function Deprecations({ removed = [], kept = [] }: { removed?: { what: ReactNode; why: ReactNode }[]; kept?: { what: ReactNode; why: ReactNode }[] }) {
+  return (
+    <div className="grid gap-4 min-w-0">
+      {removed.length > 0 && <Table columns={['Removed', 'Why']} rows={removed.map(r => [r.what, r.why])} />}
+      {kept.length > 0 && (
+        <Card label="Kept as fallback · don't build on these">
+          <ul className="grid gap-2">{kept.map((k, i) => <li key={i}><Chip kind="keep">{k.what}</Chip> <span className="ml-1">{k.why}</span></li>)}</ul>
+        </Card>
+      )}
     </div>
   )
 }

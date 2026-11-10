@@ -14,7 +14,7 @@ A one-page, **visual** explainer of a change, read by humans (teammates, reviewe
 
 This skill owns the **story**: structure, formatting and content. Everything mechanical (page kit, theme, diagram renderer, build, QA) is `web-artifacts-builder`'s, and every step below is one call.
 
-`S` = this skill's directory. `eval "$(bash $S/scripts/ensure-deps.sh)"` sets `$WAB` (web-artifacts-builder's directory) and `$DIAGRAM_DESIGN`; the build scripts do it on their own. Nothing here is tied to one repo.
+`S` = this skill's directory. Run `eval "$(bash $S/scripts/ensure-deps.sh)"` once per shell: it sets `$WAB` (web-artifacts-builder's directory) and `$DIAGRAM_DESIGN`. Nothing here is tied to one repo.
 
 ## Non-negotiables
 
@@ -59,8 +59,8 @@ Write the thesis and one takeaway per section, and run the takeaway test on them
 | Section | Kit |
 |---|---|
 | Hero: eyebrow (ticket/status), title, thesis, context pills | `<Page eyebrow title thesis pills>` |
-| The core shift: the central before → after | `<BeforeAfter rows>` or one diagram |
-| What changed for users (only if user-facing) | `<BeforeAfter rows>`, mockup |
+| The core shift: the central before → after, on the running example | `<BeforeAfter example rows result caption>` or one diagram |
+| What changed for users (only if user-facing) | `<BeforeAfter example …>`, mockup |
 | How it works: the new flow | one diagram in `<Figure>` |
 | Interface changes | `<Changes>` (user-facing and developer-facing kept separate) |
 | Deprecated & removed | `<Deprecations>` |
@@ -91,15 +91,15 @@ A diagram wider than ~1240px gets a warning with its effective text size: cut st
 
 ### 4. Write `App.tsx` and build
 
-Content only, with the kit: `$WAB/references/kit.md` (page kit, and how to format a comparison) plus `$S/references/kit.md` (`Changes`, `Deprecations`). First line: `// @title: <Human Title>`.
+Content only, with the page kit (`$WAB/references/kit.md`), formatted per `$S/references/formatting.md` (before → after, interface changes, tables). First line: `// @title: <Human Title>`.
 
 ```tsx
 // @title: Projects Without Owners
-import { Page, Section, BeforeAfter, Changes, P, Term, Src } from '@/explainer'
+import { Page, Section, BeforeAfter, Changes, P, Term, Src } from '@/kit'
 import { HowItWorks } from '@/diagrams/how-it-works'
 export default function App() {
   return <Page meta={meta} eyebrow="PR #412 · merged" title="…" thesis="…">
-    <Section id="shift" title="The core shift" takeaway="…"><BeforeAfter before={…} after={…} /></Section>
+    <Section id="shift" title="The core shift" takeaway="…"><BeforeAfter example="…" rows={[…]} result={…} caption="…" /></Section>
   </Page>
 }
 ```
@@ -107,8 +107,8 @@ export default function App() {
 **One call renders the specs, builds, and verifies** (step 5 runs automatically):
 
 ```bash
-bash $S/scripts/build.sh <name> App.tsx --specs specs.json --repo <checkout>   # → <name>.html + the verify report
-bash $S/scripts/build.sh <name>                                               # rebuild after an edit (also re-verifies)
+bash $WAB/scripts/build.sh <name> App.tsx --specs specs.json --repo <checkout>   # → <name>.html + the verify report
+bash $WAB/scripts/build.sh <name>                                               # rebuild after an edit (also re-verifies)
 ```
 
 Need a component the kit doesn't have? Follow `$WAB/references/design.md`.
@@ -125,13 +125,13 @@ Read the sheet once, fix every ✗ in a single edit pass, rebuild, re-run. Don't
 
 Publish `<name>.html` with the `Artifact` tool (never `bundle.html`, whose basename becomes the title), with a one-sentence `description`. Re-publish the same path on edits to keep the URL.
 
-Then **stop and let the user prune** ("delete that", "too AI"). Edit, `build.sh <name>`, re-publish.
+Then **stop and let the user prune** ("delete that", "too AI"). Edit, `$WAB/scripts/build.sh <name>`, re-publish.
 
 ## Final check (content only; `verify.sh` covers the rest)
 
 - [ ] The takeaway paragraph `verify.sh` prints reads as one coherent story.
 - [ ] Each diagram's type fits the question its section answers (`$WAB/references/diagram-types.md`), not a default.
-- [ ] Every before → after is `<BeforeAfter rows>`: one aspect per row, both cells phrased in parallel.
+- [ ] Every before → after shows one concrete example in compact values, with its result row, and the description in `caption` (`references/formatting.md`).
 - [ ] Thesis is one sentence a non-author understands. No filler, no vanity metrics.
 - [ ] Deprecations say "gone" vs "kept, don't build on it". Interface changes split user-facing from developer-facing, old → new.
 - [ ] Every example is real, from the diff. `<Src lines>` values come from `gather-facts.sh`'s link ranges.

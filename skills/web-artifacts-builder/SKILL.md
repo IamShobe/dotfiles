@@ -33,7 +33,7 @@ Without it the title falls back to `<name>`, so pick a human-readable `<name>` (
 
 ## Building blocks
 
-- **Page kit** (`@/kit`, shipped in the template): `Page` (hero, theme, scroll container, TOC), `Section`, text (`P`, `Term`, `Id`, `Src`, `Mark`, `Chip`) and blocks (`BeforeAfter`, `Table`, `Card`, `Grid`, `Callout`, `Code`, `Steps`, `Figure`). Read `references/kit.md` before writing `App.tsx`; prefer the kit over hand-written JSX.
+- **Page kit** (`@/kit`, shipped in the template): `Page` (hero, theme, scroll container, TOC), `Section`, text (`P`, `Term`, `Id`, `Src`, `Mark`, `Chip`, `Gone`) and blocks (`BeforeAfter`, `Changes`, `Deprecations`, `Table`, `Card`, `Grid`, `Callout`, `Code`, `Steps`, `Figure`). Read `references/kit.md` before writing `App.tsx`; prefer the kit over hand-written JSX.
 - **Design system**: theme vars, colors, contrast, narrow-width rules → `references/design.md` (rules for any custom JSX) and `references/theme-tokens.md` (raw values; the palette lives in `template/src/theme.tsx`).
 - **Diagrams**: `references/diagram-types.md` is the catalog (which type answers which question). ⚙ types render from a JSON spec: `python3 scripts/diagrams/render.py --example <type>`, then pass the specs to `build.sh --specs`. ✎ types are drawn by hand following `references/diagram-brief.md` and converted with `scripts/diagram-to-jsx.sh <name> <files>`, which maps every color to the theme vars.
 - **Verify**: `build.sh` ends with `scripts/verify.sh <name> [repo]`: theme-only colors, no shadows, responsive grids, title, `<Src>` links resolve, `<Term>` order, overflow and tiny text at 390/768/1280px, one light+dark contact sheet. Fix every ✗ in one pass.

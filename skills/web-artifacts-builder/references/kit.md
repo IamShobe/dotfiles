@@ -26,13 +26,16 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 | `<Mark>` | Highlight a phrase (instead of RoughNotation). |
 | `<Src path="src/a.ts" lines="12-24" />` | Commit-pinned permalink. Inline, safe in prose. Falls back to plain code with no remote. |
 | `<Chip kind="add \| rm \| change \| keep \| neutral">` | Diff chip or pill. |
+| `<Gone>` | Something that no longer exists, struck through (inside an example value). |
 
 ## Blocks
 
 | Component | Props |
 |---|---|
-| `<BeforeAfter rows={[{ aspect, before, after }]} beforeLabel? afterLabel? />` | Old → new, one row per aspect with its before and after side by side. Stacks below md. |
-| `<BeforeAfter before={…} after={…} />` | Free-form old → new, for what doesn't split into aspects (a mockup, a screenshot). |
+| `<BeforeAfter example rows={[{ aspect, before, after }]} result={{ before, after }} caption beforeLabel? afterLabel? />` | Old → new on one concrete example: a compact card, one row per aspect, a ✗/✓ result row, the caption under it. Stacks below md. |
+| `<BeforeAfter before={…} after={…} caption? />` | Free-form old → new, for what doesn't split into rows (a mockup, a screenshot). |
+| `<Changes rows={[{ name, before?, after?, note? }]} />` | Interface changes: name + added/changed/removed tag, then Was / Now. Only `after` = added, only `before` = removed. |
+| `<Deprecations removed={[{what, why}]} kept={[{what, why}]} />` | Gone for good vs kept as fallback. |
 | `<Card label? title? accent?>` | Surface card. `accent` = the focal one. |
 | `<Grid cols={2 \| 3 \| 4}>` | Responsive card grid, one column below md. |
 | `<Callout title?>` | One "why this matters" per section at most. |
@@ -41,9 +44,3 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 | `<Steps items={[{ title, body?, code?, lang? }]} />` | Numbered how-to. |
 | `<Figure caption?>` | Frame for a converted diagram: `<Figure><Pipeline /></Figure>`. |
 
-## Formatting a comparison
-
-- **Pair, don't list.** Each `BeforeAfter` row is one aspect, and its two cells answer the same question, in parallel phrasing: "any one of their accounts is missing" → "none of their accounts is listed". Two bullet lists side by side make the reader match lines by eye.
-- The `aspect` is a short noun phrase the reader scans down (2–4 words); the cells are a sentence each.
-- An unchanged aspect stays only when it carries the point ("Platform account: Unchanged"), otherwise cut it.
-- Tables: the first column is the row's name in plain words; identifiers go in `<Id>`. Keep cells to one sentence.

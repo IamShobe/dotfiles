@@ -3,9 +3,9 @@
 #
 #   verify.sh <artifact-dir> [repo]   # after build.sh; repo defaults to the checkout you're in
 #
-#   1. Static checks on your code (src/, minus the kit, ui, diagrams, theme and any
-#      folder named in $VERIFY_SKIP_DIRS, space-separated): themed colors, shadows,
-#      bare grids, fixed widths, RoughNotation, title; <Src> links resolve.
+#   1. Static checks on your code (src/, minus the kit, ui, diagrams and theme):
+#      themed colors, shadows, bare grids, fixed widths, RoughNotation, title;
+#      <Src> links resolve.
 #   2. Runtime probe in headless Chrome at 390 / 768 / 1280px: horizontal page
 #      overflow (and which element causes it), text under 12px.
 #   3. One contact sheet: all three widths × light and dark, in a single PNG.
@@ -23,8 +23,8 @@ bad()  { echo "✗ $1"; [ -n "${2:-}" ] && printf '%s\n' "$2" | head -6 | sed 's
 good() { echo "✓ $1"; }
 
 # ---------- 1. static ----------
-SKIP_RE="/($(printf '%s' "components/ui kit diagrams ${VERIFY_SKIP_DIRS:-}" | tr -s ' ' '|'))/"
-FILES="$(find "$SRC" -name '*.tsx' -not -name theme.tsx -not -name main.tsx 2>/dev/null | grep -vE "$SKIP_RE")"
+FILES="$(find "$SRC" -name '*.tsx' -not -path '*/components/ui/*' -not -path '*/kit/*' \
+  -not -path '*/diagrams/*' -not -name theme.tsx -not -name main.tsx 2>/dev/null)"
 scan() { [ -n "$FILES" ] && grep -nE "$1" $FILES 2>/dev/null | sed "s|$SRC/||" | cut -c1-140; }
 
 hits="$(scan '\b(bg|text|border|from|to|via|fill|stroke|ring|divide)-(white|black|gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(-[0-9]+)?\b')"
