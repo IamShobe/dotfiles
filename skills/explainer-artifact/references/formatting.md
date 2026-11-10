@@ -32,7 +32,8 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 
 ## TL;DR first, then the story
 
-- **The first section is the TL;DR, and it is visual.** A `<Tldr>` strip of 2–4 cards in reading order (Problem → Cause → Change → Result; Rollout when it matters), each a statement of ≤ 8 words with one example line, then the page's main `<BeforeAfter>` on the running example. A reader who stops here has the full picture; every later section is the long version of one card.
+- **The first section is the TL;DR: facts, then the picture.** A `<Tldr>` fact list answers the questions a reader comes with, one line each: *Impact* (who was hit, how much, since when), *Cause*, *Fix*, *Status* (shipped where, with `<Ref>` links; what the reader must do, if anything). Then the page's main `<BeforeAfter>` on the running example. No takeaway sentence and no `caption` there: the fact list already says it. A reader who stops here has the full picture; every later section is the long version of one row.
+- **A document, not a pitch.** The TL;DR is dense and factual: counts, dates, names, links. Big cards, slogans and arrows between boxes are cut.
 - **The TL;DR speaks plain words only.** It comes before any `<Term>`, so it uses no internal names, no acronyms and no new concepts: "stored on the platform", not "the directory". `verify.sh` fails a term used before its `<Term>`.
 - **Group the rest into 3–4 parts that tell the story**, with `group` on each `<Section>`: typically *What went wrong* → *The fix* → *Shipping* → *What's next* (or *Why* → *How it works* → *What changes for you*). The rail numbers the parts and lights up the one being read. A part holds 1–3 sections.
 - **Section titles say what the reader learns, in ≤ 4 words** ("How Sam's order failed", "Database changes"), so the rail reads as a table of contents of the story, not a list of headings.

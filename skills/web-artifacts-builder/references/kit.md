@@ -34,7 +34,7 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 
 | Component | Props |
 |---|---|
-| `<Tldr items={[{ label, statement, example?, tone? }]} />` | The story at a glance: 2–4 cards joined by arrows (`tone`: `problem` `change` `result` `neutral`), each a statement of ≤ 8 words and an example line. Stacks below md. |
+| `<Tldr items={[{ label, statement, example?, tone? }]} />` | The page at a glance: one compact row per question (`label` Impact / Cause / Fix / Status), the one-line answer and its detail in a lighter tone. `tone`: `problem` `change` `result` `neutral` colors the label. |
 | `<BeforeAfter example rows={[{ aspect, hint?, before, after, same? }]} result={{ before, after }} caption beforeLabel? afterLabel? />` | Old → new on one concrete example: a compact card, one row per aspect (`hint` = small line under the label, `same` = unchanged: dimmed, `=` on the seam, hideable), a ✗/✓ verdict row, an "In short" caption. Stacks below md. |
 | `<BeforeAfter before={…} after={…} caption? />` | Free-form old → new, for what doesn't split into rows (a mockup, a screenshot). |
 | `<Changes rows={[{ name, area?, before?, after?, note? }]} />` | Compact changelog: status dot, name + area (`config` `behavior` `data` `api` `ui` `access`, each with an icon), `was → now` inline, `note` small underneath. Only `after` = added, only `before` = removed. |

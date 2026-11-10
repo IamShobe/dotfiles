@@ -333,40 +333,30 @@ type TldrTone = 'problem' | 'change' | 'result' | 'neutral'
 type TldrItem = { label: ReactNode; statement: ReactNode; example?: ReactNode; tone?: TldrTone }
 
 const TLDR_TONE = {
-  problem: { color: 'var(--rm)', fill: 'var(--rm-soft)' },
-  change: { color: 'var(--brand-ink)', fill: 'var(--brand-soft)' },
-  result: { color: 'var(--add)', fill: 'var(--add-soft)' },
-  neutral: { color: 'var(--ink-3)', fill: 'color-mix(in srgb, var(--ink) 4%, transparent)' },
-} as const satisfies Record<TldrTone, { color: string; fill: string }>
+  problem: 'var(--rm)', change: 'var(--brand-ink)', result: 'var(--add)', neutral: 'var(--ink-3)',
+} as const satisfies Record<TldrTone, string>
 
 /**
- * The whole story in one glance: 2–4 cards in reading order (problem → change → result, then e.g.
- * rollout), joined by arrows. Each card is a label, a statement of ≤ 8 words and an optional
- * example line. Stacks below md.
+ * The page at a glance: one row per question a reader has (impact, cause, fix, status), a colored
+ * label and a one-line answer with its detail in a lighter tone. Compact by design: it sits above
+ * the page's main example, not instead of it.
  */
 export function Tldr({ items }: { items: TldrItem[] }) {
   return (
-    <ol className="grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-2 md:gap-0 min-w-0">
+    <dl className="grid min-w-0 rounded-lg overflow-hidden text-sm md:text-[15px]" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
       {items.map((item, index) => (
-        <li key={index} className="flex flex-col md:flex-row items-stretch min-w-0">
-          <TldrCard item={item} />
-          {index < items.length - 1 && (
-            <span aria-hidden className="grid place-items-center py-1 md:py-0 md:px-1.5 rotate-90 md:rotate-0" style={{ color: 'var(--ink-3)' }}><ArrowRight size={18} /></span>
-          )}
-        </li>
+        <div key={index} className="grid grid-cols-1 md:grid-cols-[7rem_1fr] gap-x-4 gap-y-0.5 px-4 py-2.5 min-w-0"
+          style={{ borderTop: index ? '1px solid var(--border)' : undefined }}>
+          <dt className={`${SMALL_CAPS} md:pt-0.5 flex items-center gap-2`} style={{ color: TLDR_TONE[item.tone ?? 'neutral'] }}>
+            <span aria-hidden className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: TLDR_TONE[item.tone ?? 'neutral'] }} />{item.label}
+          </dt>
+          <dd className="min-w-0 leading-relaxed">
+            <span className="font-medium" style={{ color: 'var(--ink)' }}>{item.statement}</span>
+            {item.example && <span style={{ color: 'var(--ink-3)' }}> — {item.example}</span>}
+          </dd>
+        </div>
       ))}
-    </ol>
-  )
-}
-
-function TldrCard({ item }: { item: TldrItem }) {
-  const tone = TLDR_TONE[item.tone ?? 'neutral']
-  return (
-    <div className="flex-1 min-w-0 rounded-xl p-4 grid gap-1.5 content-start" style={{ background: tone.fill, borderTop: `3px solid ${tone.color}` }}>
-      <span className={SMALL_CAPS} style={{ color: tone.color }}>{item.label}</span>
-      <span className="text-base md:text-lg font-semibold leading-snug" style={{ color: 'var(--ink)' }}>{item.statement}</span>
-      {item.example && <span className="text-sm leading-relaxed" style={{ color: 'var(--ink-2)' }}>{item.example}</span>}
-    </div>
+    </dl>
   )
 }
 
