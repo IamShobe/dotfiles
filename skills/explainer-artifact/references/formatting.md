@@ -20,7 +20,8 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 | What a change does to data (rows, tables, records) | `<BeforeAfter>`, one row per table, `hint` = what one row is |
 | A list of things that were added, changed or removed (config, APIs, rules) | `<Changes>` |
 | Things removed or kept only as a fallback | `<Deprecations>` |
-| A flow, a sequence, a lifecycle | a diagram (`$WAB/references/diagram-types.md`) |
+| A flow, a sequence, a lifecycle | a diagram in a `<Figure>` (`$WAB/references/diagram-types.md`) |
+| Something the reader should try (pick a case, toggle a mode, click a node) | `<Playground controls>` with each chart in a `<Figure>` |
 | Ordered actions (rollout, how to extend) | `<Steps>` |
 | A lookup of homogeneous items with short attributes | `<Table>` |
 

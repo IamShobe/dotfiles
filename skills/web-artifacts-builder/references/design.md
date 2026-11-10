@@ -35,6 +35,8 @@ Each color says one thing, everywhere on the page, so the eye learns it once:
 - A hover or active state covers the whole row or card, edge to edge, as one even tint. Tinting each child separately leaves patches wherever there is padding or a gap between children.
 - Cells that fill their row (no gap, no padding between them) may tint per cell, to keep their own fills.
 - Anything clickable looks clickable at rest (a bordered pill, an underline), not only on hover.
+- Controls stay in view with what they control: an interactive widget's pickers and toggles go in `<Playground controls>`, and a chart's zoom bar is always shown, never only on hover or when shrunk.
+- Every chart or diagram the reader may need to inspect can zoom and pan (`<Figure>`). Size a diagram to fit; the reader zooms in, the page never makes them scroll through it.
 
 ## Narrow widths: reflow, never squash
 
@@ -44,6 +46,6 @@ The artifact iframe is often phone-width.
 - ✔ No fixed `px`/`vw` widths on content. Use `max-w-*` plus `w-full`.
 - ✔ Wide content (tables, code, diagrams, mockups) goes in `<div className="w-full min-w-0 overflow-x-auto">`. The page itself never scrolls sideways.
 - Padding and type step down: `p-4 md:p-8`, `text-3xl md:text-5xl`.
-- Side-by-side comparisons stack below `md`. Sticky or fixed elements are `hidden lg:block`.
+- Side-by-side comparisons stack below `md`. Decorative sticky or fixed elements are `hidden lg:block`; controls stay (`<Playground>` pins them on top).
 - A flex component never goes inside running prose; it breaks line wrapping. Inline elements only.
 - RoughNotation detaches inside the page's scroll container, so use `<Mark>`.

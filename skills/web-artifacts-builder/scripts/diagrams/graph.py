@@ -520,8 +520,7 @@ def render_flowchart(spec):
         if k in ('start', 'end'):
             return fit_width((name, 12, False, 600), pad=24, minimum=112), 40, 'pill'
         if k == 'decision':
-            w = max(128, snap_up(text_width(name, 12, False, 600) * 1.6 + 32, 8))
-            return w, max(72, snap_up(w * 0.55)), 'diamond'
+            return (*_decision_size(name), 'diamond')
         if k == 'merge':
             return 8, 8, 'dot'
         w, h = _std_box(d)
@@ -560,7 +559,7 @@ def render_flowchart(spec):
             pts = f'{_n(n.cx)},{_n(n.y)} {_n(n.x + n.w)},{_n(n.cy)} {_n(n.cx)},{_n(n.y + n.h)} {_n(n.x)},{_n(n.cy)}'
             svg.el('nodes', 'polygon', points=pts, fill=PAPER)
             svg.el('nodes', 'polygon', points=pts, fill=fill, stroke=stroke, stroke_width=1.2 if focal else 1)
-            lines = _wrap(name, n.w * 0.62, 12)
+            lines = _wrap(name, n.w * DIAMOND_TEXT_SHARE, 12)
             for i, ln in enumerate(lines):
                 svg.text('nodes', n.cx, n.cy + 4 + (i - (len(lines) - 1) / 2) * 14, ln, size=12, weight=600, anchor='middle')
             svg.key('glyph:<polygon points="{x},0 0,0" fill="none"/>', 'Decision')
@@ -612,6 +611,20 @@ def _diamond_ports(nodes, edges, direction):
                 same_col = abs(T.cx - d.cx) <= 8
                 e.sb = OPP[v] if same_col else ('l' if T.cx > d.cx else 'r')
                 e.route = 'V' if same_col else 'VH'
+
+
+# diagram-design's flowchart draws a decision as a ~200x96 diamond with its question wrapped
+# into the middle ~55% of the width, so the diamond stays the size of its neighbours.
+DIAMOND_TEXT_SHARE = 0.55
+DIAMOND_WIDTHS = range(160, 289, 8)
+DIAMOND_ASPECT = 0.48
+DIAMOND_LINE_HEIGHT = 14
+
+
+def _decision_size(name: str) -> tuple[int, int]:
+    width = next((w for w in DIAMOND_WIDTHS if len(_wrap(name, w * DIAMOND_TEXT_SHARE, 12)) <= 2), DIAMOND_WIDTHS[-1])
+    extra_lines = max(0, len(_wrap(name, width * DIAMOND_TEXT_SHARE, 12)) - 2)
+    return width, snap_up(max(96, width * DIAMOND_ASPECT + extra_lines * DIAMOND_LINE_HEIGHT), 8)
 
 
 def _legend_glyph(kind):

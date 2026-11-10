@@ -3,10 +3,10 @@
 //
 // Every component is theme-driven (var(--…) only), reflows below md, and keeps
 // wide content in its own overflow-x box, so App.tsx stays content-only.
-import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useRef, useState } from 'react'
-import type { MouseEvent, ReactElement, ReactNode, RefObject } from 'react'
+import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { MouseEvent, PointerEvent as ReactPointerEvent, ReactElement, ReactNode, RefObject } from 'react'
 import { Highlight, themes } from 'prism-react-renderer'
-import { ArrowRight, Check, Database, KeyRound, PanelsTopLeft, Plug, Settings2, Workflow, X } from 'lucide-react'
+import { ArrowRight, Check, Database, KeyRound, Maximize2, PanelsTopLeft, Plug, Settings2, Workflow, X, ZoomIn, ZoomOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Scrollspy } from '@/components/ui/scrollspy'
 import { Theme } from '@/theme'
@@ -55,6 +55,7 @@ const RAIL_CSS = `
 section[id]{scroll-margin-top:1.5rem}
 .xk-shift-row{transition:background .15s}.xk-shift-row:hover>*{box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--ink) 3%,transparent)}
 .xk-shift-row:hover .xk-shift-label{color:var(--ink)}
+.xk-stage svg{width:100%!important;height:100%!important;max-width:none!important;min-width:0!important}.xk-stage>div{overflow:visible!important}
 .xk-change-row{transition:background .15s}.xk-change-row:hover{background:color-mix(in srgb,var(--ink) 3%,transparent)}`
 
 /**
@@ -610,12 +611,196 @@ export function Steps({ items }: { items: { title: ReactNode; body?: ReactNode; 
   )
 }
 
-/** Frame for a converted diagram (or screenshot) with an optional caption. */
+const FIGURE_HEIGHT_SHARE = 0.7
+const ZOOM_STEP = 1.25
+const MAX_ZOOM = 4
+
+type Size = { width: number; height: number }
+type View = { scale: number; x: number; y: number }
+
+/**
+ * Frame for a diagram or chart (SVG or HTML) with an optional caption. It is shown fitted to the
+ * width and to 70% of the screen height, with a zoom bar that is always there (−, fit %, +,
+ * fullscreen), ctrl/⌘ + wheel zoom, double-click to toggle fit, drag-to-pan, and Esc to leave
+ * fullscreen. Plain images skip the viewer.
+ */
 export function Figure({ caption, children }: { caption?: ReactNode; children: ReactNode }) {
+  const [expanded, setExpanded] = useState(false)
+  const heightLimit = useWindowHeightShare(FIGURE_HEIGHT_SHARE)
   return (
     <figure className="min-w-0 rounded-xl p-2 md:p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-      {children}
+      <DiagramViewer heightLimit={heightLimit} onExpand={() => setExpanded(true)}>{children}</DiagramViewer>
       {caption && <figcaption className="text-sm mt-2 px-2" style={{ color: 'var(--ink-3)' }}>{caption}</figcaption>}
+      {expanded && <FigureFullscreen caption={caption} onClose={() => setExpanded(false)}>{children}</FigureFullscreen>}
     </figure>
   )
+}
+
+/**
+ * An interactive widget: `controls` (pickers, toggles, the inspector) in a column that stays in view
+ * while the reader scrolls and zooms the charts beside it. Below lg the controls pin to the top.
+ */
+export function Playground({ controls, children }: { controls: ReactNode; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(16rem,22rem)_1fr] gap-4 lg:gap-6 items-start min-w-0">
+      <aside className="grid gap-3 min-w-0 sticky top-0 z-10 max-h-[45vh] overflow-y-auto py-2 lg:py-0 lg:top-4 lg:max-h-[calc(100vh-2rem)]"
+        style={{ background: 'var(--bg)' }}>
+        {controls}
+      </aside>
+      <div className="grid gap-6 min-w-0">{children}</div>
+    </div>
+  )
+}
+
+function FigureFullscreen({ caption, onClose, children }: { caption?: ReactNode; onClose: () => void; children: ReactNode }) {
+  const heightLimit = useWindowHeightShare(1) - FULLSCREEN_CHROME_PX
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
+  return (
+    <div role="dialog" aria-modal className="fixed inset-0 z-50 flex flex-col gap-3 p-4 md:p-6" style={{ background: 'var(--bg)' }}>
+      <div className="flex items-center gap-3 min-w-0">
+        <p className="text-sm min-w-0 flex-1 truncate" style={{ color: 'var(--ink-2)' }}>{caption}</p>
+        <ViewerButton label="Close (Esc)" onClick={onClose}><X size={16} /></ViewerButton>
+      </div>
+      <DiagramViewer heightLimit={heightLimit} fill>{children}</DiagramViewer>
+    </div>
+  )
+}
+
+const FULLSCREEN_CHROME_PX = 96
+const FULLSCREEN_MAX_FIT = 2
+
+function DiagramViewer({ heightLimit, fill = false, onExpand, children }: {
+  heightLimit: number; fill?: boolean; onExpand?: () => void; children: ReactNode
+}) {
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
+  const natural = useContentSize(stageRef)
+  const viewportWidth = useElementWidth(viewportRef)
+  const fitScale = natural ? Math.min(fill ? FULLSCREEN_MAX_FIT : 1, viewportWidth / natural.width, heightLimit / natural.height) : 1
+  const viewportHeight = viewportHeightFor({ natural, fitScale, heightLimit, fill })
+  const [zoom, setZoom] = useState<View | null>(null)
+  const view = zoom ?? centeredView({ natural, scale: fitScale, viewport: { width: viewportWidth, height: viewportHeight } })
+  const center = { x: viewportWidth / 2, y: viewportHeight / 2 }
+  useCtrlWheelZoom({ viewportRef, onZoom: (factor, at) => setZoom(current => zoomAround({ view: current ?? view, factor, at, fitScale })) })
+
+  if (!natural) return <div ref={stageRef}>{children}</div>
+  return (
+    <div className="grid gap-2 min-w-0">
+      <div className="flex items-center justify-end gap-1">
+        <ViewerButton label="Zoom out" onClick={() => setZoom(zoomAround({ view, factor: 1 / ZOOM_STEP, at: center, fitScale }))}><ZoomOut size={16} /></ViewerButton>
+        <ViewerButton label="Fit" onClick={() => setZoom(null)}><span className="mono text-xs px-1 tabular-nums">{Math.round(view.scale * 100)}%</span></ViewerButton>
+        <ViewerButton label="Zoom in" onClick={() => setZoom(zoomAround({ view, factor: ZOOM_STEP, at: center, fitScale }))}><ZoomIn size={16} /></ViewerButton>
+        {onExpand && <ViewerButton label="Fullscreen" onClick={onExpand}><Maximize2 size={16} /></ViewerButton>}
+      </div>
+      <div ref={viewportRef} className="relative w-full min-w-0 overflow-hidden rounded-lg select-none"
+        style={{ height: viewportHeight, cursor: zoom ? 'grab' : 'default', touchAction: zoom ? 'none' : 'auto' }}
+        onDoubleClick={() => setZoom(zoom ? null : zoomAround({ view, factor: 1 / view.scale, at: center, fitScale }))}
+        onPointerDown={event => zoom && startPan({ event, view: zoom, onMove: setZoom })}>
+        <div ref={stageRef} className="xk-stage absolute top-0 left-0" style={{
+          width: natural.width, height: natural.height, transformOrigin: '0 0',
+          transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
+        }}>{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function ViewerButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" title={label} aria-label={label} onClick={onClick}
+      className="grid place-items-center min-w-7 h-7 px-1 rounded-md transition-colors hover:bg-[var(--brand-soft)]" style={{ color: 'var(--ink-2)', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+      {children}
+    </button>
+  )
+}
+
+function viewportHeightFor({ natural, fitScale, heightLimit, fill }: { natural: Size | null; fitScale: number; heightLimit: number; fill: boolean }) {
+  if (fill) return heightLimit
+  return natural ? Math.ceil(natural.height * fitScale) : heightLimit
+}
+
+function centeredView({ natural, scale, viewport }: { natural: Size | null; scale: number; viewport: Size }): View {
+  if (!natural) return { scale, x: 0, y: 0 }
+  return { scale, x: (viewport.width - natural.width * scale) / 2, y: Math.max(0, (viewport.height - natural.height * scale) / 2) }
+}
+
+/** Zoom by `factor`, keeping the point under `at` (viewport pixels) where it is. Never below fit. */
+function zoomAround({ view, factor, at, fitScale }: { view: View; factor: number; at: { x: number; y: number }; fitScale: number }): View | null {
+  const scale = Math.min(MAX_ZOOM, view.scale * factor)
+  if (scale <= fitScale + 0.001) return null
+  const ratio = scale / view.scale
+  return { scale, x: at.x - (at.x - view.x) * ratio, y: at.y - (at.y - view.y) * ratio }
+}
+
+function startPan({ event, view, onMove }: { event: ReactPointerEvent<HTMLDivElement>; view: View; onMove: (view: View) => void }) {
+  const target = event.currentTarget
+  const origin = { x: event.clientX, y: event.clientY }
+  target.setPointerCapture(event.pointerId)
+  target.style.cursor = 'grabbing'
+  const move = (moveEvent: PointerEvent) => onMove({ ...view, x: view.x + moveEvent.clientX - origin.x, y: view.y + moveEvent.clientY - origin.y })
+  const stop = () => {
+    target.style.cursor = 'grab'
+    target.removeEventListener('pointermove', move)
+    target.removeEventListener('pointerup', stop)
+  }
+  target.addEventListener('pointermove', move)
+  target.addEventListener('pointerup', stop)
+}
+
+/** ctrl/⌘ + wheel (and trackpad pinch) zooms; a plain wheel keeps scrolling the page. */
+function useCtrlWheelZoom({ viewportRef, onZoom }: { viewportRef: RefObject<HTMLDivElement | null>; onZoom: (factor: number, at: { x: number; y: number }) => void }) {
+  const onZoomRef = useRef(onZoom)
+  onZoomRef.current = onZoom
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport) return
+    const zoomOnWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      const bounds = viewport.getBoundingClientRect()
+      onZoomRef.current(Math.exp(-event.deltaY * 0.002), { x: event.clientX - bounds.left, y: event.clientY - bounds.top })
+    }
+    viewport.addEventListener('wheel', zoomOnWheel, { passive: false })
+    return () => viewport.removeEventListener('wheel', zoomOnWheel)
+  })
+}
+
+/** The natural size of the content: the first <svg>'s viewBox, else the first element's rendered box (an HTML chart). */
+function useContentSize(stageRef: RefObject<HTMLDivElement | null>): Size | null {
+  const [size, setSize] = useState<Size | null>(null)
+  useLayoutEffect(() => {
+    const stage = stageRef.current
+    const box = stage?.querySelector('svg')?.viewBox.baseVal
+    if (box && box.width && box.height) return setSize({ width: box.width, height: box.height })
+    const rendered = stage?.firstElementChild?.getBoundingClientRect()
+    if (rendered && rendered.width && rendered.height) setSize({ width: rendered.width, height: rendered.height })
+  }, [stageRef])
+  return size
+}
+
+function useElementWidth(ref: RefObject<HTMLDivElement | null>) {
+  const [width, setWidth] = useState(0)
+  useLayoutEffect(() => {
+    const element = ref.current
+    if (!element) return
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    observer.observe(element)
+    setWidth(element.clientWidth)
+    return () => observer.disconnect()
+  })
+  return width
+}
+
+function useWindowHeightShare(share: number) {
+  const [height, setHeight] = useState(() => window.innerHeight * share)
+  useEffect(() => {
+    const update = () => setHeight(window.innerHeight * share)
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [share])
+  return height
 }
