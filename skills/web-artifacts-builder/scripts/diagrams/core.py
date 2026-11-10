@@ -315,6 +315,7 @@ def legend_strip(svg: Svg, y: float, left: float = 32, right: float | None = Non
     if not svg.legend:
         return y
     right = right or svg.width - 32
+    first_legend_item = len(svg.layers['top'])
     svg.el('top', 'line', x1=_n(left), y1=_n(y), x2=_n(right), y2=_n(y), stroke=RULE, stroke_width=0.8)
     svg.text('top', left, y + 24, 'LEGEND', size=8, mono=True, fill=MUTED, spacing='0.14em')
     x, row_y = left + 72, y + 20
@@ -328,6 +329,9 @@ def legend_strip(svg: Svg, y: float, left: float = 32, right: float | None = Non
         svg.raw('top', _swatch(kind, x, row_y))
         svg.text('top', x + 28, row_y + 4, label, size=11, fill=MUTED)
         x += snap_up(item_w, 8)
+    # One group, so a page viewer can lift the legend out of the zoomable drawing and pin it.
+    legend_items = svg.layers['top'][first_legend_item:]
+    svg.layers['top'][first_legend_item:] = [f'<g data-legend-top="{_n(y)}">{"".join(legend_items)}</g>']
     return row_y + 16
 
 

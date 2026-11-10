@@ -20,6 +20,7 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 | What a change does to data (rows, tables, records) | `<BeforeAfter>`, one row per table, `hint` = what one row is |
 | A list of things that were added, changed or removed (config, APIs, rules) | `<Changes>` |
 | Things removed or kept only as a fallback | `<Deprecations>` |
+| A number that moved over time (runs, errors, latency, adoption) | `<TimeChart>` with a milestone on every change that explains a jump or a dip |
 | A flow, a sequence, a lifecycle | a diagram in a `<Figure>` (`$WAB/references/diagram-types.md`) |
 | Something the reader should try (pick a case, toggle a mode, click a node) | `<Playground controls>` with each chart in a `<Figure>` |
 | Ordered actions (rollout, how to extend) | `<Steps>` |
@@ -50,7 +51,15 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 
 - **The diagram tells the running example too.** Ido's two accounts as two lanes beats a generic "account → decision" flowchart: name the lanes, steps and sub-labels after the example's real things ("Platform account", "linked to Ido", "1 of 1: keeps access").
 - **Pick the shape for the page, not only the question.** The page is wide: prefer left-to-right shapes (swimlane, sequence, LR flow) that fit at ~90%+ over tall top-down ones that shrink to 60% and turn labels to 7px. Heed the renderer's width warning: cut steps, fold a step into a sub-label, or split.
+- **Decisions are diamonds with every branch labelled**, including the branch the example doesn't take ("Disabled once: none listed"), so the rule reads complete. Write the example onto the branch it takes ("Ido's Platform account").
 - **Show the decision where it is made.** If a rule is per person, not per item, the diagram needs a lane or node for the person where the items meet.
+
+## Time charts
+
+- **When a number changed, show it over time.** A before/after of two numbers hides the shape: when it moved, whether it stuck, what spiked. Use bars for counts per day (stacked when the parts are systems or kinds that hand over), lines for rates and latencies.
+- **Every outlier gets its reason.** A spike, a dip or a hand-over has a milestone at its date ("Engine v2 for every new run"), so the reader never asks "what happened here?". The milestone that is the story is `focal`.
+- **Show the rhythm the reader would otherwise misread:** weekends (`shadeDays`), and what the count includes, in the caption ("hand-started runs and retries included").
+- Enough days on each side of the change to show the before is stable: about two weeks before and after.
 
 ## Interface changes
 

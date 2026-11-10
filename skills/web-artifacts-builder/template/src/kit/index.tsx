@@ -9,6 +9,8 @@ import { Highlight, themes } from 'prism-react-renderer'
 import { ArrowRight, Check, Database, KeyRound, Maximize2, PanelsTopLeft, Plug, Settings2, Workflow, X, ZoomIn, ZoomOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { TransformComponent, TransformWrapper, useControls, useTransformEffect } from 'react-zoom-pan-pinch'
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { format, getDay, parseISO } from 'date-fns'
 import { Scrollspy } from '@/components/ui/scrollspy'
 import { Theme } from '@/theme'
 
@@ -594,6 +596,160 @@ export function Deprecations({ removed = [], kept = [] }: { removed?: { what: Re
   )
 }
 
+type SeriesTone = 'brand' | 'signal' | 'muted' | 'add' | 'rm' | 'ink'
+type TimeSeries = { key: string; label: ReactNode; tone: SeriesTone }
+type Milestone = { date: string; label: ReactNode; focal?: boolean }
+type TimePoint = { date: string } & Record<string, number | string>
+
+const TONE_VAR = { brand: '--brand', signal: '--signal', muted: '--ink-3', add: '--add', rm: '--rm', ink: '--ink-2' } as const satisfies Record<SeriesTone, string>
+type ChartVar = '--brand' | '--signal' | '--ink-3' | '--add' | '--rm' | '--ink-2' | '--ink' | '--border' | '--surface'
+
+/**
+ * Values over time with the events that explain them: bars (stacked or not) or lines, one slot per
+ * day, `milestones` as numbered vertical markers with a key underneath (labels never collide),
+ * `shadeDays` as background bands (weekdays 0 = Sunday … 6 = Saturday, e.g. [5, 6] for Fri–Sat).
+ */
+export function TimeChart({ data, series, kind = 'bar', stacked = false, milestones = [], shadeDays = [], yLabel, caption }: {
+  data: TimePoint[]; series: TimeSeries[]; kind?: 'bar' | 'line'; stacked?: boolean
+  milestones?: Milestone[]; shadeDays?: number[]; yLabel?: string; caption?: ReactNode
+}) {
+  const colors = useThemeColors()
+  const points = data.map((point, index) => ({ ...point, slot: index }))
+  const slotOf = (date: string) => data.findIndex(point => point.date === date)
+  const shadedRuns = runsOfDays({ dates: data.map(point => point.date), days: shadeDays })
+  const axis = { stroke: colors['--ink-3'], fontSize: 12 }
+  const chartBody = [
+    ...shadedRuns.map(run => <ReferenceArea key={`shade-${run.from}`} x1={run.from - 0.5} x2={run.to + 0.5} fill={colors['--ink']} fillOpacity={0.05} stroke="none" />),
+    ...milestones.map((milestone, index) => (
+      <ReferenceLine key={`milestone-${index}`} x={slotOf(milestone.date)} stroke={milestone.focal ? colors['--brand'] : colors['--ink-3']} strokeDasharray="4 3"
+        label={<MilestoneBadge number={index + 1} color={milestone.focal ? colors['--brand'] : colors['--ink-2']} textColor={colors['--surface']} />} />
+    )),
+  ]
+  const xAxis = <XAxis dataKey="slot" type="number" domain={[-0.5, data.length - 0.5]} ticks={weeklyTicks(data.length)} tickFormatter={slot => shortDate(data[slot]?.date)} tickLine={false} axisLine={{ stroke: colors['--border'] }} tick={axis} />
+  const yAxis = <YAxis tickLine={false} axisLine={false} tick={axis} width={36} label={yLabel ? { value: yLabel, angle: -90, position: 'insideLeft', fill: colors['--ink-3'], fontSize: 12 } : undefined} />
+  const grid = <CartesianGrid vertical={false} stroke={colors['--border']} />
+  const tooltip = <Tooltip cursor={{ fill: colors['--ink'], fillOpacity: 0.04 }} content={<TimeTooltip series={series} milestones={milestones} data={data} />} />
+  return (
+    <figure className="grid gap-3 min-w-0 rounded-xl p-3 md:p-5" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+      <div className="h-64 md:h-80 w-full min-w-0">
+        <ResponsiveContainer width="100%" height="100%">
+          {kind === 'bar'
+            ? <BarChart data={points} margin={{ top: 24, right: 8, bottom: 0, left: 0 }} barCategoryGap="18%">
+                {grid}{xAxis}{yAxis}{tooltip}{chartBody}
+                {series.map((line, index) => <Bar key={line.key} dataKey={line.key} stackId={stacked ? 'stack' : undefined} fill={colors[TONE_VAR[line.tone]]}
+                  radius={!stacked || index === series.length - 1 ? [3, 3, 0, 0] : 0} isAnimationActive={false} />)}
+              </BarChart>
+            : <LineChart data={points} margin={{ top: 24, right: 8, bottom: 0, left: 0 }}>
+                {grid}{xAxis}{yAxis}{tooltip}{chartBody}
+                {series.map(line => <Line key={line.key} dataKey={line.key} stroke={colors[TONE_VAR[line.tone]]} strokeWidth={2} dot={false} isAnimationActive={false} />)}
+              </LineChart>}
+        </ResponsiveContainer>
+      </div>
+      <TimeChartKey series={series} milestones={milestones} />
+      {caption && <figcaption className="text-sm leading-relaxed" style={{ color: 'var(--ink-3)' }}>{caption}</figcaption>}
+    </figure>
+  )
+}
+
+function MilestoneBadge({ number, color, textColor, viewBox }: { number: number; color: string; textColor: string; viewBox?: { x?: number; y?: number } }) {
+  const x = viewBox?.x ?? 0
+  const y = (viewBox?.y ?? 0) - 12
+  return (
+    <g>
+      <circle cx={x} cy={y} r={9} fill={color} />
+      <text x={x} y={y + 4} textAnchor="middle" fontSize={11} fontWeight={600} fill={textColor}>{number}</text>
+    </g>
+  )
+}
+
+function TimeChartKey({ series, milestones }: { series: TimeSeries[]; milestones: Milestone[] }) {
+  return (
+    <div className="grid gap-2 text-sm">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+        {series.map(line => (
+          <span key={line.key} className="inline-flex items-center gap-1.5" style={{ color: 'var(--ink-2)' }}>
+            <span className="w-3 h-3 rounded-sm" style={{ background: `var(${TONE_VAR[line.tone]})` }} />{line.label}
+          </span>
+        ))}
+      </div>
+      {milestones.length > 0 && (
+        <ol className="flex flex-wrap gap-x-5 gap-y-1.5">
+          {milestones.map((milestone, index) => (
+            <li key={index} className="inline-flex items-center gap-1.5" style={{ color: milestone.focal ? 'var(--ink)' : 'var(--ink-2)' }}>
+              <span className="grid place-items-center w-[18px] h-[18px] rounded-full text-xs font-semibold" style={{ background: milestone.focal ? 'var(--brand)' : 'var(--ink-2)', color: 'var(--surface)' }}>{index + 1}</span>
+              <span className="mono text-xs" style={{ color: 'var(--ink-3)' }}>{shortDate(milestone.date)}</span>
+              <span>{milestone.label}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  )
+}
+
+function TimeTooltip({ series, milestones, data, active, label }: {
+  series: TimeSeries[]; milestones: Milestone[]; data: TimePoint[]; active?: boolean; label?: number
+}) {
+  const point = label === undefined ? undefined : data[label]
+  if (!active || !point) return null
+  const events = milestones.filter(milestone => milestone.date === point.date)
+  return (
+    <div className="rounded-md px-3 py-2 text-xs grid gap-1" style={{ background: 'var(--surface)', border: '1px solid var(--border-hi)', color: 'var(--ink)' }}>
+      <span className="mono" style={{ color: 'var(--ink-3)' }}>{format(parseISO(point.date), 'EEE, MMM d')}</span>
+      {series.map(line => (
+        <span key={line.key} className="flex items-center gap-1.5 tabular-nums">
+          <span className="w-2 h-2 rounded-sm" style={{ background: `var(${TONE_VAR[line.tone]})` }} />{line.label}: <strong>{point[line.key] ?? 0}</strong>
+        </span>
+      ))}
+      {events.map((event, index) => <span key={index} style={{ color: 'var(--brand-ink)' }}>● {event.label}</span>)}
+    </div>
+  )
+}
+
+function runsOfDays({ dates, days }: { dates: string[]; days: number[] }) {
+  const runs: { from: number; to: number }[] = []
+  dates.forEach((date, slot) => {
+    if (!days.includes(getDay(parseISO(date)))) return
+    const last = runs.at(-1)
+    if (last && last.to === slot - 1) last.to = slot
+    else runs.push({ from: slot, to: slot })
+  })
+  return runs
+}
+
+function weeklyTicks(count: number) {
+  const step = Math.max(1, Math.ceil(count / 10))
+  return Array.from({ length: Math.ceil(count / step) }, (_, index) => index * step)
+}
+
+function shortDate(date: string | undefined) {
+  return date ? format(parseISO(date), 'MMM d') : ''
+}
+
+function readChartColors(): Record<ChartVar, string> {
+  const style = getComputedStyle(document.documentElement)
+  const value = (name: ChartVar) => style.getPropertyValue(name).trim()
+  return {
+    '--brand': value('--brand'), '--signal': value('--signal'), '--ink-3': value('--ink-3'), '--add': value('--add'), '--rm': value('--rm'),
+    '--ink-2': value('--ink-2'), '--ink': value('--ink'), '--border': value('--border'), '--surface': value('--surface'),
+  }
+}
+
+/** Recharts takes literal colors, so read the theme vars off the page and re-read when the theme flips. */
+function useThemeColors(): Record<ChartVar, string> {
+  const [colors, setColors] = useState(readChartColors)
+  useEffect(() => {
+    const refresh = () => setColors(readChartColors())
+    const scheme = window.matchMedia('(prefers-color-scheme: dark)')
+    scheme.addEventListener('change', refresh)
+    const observer = new MutationObserver(refresh)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    requestAnimationFrame(refresh)
+    return () => { scheme.removeEventListener('change', refresh); observer.disconnect() }
+  }, [])
+  return colors
+}
+
 /** Numbered how-to. Each step: title, optional body, optional code. */
 export function Steps({ items }: { items: { title: ReactNode; body?: ReactNode; code?: string; lang?: string }[] }) {
   return (
@@ -690,7 +846,7 @@ function DiagramViewer({ heightLimit, fill = false, onExpand, children }: {
         centerOnInit limitToBounds centerZoomedOut
         wheel={{ activationKeys: isZoomModifierHeld, step: WHEEL_ZOOM_STEP }}
         doubleClick={{ mode: 'toggle' }} keyboard={{ disabled: false }}>
-        <ViewerToolbar fitScale={fitScale} onExpand={onExpand} />
+        <ViewerToolbar fitScale={fitScale} onExpand={onExpand} legend={natural.legend} />
         <TransformComponent wrapperClass="rounded-lg" wrapperStyle={{ width: '100%', height: frameHeight }}>
           <div className="xk-stage" style={{ width: natural.width, height: natural.height }}>{children}</div>
         </TransformComponent>
@@ -704,12 +860,13 @@ function isZoomModifierHeld(keys: string[]) {
   return keys.includes('Control') || keys.includes('Meta')
 }
 
-function ViewerToolbar({ fitScale, onExpand }: { fitScale: number; onExpand?: () => void }) {
+function ViewerToolbar({ fitScale, onExpand, legend }: { fitScale: number; onExpand?: () => void; legend: SVGSVGElement | null }) {
   const { zoomIn, zoomOut, resetTransform } = useControls()
   const [scale, setScale] = useState(fitScale)
   useTransformEffect(({ state }) => setScale(state.scale))
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className="flex flex-wrap items-center justify-end gap-1">
+      {legend && <div className="mr-auto min-w-0 max-w-full"><PinnedLegend legend={legend} /></div>}
       <ViewerButton label="Zoom out" onClick={() => zoomOut()}><ZoomOut size={16} /></ViewerButton>
       <ViewerButton label="Fit" onClick={() => resetTransform()}><span className="mono text-xs px-1 tabular-nums">{Math.round(scale * 100)}%</span></ViewerButton>
       <ViewerButton label="Zoom in" onClick={() => zoomIn()}><ZoomIn size={16} /></ViewerButton>
@@ -727,17 +884,57 @@ function ViewerButton({ label, onClick, children }: { label: string; onClick: ()
   )
 }
 
-/** The natural size of the content: the first <svg>'s viewBox, else the first element's rendered box (an HTML chart). */
-function useContentSize(stageRef: RefObject<HTMLDivElement | null>): Size | null {
-  const [size, setSize] = useState<Size | null>(null)
+type ContentSize = Size & { legend: SVGSVGElement | null }
+
+/**
+ * The natural size of the content: the first <svg>'s viewBox, else the first element's rendered box
+ * (an HTML chart). A rendered diagram's legend (`<g data-legend-top>`) is lifted out: the drawing is
+ * cropped above it and the legend comes back as its own small <svg>, pinned beside the zoom controls.
+ */
+function useContentSize(stageRef: RefObject<HTMLDivElement | null>): ContentSize | null {
+  const [size, setSize] = useState<ContentSize | null>(null)
   useLayoutEffect(() => {
     const stage = stageRef.current
-    const box = stage?.querySelector('svg')?.viewBox.baseVal
-    if (box && box.width && box.height) return setSize({ width: box.width, height: box.height })
+    const svg = stage?.querySelector('svg')
+    const box = svg?.viewBox.baseVal
+    if (svg && box && box.width && box.height) return setSize(liftLegend({ svg, width: box.width, height: box.height }))
     const rendered = stage?.firstElementChild?.getBoundingClientRect()
-    if (rendered && rendered.width && rendered.height) setSize({ width: rendered.width, height: rendered.height })
+    if (rendered && rendered.width && rendered.height) setSize({ width: rendered.width, height: rendered.height, legend: null })
   }, [stageRef])
   return size
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg'
+const LEGEND_GAP = 8
+
+function liftLegend({ svg, width, height }: { svg: SVGSVGElement; width: number; height: number }): ContentSize {
+  const legend = svg.querySelector<SVGGElement>('g[data-legend-top]')
+  if (!legend) return { width, height, legend: null }
+  const drawingHeight = Number(legend.dataset.legendTop) - LEGEND_GAP
+  const pinned = document.createElementNS(SVG_NS, 'svg')
+  const copy = legend.cloneNode(true)
+  if (copy instanceof SVGGElement) copy.querySelector('line')?.remove()
+  pinned.append(copy)
+  legend.style.display = 'none'
+  svg.setAttribute('viewBox', `0 0 ${width} ${drawingHeight}`)
+  return { width, height: drawingHeight, legend: pinned }
+}
+
+/** Mounts the lifted legend and crops it to what it draws. */
+function PinnedLegend({ legend }: { legend: SVGSVGElement }) {
+  const hostRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const host = hostRef.current
+    if (!host) return
+    host.append(legend)
+    const drawn = legend.getBBox()
+    legend.setAttribute('viewBox', `${drawn.x - 2} ${drawn.y - 2} ${drawn.width + 4} ${drawn.height + 4}`)
+    legend.style.width = `${drawn.width + 4}px`
+    legend.style.height = `${drawn.height + 4}px`
+    legend.style.maxWidth = 'none'
+    return () => legend.remove()
+  }, [legend])
+  return <div ref={hostRef} aria-hidden className="min-w-0 overflow-x-auto" />
 }
 
 function useElementWidth(ref: RefObject<HTMLDivElement | null>) {
