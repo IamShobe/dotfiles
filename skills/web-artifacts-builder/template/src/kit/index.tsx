@@ -51,7 +51,9 @@ const RAIL_CSS = `
 .xk-anchor{display:inline-flex;align-items:center;margin-left:.5rem;font-size:.7em;color:var(--ink-3);text-decoration:none;opacity:0;transition:opacity .15s,color .15s}
 .xk-heading:hover .xk-anchor,.xk-anchor:focus-visible{opacity:1}.xk-anchor:hover{color:var(--brand)}
 @media (hover:none){.xk-anchor{opacity:.5}}
-section[id]{scroll-margin-top:1.5rem}`
+section[id]{scroll-margin-top:1.5rem}
+.xk-shift-row{transition:background .15s}.xk-shift-row:hover>*{box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--ink) 3%,transparent)}
+.xk-shift-row:hover .xk-shift-label{color:var(--ink)}`
 
 /**
  * The whole page: theme, fonts, own scroll container, hero, side-rail TOC.
@@ -236,7 +238,12 @@ export function Id({ children }: { children: ReactNode }) {
 
 /** Something that no longer exists, inside an example value: <Gone>Backoffice account</Gone>. */
 export function Gone({ children }: { children: ReactNode }) {
-  return <s className="decoration-1" style={{ color: 'var(--ink-3)' }}>{children}</s>
+  return <s data-noprose className="mono inline-block text-xs px-2 py-0.5 rounded-full whitespace-nowrap align-middle decoration-1" style={{ color: 'var(--rm)', background: 'var(--rm-soft)' }}>{children}</s>
+}
+
+/** Something new, inside an example value: <Added>staff_member row</Added>. */
+export function Added({ children }: { children: ReactNode }) {
+  return <span data-noprose className="mono inline-block text-xs px-2 py-0.5 rounded-full whitespace-nowrap align-middle" style={{ color: 'var(--add)', background: 'var(--add-soft)' }}>+ {children}</span>
 }
 
 type Kind = 'add' | 'rm' | 'change' | 'keep' | 'neutral'
@@ -273,19 +280,19 @@ export function Grid({ cols = 2, children }: { cols?: 2 | 3 | 4; children: React
   return <div className={`grid grid-cols-1 ${c} gap-4 min-w-0`}>{children}</div>
 }
 
-type ShiftRow = { aspect: ReactNode; before: ReactNode; after: ReactNode }
+type ShiftRow = { aspect: ReactNode; hint?: ReactNode; before: ReactNode; after: ReactNode; same?: boolean }
 type ShiftResult = { before: ReactNode; after: ReactNode }
 
 const BEFORE_FILL = 'color-mix(in srgb, var(--ink) 4%, transparent)'
 const AFTER_FILL = 'var(--brand-soft)'
-const SHIFT_COLUMNS = 'md:grid-cols-[minmax(6rem,9rem)_1fr_1fr]'
+const SHIFT_COLUMNS = 'md:grid-cols-[minmax(7rem,10rem)_1fr_1fr]'
 const SMALL_CAPS = 'mono text-xs uppercase tracking-[0.12em]'
 
 /**
  * Old → new, shown on one concrete example. `example` names it ("Ido: one person, two sign-ins"),
- * each row is a short label with compact example values (ids, chips, a few words), `result` is the
- * outcome on both sides, and `caption` is the one-sentence description at the end.
- * Free-form `before`/`after` is for what doesn't split into rows: mockups, screenshots.
+ * each row is a short label with compact example values (ids, chips, a few words; `hint` is a small line
+ * under the label, `same` marks a row that didn't change), `result` is the outcome on both sides, and `caption` is the one-sentence
+ * description at the end. Free-form `before`/`after` is for mockups and screenshots.
  */
 export function BeforeAfter({ example, rows, result, caption, before, after, beforeLabel = 'Before', afterLabel = 'After' }: {
   example?: ReactNode; rows?: ShiftRow[]; result?: ShiftResult; caption?: ReactNode
@@ -296,7 +303,7 @@ export function BeforeAfter({ example, rows, result, caption, before, after, bef
       {rows
         ? <ShiftExample example={example} rows={rows} result={result} beforeLabel={beforeLabel} afterLabel={afterLabel} />
         : <ShiftPanels before={before} after={after} beforeLabel={beforeLabel} afterLabel={afterLabel} />}
-      {caption && <figcaption className="xk-prose leading-relaxed" style={{ color: 'var(--ink-2)' }}>{caption}</figcaption>}
+      {caption && <ShiftCaption>{caption}</ShiftCaption>}
     </figure>
   )
 }
@@ -304,54 +311,120 @@ export function BeforeAfter({ example, rows, result, caption, before, after, bef
 function ShiftExample({ example, rows, result, beforeLabel, afterLabel }: {
   example?: ReactNode; rows: ShiftRow[]; result?: ShiftResult; beforeLabel: ReactNode; afterLabel: ReactNode
 }) {
+  const [hideUnchanged, setHideUnchanged] = useState(false)
+  const unchangedCount = rows.filter(row => row.same).length
+  const shownRows = hideUnchanged ? rows.filter(row => !row.same) : rows
   return (
-    <div className="min-w-0 rounded-lg overflow-hidden text-sm" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-      {example && (
-        <p className="px-4 py-2.5 flex flex-wrap gap-x-2 items-baseline" style={{ borderBottom: '1px solid var(--border)', color: 'var(--ink)' }}>
-          <span className={SMALL_CAPS} style={{ color: 'var(--ink-3)' }}>Example</span>
-          <span className="font-medium">{example}</span>
-        </p>
-      )}
+    <div className="min-w-0 rounded-xl overflow-hidden text-sm" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+      <ShiftHeader example={example} unchangedCount={unchangedCount} hideUnchanged={hideUnchanged} onToggle={() => setHideUnchanged(hidden => !hidden)} />
       <div className={`hidden md:grid ${SHIFT_COLUMNS}`}>
         <span />
-        <span className={`${SMALL_CAPS} px-4 pt-3 pb-1.5`} style={{ color: 'var(--ink-3)' }}>{beforeLabel}</span>
-        <span className={`${SMALL_CAPS} px-4 pt-3 pb-1.5`} style={{ color: 'var(--brand-ink)' }}>{afterLabel}</span>
+        <ShiftColumnTitle tone="before">{beforeLabel}</ShiftColumnTitle>
+        <ShiftColumnTitle tone="after">{afterLabel}</ShiftColumnTitle>
       </div>
-      {rows.map((row, index) => (
-        <ShiftLine key={index} label={row.aspect} before={row.before} after={row.after} beforeLabel={beforeLabel} afterLabel={afterLabel} />
+      {shownRows.map((row, index) => (
+        <ShiftLine key={index} label={row.aspect} hint={row.hint} before={row.before} after={row.after} same={row.same ?? false} beforeLabel={beforeLabel} afterLabel={afterLabel} />
       ))}
-      {result && (
-        <ShiftLine label="Result" beforeLabel={beforeLabel} afterLabel={afterLabel} emphasis
-          before={<ResultMark ok={false}>{result.before}</ResultMark>} after={<ResultMark ok>{result.after}</ResultMark>} />
+      {result && <ShiftVerdict result={result} beforeLabel={beforeLabel} afterLabel={afterLabel} />}
+    </div>
+  )
+}
+
+function ShiftHeader({ example, unchangedCount, hideUnchanged, onToggle }: {
+  example?: ReactNode; unchangedCount: number; hideUnchanged: boolean; onToggle: () => void
+}) {
+  if (!example && !unchangedCount) return null
+  return (
+    <div className="px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5" style={{ borderBottom: '1px solid var(--border)' }}>
+      <span className={SMALL_CAPS} style={{ color: 'var(--ink-3)' }}>Example</span>
+      <span className="font-medium min-w-0" style={{ color: 'var(--ink)' }}>{example}</span>
+      {unchangedCount > 0 && (
+        <button type="button" onClick={onToggle} aria-pressed={hideUnchanged}
+          className="ml-auto text-xs px-2.5 py-1 rounded-full transition-colors"
+          style={{ color: hideUnchanged ? 'var(--brand-ink)' : 'var(--ink-3)', background: hideUnchanged ? 'var(--brand-soft)' : 'transparent', border: '1px solid var(--border)' }}>
+          {hideUnchanged ? `Show unchanged (${unchangedCount})` : 'Hide unchanged'}
+        </button>
       )}
     </div>
   )
 }
 
-function ShiftLine({ label, before, after, beforeLabel, afterLabel, emphasis = false }: {
-  label: ReactNode; before: ReactNode; after: ReactNode; beforeLabel: ReactNode; afterLabel: ReactNode; emphasis?: boolean
+function ShiftColumnTitle({ tone, children }: { tone: 'before' | 'after'; children: ReactNode }) {
+  const isAfter = tone === 'after'
+  return (
+    <span className="px-4 pt-3 pb-2">
+      <span className={`${SMALL_CAPS} inline-block px-2 py-0.5 rounded`}
+        style={{ color: isAfter ? 'var(--brand-ink)' : 'var(--ink-3)', background: isAfter ? 'var(--brand-soft)' : BEFORE_FILL }}>{children}</span>
+    </span>
+  )
+}
+
+function ShiftLine({ label, hint, before, after, same, beforeLabel, afterLabel }: {
+  label: ReactNode; hint?: ReactNode; before: ReactNode; after: ReactNode; same: boolean; beforeLabel: ReactNode; afterLabel: ReactNode
 }) {
   return (
-    <div className={`grid grid-cols-1 ${SHIFT_COLUMNS} min-w-0 ${emphasis ? 'font-medium' : ''}`} style={{ borderTop: '1px solid var(--border)' }}>
-      <span className="px-4 pt-2.5 md:py-2.5 min-w-0" style={{ color: 'var(--ink-3)' }}>{label}</span>
+    <div className={`xk-shift-row grid grid-cols-1 ${SHIFT_COLUMNS} min-w-0`} style={{ borderTop: '1px solid var(--border)', opacity: same ? 0.62 : 1 }}>
+      <span className="xk-shift-label px-4 pt-2.5 md:py-3 min-w-0 flex flex-col justify-center" style={{ color: 'var(--ink-3)' }}>
+        <span className="flex items-center gap-2">{label}{same && <span className={`${SMALL_CAPS} md:hidden`}>same</span>}</span>
+        {hint && <span className="text-xs leading-snug mt-0.5" style={{ color: 'var(--ink-3)' }}>{hint}</span>}
+      </span>
       <ShiftValue label={beforeLabel} fill={BEFORE_FILL} color="var(--ink-2)">{before}</ShiftValue>
-      <ShiftValue label={afterLabel} fill={AFTER_FILL} color="var(--ink)">{after}</ShiftValue>
+      <ShiftValue label={afterLabel} fill={same ? BEFORE_FILL : AFTER_FILL} color="var(--ink)" seam={same ? 'same' : 'changed'}>{after}</ShiftValue>
     </div>
   )
 }
 
-function ShiftValue({ label, fill, color, children }: { label: ReactNode; fill: string; color: string; children: ReactNode }) {
+/** The after cell carries a badge on the seam: → where the row changed, = where it didn't. */
+function ShiftValue({ label, fill, color, seam, children }: { label: ReactNode; fill: string; color: string; seam?: 'same' | 'changed'; children: ReactNode }) {
   return (
-    <div className="min-w-0 px-4 py-2.5 flex flex-wrap items-center gap-x-2 gap-y-1" style={{ background: fill, color }}>
+    <div className="relative min-w-0 px-4 md:px-5 py-2.5 md:py-3 flex flex-wrap items-center gap-x-2 gap-y-1" style={{ background: fill, color }}>
       <span className={`md:hidden ${SMALL_CAPS} w-full`} style={{ color: 'var(--ink-3)' }}>{label}</span>
+      {seam && <SeamBadge changed={seam === 'changed'} />}
       {children}
     </div>
   )
 }
 
-function ResultMark({ ok, children }: { ok: boolean; children: ReactNode }) {
+function SeamBadge({ changed }: { changed: boolean }) {
+  return (
+    <span aria-hidden className="hidden md:grid absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 w-5 h-5 rounded-full place-items-center text-xs leading-none"
+      style={changed
+        ? { background: 'var(--brand)', color: 'var(--surface)' }
+        : { background: 'var(--surface)', color: 'var(--ink-3)', border: '1px solid var(--border-hi)' }}>
+      {changed ? <ArrowRight size={12} strokeWidth={2.5} /> : '='}
+    </span>
+  )
+}
+
+function ShiftVerdict({ result, beforeLabel, afterLabel }: { result: ShiftResult; beforeLabel: ReactNode; afterLabel: ReactNode }) {
+  return (
+    <div className={`grid grid-cols-1 ${SHIFT_COLUMNS} min-w-0 font-semibold`} style={{ borderTop: '1px solid var(--border-hi)' }}>
+      <span className="px-4 pt-3 md:py-3.5 flex items-center" style={{ color: 'var(--ink)' }}>Result</span>
+      <VerdictCell label={beforeLabel} ok={false}>{result.before}</VerdictCell>
+      <VerdictCell label={afterLabel} ok>{result.after}</VerdictCell>
+    </div>
+  )
+}
+
+function VerdictCell({ label, ok, children }: { label: ReactNode; ok: boolean; children: ReactNode }) {
   const Icon = ok ? Check : X
-  return <><Icon size={16} style={{ color: ok ? 'var(--add)' : 'var(--rm)', flexShrink: 0 }} /><span>{children}</span></>
+  const tone = ok ? 'var(--add)' : 'var(--rm)'
+  return (
+    <div className="min-w-0 px-4 md:px-5 py-3 md:py-3.5 flex flex-wrap items-center gap-x-2.5 gap-y-1" style={{ background: ok ? 'var(--add-soft)' : 'var(--rm-soft)', color: tone }}>
+      <span className={`md:hidden ${SMALL_CAPS} w-full font-normal`} style={{ color: 'var(--ink-3)' }}>{label}</span>
+      <span className="grid place-items-center w-5 h-5 rounded-full shrink-0" style={{ background: tone, color: 'var(--surface)' }}><Icon size={13} strokeWidth={3} /></span>
+      <span>{children}</span>
+    </div>
+  )
+}
+
+function ShiftCaption({ children }: { children: ReactNode }) {
+  return (
+    <figcaption className="xk-prose flex gap-3 leading-relaxed pl-3" style={{ borderLeft: '3px solid var(--brand)', color: 'var(--ink-2)' }}>
+      <span className={`${SMALL_CAPS} pt-1 shrink-0`} style={{ color: 'var(--brand-ink)' }}>In short</span>
+      <span>{children}</span>
+    </figcaption>
+  )
 }
 
 function ShiftPanels({ before, after, beforeLabel, afterLabel }: { before: ReactNode; after: ReactNode; beforeLabel: ReactNode; afterLabel: ReactNode }) {

@@ -26,13 +26,13 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 | `<Mark>` | Highlight a phrase (instead of RoughNotation). |
 | `<Src path="src/a.ts" lines="12-24" />` | Commit-pinned permalink. Inline, safe in prose. Falls back to plain code with no remote. |
 | `<Chip kind="add \| rm \| change \| keep \| neutral">` | Diff chip or pill. |
-| `<Gone>` | Something that no longer exists, struck through (inside an example value). |
+| `<Gone>` / `<Added>` | Something that no longer exists (red, struck) / is new (green, +), inside an example value. |
 
 ## Blocks
 
 | Component | Props |
 |---|---|
-| `<BeforeAfter example rows={[{ aspect, before, after }]} result={{ before, after }} caption beforeLabel? afterLabel? />` | Old → new on one concrete example: a compact card, one row per aspect, a ✗/✓ result row, the caption under it. Stacks below md. |
+| `<BeforeAfter example rows={[{ aspect, hint?, before, after, same? }]} result={{ before, after }} caption beforeLabel? afterLabel? />` | Old → new on one concrete example: a compact card, one row per aspect (`hint` = small line under the label, `same` = unchanged: dimmed, `=` on the seam, hideable), a ✗/✓ verdict row, an "In short" caption. Stacks below md. |
 | `<BeforeAfter before={…} after={…} caption? />` | Free-form old → new, for what doesn't split into rows (a mockup, a screenshot). |
 | `<Changes rows={[{ name, before?, after?, note? }]} />` | Interface changes: name + added/changed/removed tag, then Was / Now. Only `after` = added, only `before` = removed. |
 | `<Deprecations removed={[{what, why}]} kept={[{what, why}]} />` | Gone for good vs kept as fallback. |
