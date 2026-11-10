@@ -8,7 +8,7 @@
   <array>
     <string>/bin/zsh</string>
     <string>-c</string>
-    <string>$HOME/.claude/skills/free-disk/scripts/free-disk --apply --if-below 40</string>
+    <string>log=$HOME/Library/Logs/free-disk.log; [ -f $log ] &amp;&amp; tail -n 2000 $log &gt; $log.tmp &amp;&amp; mv $log.tmp $log; $HOME/.claude/skills/free-disk/scripts/free-disk --apply --if-below 40 &gt;&gt; $log 2&gt;&amp;1</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
@@ -20,9 +20,5 @@
     <key>Minute</key>
     <integer>0</integer>
   </dict>
-  <key>StandardOutPath</key>
-  <string>/Users/elranshefer/Library/Logs/free-disk.log</string>
-  <key>StandardErrorPath</key>
-  <string>/Users/elranshefer/Library/Logs/free-disk.log</string>
 </dict>
 </plist>
