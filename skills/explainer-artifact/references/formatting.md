@@ -46,6 +46,12 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 />
 ```
 
+## Diagrams
+
+- **The diagram tells the running example too.** Ido's two accounts as two lanes beats a generic "account → decision" flowchart: name the lanes, steps and sub-labels after the example's real things ("Platform account", "linked to Ido", "1 of 1: keeps access").
+- **Pick the shape for the page, not only the question.** The page is wide: prefer left-to-right shapes (swimlane, sequence, LR flow) that fit at ~90%+ over tall top-down ones that shrink to 60% and turn labels to 7px. Heed the renderer's width warning: cut steps, fold a step into a sub-label, or split.
+- **Show the decision where it is made.** If a rule is per person, not per item, the diagram needs a lane or node for the person where the items meet.
+
 ## Interface changes
 
 `<Changes>`: the name is the thing a reader looks up (`<Id>` for code names) with its `area`. `before` / `after` are a few words each and read as one line ("One unlisted account disables the person → Disabled only when no account is listed"). The one detail a reader must know or act on (a required value, a startup failure) goes in `note`. Split user-facing from developer-facing with a short `<P>` above each list.

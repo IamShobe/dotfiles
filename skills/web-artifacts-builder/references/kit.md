@@ -42,6 +42,6 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 | `<Code code lang? title? mark={[lines]} />` | Code block. `mark` highlights 1-based lines. |
 | `<Table columns rows mono? />` | Generic table. The first column names each row. `mono` = columns holding only identifiers; otherwise wrap identifiers in `<Id>`. |
 | `<Steps items={[{ title, body?, code?, lang? }]} />` | Numbered how-to. |
-| `<Figure caption?>` | Frame for any diagram or chart (SVG or HTML): fitted to the width and 70% of the screen height, an always-visible zoom bar (−, fit %, +, fullscreen), ctrl/⌘ + wheel zoom, drag to pan, double-click to fit, Esc leaves fullscreen. |
+| `<Figure caption?>` | Frame for any diagram or chart (SVG or HTML), built on `react-zoom-pan-pinch`: fitted to the width and 70% of the screen height, an always-visible zoom bar (−, fit %, +, fullscreen), ctrl/⌘ + wheel or pinch to zoom, drag to pan within bounds, double-click to toggle, arrow keys, Esc leaves fullscreen. |
 | `<Playground controls={…}>{charts}</Playground>` | Interactive widget: the controls column stays in view (sticky, pinned on top below lg) while the reader scrolls and zooms the charts. Put each chart in a `<Figure>`. |
 

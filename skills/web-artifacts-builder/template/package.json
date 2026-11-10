@@ -52,6 +52,7 @@
     "react-dom": "^19.2.7",
     "react-resizable-panels": "^4.12.2",
     "react-rough-notation": "^1.0.8",
+    "react-zoom-pan-pinch": "4.2.0",
     "recharts": "^3.10.1",
     "roughjs": "^4.6.6",
     "sonner": "^2.0.7",

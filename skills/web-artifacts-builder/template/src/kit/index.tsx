@@ -4,10 +4,11 @@
 // Every component is theme-driven (var(--…) only), reflows below md, and keeps
 // wide content in its own overflow-x box, so App.tsx stays content-only.
 import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { MouseEvent, PointerEvent as ReactPointerEvent, ReactElement, ReactNode, RefObject } from 'react'
+import type { MouseEvent, ReactElement, ReactNode, RefObject } from 'react'
 import { Highlight, themes } from 'prism-react-renderer'
 import { ArrowRight, Check, Database, KeyRound, Maximize2, PanelsTopLeft, Plug, Settings2, Workflow, X, ZoomIn, ZoomOut } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { TransformComponent, TransformWrapper, useControls, useTransformEffect } from 'react-zoom-pan-pinch'
 import { Scrollspy } from '@/components/ui/scrollspy'
 import { Theme } from '@/theme'
 
@@ -612,11 +613,9 @@ export function Steps({ items }: { items: { title: ReactNode; body?: ReactNode; 
 }
 
 const FIGURE_HEIGHT_SHARE = 0.7
-const ZOOM_STEP = 1.25
 const MAX_ZOOM = 4
 
 type Size = { width: number; height: number }
-type View = { scale: number; x: number; y: number }
 
 /**
  * Frame for a diagram or chart (SVG or HTML) with an optional caption. It is shown fitted to the
@@ -672,39 +671,49 @@ function FigureFullscreen({ caption, onClose, children }: { caption?: ReactNode;
 
 const FULLSCREEN_CHROME_PX = 96
 const FULLSCREEN_MAX_FIT = 2
+// The library scales this by the wheel delta: one mouse-wheel notch (~100) zooms ~25%, a pinch tick much less.
+const WHEEL_ZOOM_STEP = 0.0025
 
 function DiagramViewer({ heightLimit, fill = false, onExpand, children }: {
   heightLimit: number; fill?: boolean; onExpand?: () => void; children: ReactNode
 }) {
-  const viewportRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
   const natural = useContentSize(stageRef)
-  const viewportWidth = useElementWidth(viewportRef)
-  const fitScale = natural ? Math.min(fill ? FULLSCREEN_MAX_FIT : 1, viewportWidth / natural.width, heightLimit / natural.height) : 1
-  const viewportHeight = viewportHeightFor({ natural, fitScale, heightLimit, fill })
-  const [zoom, setZoom] = useState<View | null>(null)
-  const view = zoom ?? centeredView({ natural, scale: fitScale, viewport: { width: viewportWidth, height: viewportHeight } })
-  const center = { x: viewportWidth / 2, y: viewportHeight / 2 }
-  useCtrlWheelZoom({ viewportRef, onZoom: (factor, at) => setZoom(current => zoomAround({ view: current ?? view, factor, at, fitScale })) })
-
+  const frameWidth = useElementWidth(frameRef)
   if (!natural) return <div ref={stageRef}>{children}</div>
+  const fitScale = Math.min(fill ? FULLSCREEN_MAX_FIT : 1, (frameWidth || natural.width) / natural.width, heightLimit / natural.height)
+  const frameHeight = fill ? heightLimit : Math.ceil(natural.height * fitScale)
   return (
-    <div className="grid gap-2 min-w-0">
-      <div className="flex items-center justify-end gap-1">
-        <ViewerButton label="Zoom out" onClick={() => setZoom(zoomAround({ view, factor: 1 / ZOOM_STEP, at: center, fitScale }))}><ZoomOut size={16} /></ViewerButton>
-        <ViewerButton label="Fit" onClick={() => setZoom(null)}><span className="mono text-xs px-1 tabular-nums">{Math.round(view.scale * 100)}%</span></ViewerButton>
-        <ViewerButton label="Zoom in" onClick={() => setZoom(zoomAround({ view, factor: ZOOM_STEP, at: center, fitScale }))}><ZoomIn size={16} /></ViewerButton>
-        {onExpand && <ViewerButton label="Fullscreen" onClick={onExpand}><Maximize2 size={16} /></ViewerButton>}
-      </div>
-      <div ref={viewportRef} className="relative w-full min-w-0 overflow-hidden rounded-lg select-none"
-        style={{ height: viewportHeight, cursor: zoom ? 'grab' : 'default', touchAction: zoom ? 'none' : 'auto' }}
-        onDoubleClick={() => setZoom(zoom ? null : zoomAround({ view, factor: 1 / view.scale, at: center, fitScale }))}
-        onPointerDown={event => zoom && startPan({ event, view: zoom, onMove: setZoom })}>
-        <div ref={stageRef} className="xk-stage absolute top-0 left-0" style={{
-          width: natural.width, height: natural.height, transformOrigin: '0 0',
-          transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
-        }}>{children}</div>
-      </div>
+    <div ref={frameRef} className="grid gap-2 min-w-0">
+      <TransformWrapper key={`${frameWidth}x${frameHeight}`} initialScale={fitScale} minScale={fitScale} maxScale={Math.max(MAX_ZOOM, fitScale)}
+        centerOnInit limitToBounds centerZoomedOut
+        wheel={{ activationKeys: isZoomModifierHeld, step: WHEEL_ZOOM_STEP }}
+        doubleClick={{ mode: 'toggle' }} keyboard={{ disabled: false }}>
+        <ViewerToolbar fitScale={fitScale} onExpand={onExpand} />
+        <TransformComponent wrapperClass="rounded-lg" wrapperStyle={{ width: '100%', height: frameHeight }}>
+          <div className="xk-stage" style={{ width: natural.width, height: natural.height }}>{children}</div>
+        </TransformComponent>
+      </TransformWrapper>
+    </div>
+  )
+}
+
+/** ctrl or ⌘ (either one; a trackpad pinch arrives as ctrl) zooms; a plain wheel scrolls the page. */
+function isZoomModifierHeld(keys: string[]) {
+  return keys.includes('Control') || keys.includes('Meta')
+}
+
+function ViewerToolbar({ fitScale, onExpand }: { fitScale: number; onExpand?: () => void }) {
+  const { zoomIn, zoomOut, resetTransform } = useControls()
+  const [scale, setScale] = useState(fitScale)
+  useTransformEffect(({ state }) => setScale(state.scale))
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <ViewerButton label="Zoom out" onClick={() => zoomOut()}><ZoomOut size={16} /></ViewerButton>
+      <ViewerButton label="Fit" onClick={() => resetTransform()}><span className="mono text-xs px-1 tabular-nums">{Math.round(scale * 100)}%</span></ViewerButton>
+      <ViewerButton label="Zoom in" onClick={() => zoomIn()}><ZoomIn size={16} /></ViewerButton>
+      {onExpand && <ViewerButton label="Fullscreen" onClick={onExpand}><Maximize2 size={16} /></ViewerButton>}
     </div>
   )
 }
@@ -716,57 +725,6 @@ function ViewerButton({ label, onClick, children }: { label: string; onClick: ()
       {children}
     </button>
   )
-}
-
-function viewportHeightFor({ natural, fitScale, heightLimit, fill }: { natural: Size | null; fitScale: number; heightLimit: number; fill: boolean }) {
-  if (fill) return heightLimit
-  return natural ? Math.ceil(natural.height * fitScale) : heightLimit
-}
-
-function centeredView({ natural, scale, viewport }: { natural: Size | null; scale: number; viewport: Size }): View {
-  if (!natural) return { scale, x: 0, y: 0 }
-  return { scale, x: (viewport.width - natural.width * scale) / 2, y: Math.max(0, (viewport.height - natural.height * scale) / 2) }
-}
-
-/** Zoom by `factor`, keeping the point under `at` (viewport pixels) where it is. Never below fit. */
-function zoomAround({ view, factor, at, fitScale }: { view: View; factor: number; at: { x: number; y: number }; fitScale: number }): View | null {
-  const scale = Math.min(MAX_ZOOM, view.scale * factor)
-  if (scale <= fitScale + 0.001) return null
-  const ratio = scale / view.scale
-  return { scale, x: at.x - (at.x - view.x) * ratio, y: at.y - (at.y - view.y) * ratio }
-}
-
-function startPan({ event, view, onMove }: { event: ReactPointerEvent<HTMLDivElement>; view: View; onMove: (view: View) => void }) {
-  const target = event.currentTarget
-  const origin = { x: event.clientX, y: event.clientY }
-  target.setPointerCapture(event.pointerId)
-  target.style.cursor = 'grabbing'
-  const move = (moveEvent: PointerEvent) => onMove({ ...view, x: view.x + moveEvent.clientX - origin.x, y: view.y + moveEvent.clientY - origin.y })
-  const stop = () => {
-    target.style.cursor = 'grab'
-    target.removeEventListener('pointermove', move)
-    target.removeEventListener('pointerup', stop)
-  }
-  target.addEventListener('pointermove', move)
-  target.addEventListener('pointerup', stop)
-}
-
-/** ctrl/⌘ + wheel (and trackpad pinch) zooms; a plain wheel keeps scrolling the page. */
-function useCtrlWheelZoom({ viewportRef, onZoom }: { viewportRef: RefObject<HTMLDivElement | null>; onZoom: (factor: number, at: { x: number; y: number }) => void }) {
-  const onZoomRef = useRef(onZoom)
-  onZoomRef.current = onZoom
-  useEffect(() => {
-    const viewport = viewportRef.current
-    if (!viewport) return
-    const zoomOnWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return
-      event.preventDefault()
-      const bounds = viewport.getBoundingClientRect()
-      onZoomRef.current(Math.exp(-event.deltaY * 0.002), { x: event.clientX - bounds.left, y: event.clientY - bounds.top })
-    }
-    viewport.addEventListener('wheel', zoomOnWheel, { passive: false })
-    return () => viewport.removeEventListener('wheel', zoomOnWheel)
-  })
 }
 
 /** The natural size of the content: the first <svg>'s viewBox, else the first element's rendered box (an HTML chart). */
