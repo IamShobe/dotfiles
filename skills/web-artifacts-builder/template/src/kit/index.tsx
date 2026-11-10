@@ -50,9 +50,10 @@ const RAIL_CSS = `
 .xk-rail a[data-active]{color:var(--brand)}.xk-rail a[data-active]::before{background:var(--brand);transform:scale(1)}
 .xk-rail{counter-reset:part}
 .xk-rail .xk-group{display:flex;align-items:center;gap:.5rem;counter-increment:part;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:0 0 .5rem;transition:color .18s}
-.xk-rail .xk-group::before{content:counter(part);display:grid;place-items:center;flex:0 0 auto;width:1.3rem;height:1.3rem;border-radius:99px;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink-2);letter-spacing:0;font-size:12px;transition:background .18s,color .18s}
+.xk-rail .xk-group::before{content:counter(part);display:grid;place-items:center;flex:0 0 auto;width:1.3rem;height:1.3rem;border-radius:99px;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink-2);letter-spacing:0;font-size:12px;transform:none;margin-right:0;transition:background .18s,color .18s}
 .xk-rail .xk-entries{display:flex;flex-direction:column;gap:.45rem}
 .xk-rail .xk-part[data-grouped] .xk-entries{margin-left:.6rem;padding-left:.55rem;border-left:1px solid var(--border);transition:border-color .18s}
+a.xk-group{text-decoration:none;cursor:pointer}.xk-rail a.xk-group:hover{color:var(--brand-ink)}.xk-rail a.xk-group:hover::before{background:var(--brand-soft);color:var(--brand-ink)}
 .xk-rail .xk-part:has(a[data-active]) .xk-group{color:var(--brand-ink)}
 .xk-rail .xk-part:has(a[data-active]) .xk-group::before{background:var(--brand);color:var(--surface)}
 .xk-rail .xk-part[data-grouped]:has(a[data-active]) .xk-entries{border-left-color:var(--brand)}
@@ -93,7 +94,7 @@ export function Page({ meta = {}, eyebrow, title, thesis, pills = [], children }
             <nav ref={railRef} className="xk-rail fixed left-5 top-10 bottom-6 hidden lg:flex flex-col gap-4 w-48 overflow-y-auto pr-2" aria-label="Contents">
               {groups.map(({ group, entries }) => (
                 <div key={group ?? entries[0]?.id} className="xk-part" data-grouped={group ? '' : undefined}>
-                  {group && <p className="xk-group">{group}</p>}
+                  {group && <a className="xk-group" href={`#${entries[0]?.id}`} onClick={jumpToSection}>{group}</a>}
                   <div className="xk-entries">
                     {entries.map(s => <a key={s.id} href={`#${s.id}`} data-scrollspy-anchor={s.id}><span>{s.title}</span></a>)}
                   </div>
@@ -108,7 +109,7 @@ export function Page({ meta = {}, eyebrow, title, thesis, pills = [], children }
             <h1 className="text-3xl md:text-5xl font-semibold tracking-tight leading-tight" style={{ color: 'var(--ink)' }}>{title}</h1>
             <p data-thesis className="xk-prose text-lg md:text-xl mt-4 leading-relaxed" style={{ color: 'var(--ink-2)' }}>{thesis}</p>
             {pills.length > 0 && <div className="flex flex-wrap gap-2 mt-5">{pills.map((p, i) => <Chip key={i}>{p}</Chip>)}</div>}
-            {rail && groups.some(g => g.group) && <ContentsOverview groups={groups} />}
+            {rail && <CompactContents groups={groups} />}
           </header>
           {withPartDividers(children)}
         </main>
@@ -145,19 +146,41 @@ function useActiveEntryInView({ scrollRef, railRef }: {
 }
 
 /** Grouped contents under the hero: every part with its sections, readable at any width. */
-function ContentsOverview({ groups }: { groups: TocGroup[] }) {
+/** Below lg, where the rail is hidden: one collapsed line that opens the numbered parts and their sections. */
+function CompactContents({ groups }: { groups: TocGroup[] }) {
+  const partNumbers = numberParts(groups)
   return (
-    <nav aria-label="Parts" className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {groups.map(({ group, entries }, index) => (
-        <div key={group ?? index} className="rounded-lg p-4" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <p className="mono text-xs uppercase tracking-[0.14em] mb-2" style={{ color: 'var(--brand)' }}>{`Part ${index + 1}`}{group ? ` · ${group}` : ''}</p>
-          <ol className="grid gap-1 text-sm">
-            {entries.map(e => <li key={e.id}><a href={`#${e.id}`} style={{ color: 'var(--ink-2)' }}>{e.title}</a></li>)}
-          </ol>
-        </div>
-      ))}
-    </nav>
+    <details className="lg:hidden mt-5 rounded-lg text-sm" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+      <summary className="cursor-pointer px-4 py-2.5 mono text-xs uppercase tracking-[0.14em]" style={{ color: 'var(--ink-3)' }}>Contents</summary>
+      <ol className="grid gap-3 px-4 pb-4">
+        {groups.map(({ group, entries }, index) => (
+          <li key={group ?? entries[0]?.id} className="grid gap-1">
+            {group && <a href={`#${entries[0]?.id}`} onClick={jumpToSection} className="mono text-xs uppercase tracking-[0.12em]" style={{ color: 'var(--brand-ink)' }}>{partNumbers[index]} · {group}</a>}
+            {entries.map(entry => <a key={entry.id} href={`#${entry.id}`} onClick={jumpToSection} className={group ? 'pl-4' : ''} style={{ color: 'var(--ink-2)' }}>{entry.title}</a>)}
+          </li>
+        ))}
+      </ol>
+    </details>
   )
+}
+
+/**
+ * The page scrolls inside its own container (the artifact iframe has no scroll of its own), so a
+ * hash link scrolls the section into view in code and keeps the hash for sharing.
+ */
+function jumpToSection(event: MouseEvent<HTMLAnchorElement>) {
+  const sectionId = decodeURIComponent(event.currentTarget.hash.slice(1))
+  const section = document.getElementById(sectionId)
+  if (!section) return
+  event.preventDefault()
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  history.replaceState(null, '', `#${sectionId}`)
+}
+
+/** Part numbers for grouped runs only, matching the rail and the in-page "Part N" dividers. */
+function numberParts(groups: TocGroup[]) {
+  let part = 0
+  return groups.map(({ group }) => (group ? ++part : undefined))
 }
 
 /** Inserts a part heading before the first section of each new group. */

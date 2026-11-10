@@ -14,7 +14,7 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 
 - `meta` = the `meta` line from `gather-facts.sh`. It drives every `<Src>` link.
 - `<Section>`s must be **direct children** of `<Page>`. The TOC rail is built from them and appears at `lg` when there are 3 or more.
-- `group="…"` on consecutive sections makes them one numbered part: the rail shows the part with its sections indented and lights up the part being read, and the page shows a "Part N · …" divider and a parts overview under the hero.
+- `group="…"` on consecutive sections makes them one numbered part: the rail shows the part with its sections indented and lights up the part being read, and the page shows a "Part N · …" divider. Below lg, where the rail is hidden, the hero gets one collapsed "Contents" line instead.
 - `Page` renders `<Theme/>`, the fonts, the scroll container and the hero. Don't add them yourself.
 
 ## Text

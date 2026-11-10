@@ -38,6 +38,10 @@ Each color says one thing, everywhere on the page, so the eye learns it once:
 - Controls stay in view with what they control: an interactive widget's pickers and toggles go in `<Playground controls>`, and a chart's zoom bar is always shown, never only on hover or when shrunk.
 - Every chart or diagram the reader may need to inspect can zoom and pan (`<Figure>`). Size a diagram to fit; the reader zooms in, the page never makes them scroll through it.
 
+## Every block earns its space
+
+This is a working document, not a landing page. A block that repeats what is already on screen (a second table of contents, a summary of the summary, a card per heading) or holds a few words in a large box is cut. Navigation aids stay compact: one rail on wide screens, one collapsed line on narrow ones.
+
 ## Narrow widths: reflow, never squash
 
 The artifact iframe is often phone-width.
