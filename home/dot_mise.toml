@@ -27,6 +27,7 @@ tlrc = "latest"          # was: tealdeer
 dust = "latest"
 tree-sitter = "latest"
 pipx = "latest"
+uv = "latest"
 
 # DevOps & Cloud Tools
 gh = "latest"
