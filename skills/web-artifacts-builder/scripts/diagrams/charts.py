@@ -72,7 +72,7 @@ def legend_note(svg: Svg, legend_y: float, note: str | None) -> None:
     s = note.upper()
     w = text_width(s, 8, True) + len(s) * 0.48
     if not svg.legend:
-        svg.text('top', LEGEND_LEFT, legend_y + 12, s, size=8, mono=True, fill=MUTED, spacing='0.06em')
+        svg.text('legend', LEGEND_LEFT, legend_y + 12, s, size=8, mono=True, fill=MUTED, spacing='0.06em')
         svg.height = snap_up(legend_y + 32)
         return
     x, row_y, rows = LEGEND_LEFT + 72, legend_y + 21, 1
@@ -82,12 +82,12 @@ def legend_note(svg: Svg, legend_y: float, note: str | None) -> None:
             x, row_y, rows = LEGEND_LEFT + 72, row_y + 20, rows + 1
         x += snap_up(item_w, 8)
     if rows == 1 and x + w + 8 <= LEGEND_RIGHT:
-        svg.text('top', LEGEND_RIGHT, row_y + 4, s, size=8, mono=True, fill=MUTED, spacing='0.06em', anchor='end')
+        svg.text('legend', LEGEND_RIGHT, row_y + 4, s, size=8, mono=True, fill=MUTED, spacing='0.06em', anchor='end')
     else:
         if w > LEGEND_RIGHT - LEGEND_LEFT - 72:
             raise SpecError(f'note "{note}" is too long for one line — cut it to ~{int((LEGEND_RIGHT - LEGEND_LEFT - 72) / 5.4)} chars')
         ny = row_y + 24
-        svg.text('top', LEGEND_LEFT + 72, ny, s, size=8, mono=True, fill=MUTED, spacing='0.06em')
+        svg.text('legend', LEGEND_LEFT + 72, ny, s, size=8, mono=True, fill=MUTED, spacing='0.06em')
         svg.height = max(svg.height, snap_up(ny + 24))
 
 

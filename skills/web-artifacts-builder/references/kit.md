@@ -14,6 +14,7 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 
 - `meta` = the `meta` line from `gather-facts.sh`. It drives every `<Src>` link.
 - `<Section>`s must be **direct children** of `<Page>`. The TOC rail is built from them and appears at `lg` when there are 3 or more.
+- `group="…"` on consecutive sections makes them one numbered part: the rail shows the part with its sections indented and lights up the part being read, and the page shows a "Part N · …" divider and a parts overview under the hero.
 - `Page` renders `<Theme/>`, the fonts, the scroll container and the hero. Don't add them yourself.
 
 ## Text
@@ -25,6 +26,7 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 | `<Id>fetchUser()</Id>` | Inline identifier. |
 | `<Mark>` | Highlight a phrase (instead of RoughNotation). |
 | `<Src path="src/a.ts" lines="12-24" />` | Commit-pinned permalink. Inline, safe in prose. Falls back to plain code with no remote. |
+| `<Ref href>` | A link to where a reference lives (ticket, PR, issue, doc): `<Ref href="https://…/pull/42">repo#42</Ref>`. Opens in a new tab. |
 | `<Chip kind="add \| rm \| change \| keep \| neutral">` | Diff chip or pill. |
 | `<Gone>` / `<Added>` | Something that no longer exists (red, struck) / is new (green, +), inside an example value. |
 
@@ -32,6 +34,7 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 
 | Component | Props |
 |---|---|
+| `<Tldr items={[{ label, statement, example?, tone? }]} />` | The story at a glance: 2–4 cards joined by arrows (`tone`: `problem` `change` `result` `neutral`), each a statement of ≤ 8 words and an example line. Stacks below md. |
 | `<BeforeAfter example rows={[{ aspect, hint?, before, after, same? }]} result={{ before, after }} caption beforeLabel? afterLabel? />` | Old → new on one concrete example: a compact card, one row per aspect (`hint` = small line under the label, `same` = unchanged: dimmed, `=` on the seam, hideable), a ✗/✓ verdict row, an "In short" caption. Stacks below md. |
 | `<BeforeAfter before={…} after={…} caption? />` | Free-form old → new, for what doesn't split into rows (a mockup, a screenshot). |
 | `<Changes rows={[{ name, area?, before?, after?, note? }]} />` | Compact changelog: status dot, name + area (`config` `behavior` `data` `api` `ui` `access`, each with an icon), `was → now` inline, `note` small underneath. Only `after` = added, only `before` = removed. |

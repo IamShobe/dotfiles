@@ -98,13 +98,16 @@ def _attrs(d: dict) -> str:
 @dataclass
 class Svg:
     """Collects layers in paint order. Draw into the layer that matches z-order:
-    'zones' < 'edges' < 'labels_under' < 'nodes' < 'labels' < 'top'."""
+    'zones' < 'edges' < 'labels_under' < 'nodes' < 'labels' < 'top' < 'legend'.
+    Everything about the legend (keys, notes) goes in 'legend': a page viewer lifts that layer out
+    of the zoomable drawing and pins it beside its controls."""
     width: int = 1000
     height: int = 600
-    layers: dict = field(default_factory=lambda: {k: [] for k in ('zones', 'edges', 'labels_under', 'nodes', 'labels', 'top')})
+    layers: dict = field(default_factory=lambda: {k: [] for k in ('zones', 'edges', 'labels_under', 'nodes', 'labels', 'top', 'legend')})
     markers: set = field(default_factory=set)
     defs_extra: list = field(default_factory=list)
     legend: list = field(default_factory=list)   # (swatch_kind, label) in first-seen order
+    legend_top: float | None = None
 
     def el(self, layer: str, tag: str, text: str | None = None, **a) -> None:
         body = '' if text is None else escape(str(text), quote=False)
@@ -315,9 +318,8 @@ def legend_strip(svg: Svg, y: float, left: float = 32, right: float | None = Non
     if not svg.legend:
         return y
     right = right or svg.width - 32
-    first_legend_item = len(svg.layers['top'])
-    svg.el('top', 'line', x1=_n(left), y1=_n(y), x2=_n(right), y2=_n(y), stroke=RULE, stroke_width=0.8)
-    svg.text('top', left, y + 24, 'LEGEND', size=8, mono=True, fill=MUTED, spacing='0.14em')
+    svg.el('legend', 'line', x1=_n(left), y1=_n(y), x2=_n(right), y2=_n(y), stroke=RULE, stroke_width=0.8)
+    svg.text('legend', left, y + 24, 'LEGEND', size=8, mono=True, fill=MUTED, spacing='0.14em')
     x, row_y = left + 72, y + 20
     for kind, label in svg.legend:
         for mk in ('arrow', 'arrow-accent', 'arrow-link', 'arrow-open', 'arrow-sm'):
@@ -326,12 +328,10 @@ def legend_strip(svg: Svg, y: float, left: float = 32, right: float | None = Non
         item_w = 32 + text_width(label, 11) + 28
         if x + item_w > right and x > left + 72:
             x, row_y = left + 72, row_y + 20
-        svg.raw('top', _swatch(kind, x, row_y))
-        svg.text('top', x + 28, row_y + 4, label, size=11, fill=MUTED)
+        svg.raw('legend', _swatch(kind, x, row_y))
+        svg.text('legend', x + 28, row_y + 4, label, size=11, fill=MUTED)
         x += snap_up(item_w, 8)
-    # One group, so a page viewer can lift the legend out of the zoomable drawing and pin it.
-    legend_items = svg.layers['top'][first_legend_item:]
-    svg.layers['top'][first_legend_item:] = [f'<g data-legend-top="{_n(y)}">{"".join(legend_items)}</g>']
+    svg.legend_top = y
     return row_y + 16
 
 
@@ -344,6 +344,9 @@ def document(svg: Svg, slug: str, title: str, desc: str, legend_y: float | None 
         svg.height = snap_up(bottom + 24)
     defs = ''.join(MARKERS[m] for m in sorted(svg.markers)) + ''.join(svg.defs_extra)
     body = ''.join(''.join(svg.layers[k]) for k in ('zones', 'edges', 'labels_under', 'nodes', 'labels', 'top'))
+    if svg.layers['legend']:
+        legend_top = svg.legend_top if svg.legend_top is not None else legend_y
+        body += f'<g data-legend-top="{_n(legend_top)}">{"".join(svg.layers["legend"])}</g>'
     return (f'<svg viewBox="0 0 {svg.width} {svg.height}" xmlns="http://www.w3.org/2000/svg" role="img" '
             f'aria-labelledby="{slug}-title {slug}-desc">'
             f'<title id="{slug}-title">{escape(title)}</title><desc id="{slug}-desc">{escape(desc)}</desc>'

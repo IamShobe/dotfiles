@@ -18,7 +18,7 @@ This skill owns the **story**: structure, formatting and content. Everything mec
 
 ## Non-negotiables
 
-- **TLDR-first.** The hero states the thesis in one sentence. Every section opens with its takeaway.
+- **TL;DR first, and visual.** The hero states the thesis in one sentence; the first section is a visual TL;DR (`<Tldr>` strip + the main before → after) that gives the full picture in plain words. Only then the long version. Every section opens with its takeaway.
 - **Visual over prose: the glance test.** Every block makes its point to a reader who reads no sentence in it: one concrete example, values not sentences, outcome first, explanation last. The principles and which block fits which content: `references/formatting.md`. No prose block over ~3 lines.
 - **No filler.** No vanity-metric strips ("5 files removed!"), no restating the obvious, no marketing voice, no hedging. If a line wouldn't survive "so what?", delete it.
 - **Real examples only.** Actual identifiers, code and names from the change, verified against source. A wrong example is worse than none.
@@ -28,7 +28,8 @@ This skill owns the **story**: structure, formatting and content. Everything mec
 The page is read top to bottom by someone who didn't write the change. Write it as a story, not a list of facts.
 
 - **One arc.** Context → what was wrong or missing → the core shift → how it works now → what changes for the reader → what to do next. Each section answers the question the previous one raised. Cut any section that doesn't move the arc.
-- **Introduce before you use.** Every new word (a new concept, an internal name, an acronym, a renamed thing) is defined in plain words at its **first** appearance, with `<Term def="…">`, before any heading, diagram or table relies on it. No forward references ("see below for what X is").
+- **Introduce before you use.** Every new word (a new concept, an internal name, an acronym, a renamed thing) is defined in plain words at its **first** appearance, with `<Term def="…">`, before any heading, TL;DR card, rail entry, diagram or table relies on it. Where the idea is needed earlier, say it in plain words. No forward references ("see below for what X is").
+- **Tell it in parts.** Group the sections after the TL;DR into 3–4 story parts with `group` (*What went wrong* → *The fix* → *Shipping* → *What's next*), section titles ≤ 4 words saying what the reader learns. The rail then reads as the story.
 - **One name per thing.** Pick one word for each concept and keep it everywhere: prose, diagram labels, tables, code comments. Don't let "workspace", "project" and "space" all mean the same thing.
 - **Assume a smart outsider.** A teammate from another area: knows the product, not this code. Explain domain terms they'd lack, and skip what they already know.
 - **Carry one running example** through the page (the same request, record or user) instead of a new example per section.
@@ -58,8 +59,8 @@ Write the thesis and one takeaway per section, and run the takeaway test on them
 
 | Section | Kit |
 |---|---|
-| Hero: eyebrow (ticket/status), title, thesis, context pills | `<Page eyebrow title thesis pills>` |
-| The core shift: the central before → after, on the running example | `<BeforeAfter example rows result caption>` or one diagram |
+| Hero: eyebrow (ticket and PRs as `<Ref>` links, status), title, thesis, context pills | `<Page eyebrow title thesis pills>` |
+| TL;DR: the whole story at a glance, plain words | `<Tldr>` + the core shift as `<BeforeAfter example rows result caption>` |
 | What changed for users (only if user-facing) | `<BeforeAfter example …>`, mockup |
 | How it works: the new flow | one diagram in `<Figure>` |
 | Interface changes | `<Changes>` (user-facing and developer-facing kept separate) |
@@ -130,6 +131,8 @@ Then **stop and let the user prune** ("delete that", "too AI"). Edit, `$WAB/scri
 ## Final check (content only; `verify.sh` covers the rest)
 
 - [ ] The takeaway paragraph `verify.sh` prints reads as one coherent story.
+- [ ] The first section is a visual TL;DR in plain words; the rail shows 3–4 named parts with short titles.
+- [ ] Every ticket, PR and doc is a `<Ref>` link, every code mention a `<Src>`; the status in the eyebrow is current.
 - [ ] Each diagram's type fits the question its section answers (`$WAB/references/diagram-types.md`), not a default.
 - [ ] Every block passes the glance test (`references/formatting.md`): one example, values not sentences, outcome first, the difference marked, the explanation last. No table of sentences.
 - [ ] Thesis is one sentence a non-author understands. No filler, no vanity metrics.

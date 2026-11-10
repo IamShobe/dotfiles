@@ -48,8 +48,14 @@ const RAIL_CSS = `
 .xk-rail a>span{font-weight:600}.xk-rail a:not([data-active])>span{font-weight:400}
 .xk-rail a::before{content:"";flex:0 0 auto;width:.9em;height:.9em;margin-right:.45rem;border-radius:99px;background:var(--border-hi);transform:scale(.4);transition:background .18s,transform .18s}
 .xk-rail a[data-active]{color:var(--brand)}.xk-rail a[data-active]::before{background:var(--brand);transform:scale(1)}
-.xk-rail .xk-group{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:.9rem 0 .35rem}
-.xk-rail .xk-group:first-child{margin-top:0}
+.xk-rail{counter-reset:part}
+.xk-rail .xk-group{display:flex;align-items:center;gap:.5rem;counter-increment:part;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin:0 0 .5rem;transition:color .18s}
+.xk-rail .xk-group::before{content:counter(part);display:grid;place-items:center;flex:0 0 auto;width:1.3rem;height:1.3rem;border-radius:99px;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink-2);letter-spacing:0;font-size:12px;transition:background .18s,color .18s}
+.xk-rail .xk-entries{display:flex;flex-direction:column;gap:.45rem}
+.xk-rail .xk-part[data-grouped] .xk-entries{margin-left:.6rem;padding-left:.55rem;border-left:1px solid var(--border);transition:border-color .18s}
+.xk-rail .xk-part:has(a[data-active]) .xk-group{color:var(--brand-ink)}
+.xk-rail .xk-part:has(a[data-active]) .xk-group::before{background:var(--brand);color:var(--surface)}
+.xk-rail .xk-part[data-grouped]:has(a[data-active]) .xk-entries{border-left-color:var(--brand)}
 .xk-rail{scrollbar-width:thin}
 .xk-prose{max-width:88ch}
 .xk-anchor{display:inline-flex;align-items:center;margin-left:.5rem;font-size:.7em;color:var(--ink-3);text-decoration:none;opacity:0;transition:opacity .15s,color .15s}
@@ -59,6 +65,7 @@ section[id]{scroll-margin-top:1.5rem}
 .xk-shift-row{transition:background .15s}.xk-shift-row:hover>*{box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--ink) 3%,transparent)}
 .xk-shift-row:hover .xk-shift-label{color:var(--ink)}
 .xk-stage svg{width:100%!important;height:100%!important;max-width:none!important;min-width:0!important}.xk-stage>div{overflow:visible!important}
+.xk-viewer:focus-visible,.xk-viewer:focus-within{outline:2px solid var(--brand);outline-offset:4px}
 .xk-change-row{transition:background .15s}.xk-change-row:hover{background:color-mix(in srgb,var(--ink) 3%,transparent)}`
 
 /**
@@ -83,12 +90,14 @@ export function Page({ meta = {}, eyebrow, title, thesis, pills = [], children }
       <div ref={scrollRef} className="h-screen overflow-y-auto" style={{ background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif' }}>
         {rail && (
           <Scrollspy targetRef={scrollRef} offset={96} history={false} className="contents">
-            <nav ref={railRef} className="xk-rail fixed left-5 top-10 bottom-6 hidden lg:flex flex-col gap-2 w-48 overflow-y-auto pr-2" aria-label="Contents">
+            <nav ref={railRef} className="xk-rail fixed left-5 top-10 bottom-6 hidden lg:flex flex-col gap-4 w-48 overflow-y-auto pr-2" aria-label="Contents">
               {groups.map(({ group, entries }) => (
-                <Fragment key={group ?? entries[0]?.id}>
+                <div key={group ?? entries[0]?.id} className="xk-part" data-grouped={group ? '' : undefined}>
                   {group && <p className="xk-group">{group}</p>}
-                  {entries.map(s => <a key={s.id} href={`#${s.id}`} data-scrollspy-anchor={s.id}><span>{s.title}</span></a>)}
-                </Fragment>
+                  <div className="xk-entries">
+                    {entries.map(s => <a key={s.id} href={`#${s.id}`} data-scrollspy-anchor={s.id}><span>{s.title}</span></a>)}
+                  </div>
+                </div>
               ))}
             </nav>
           </Scrollspy>
@@ -237,17 +246,28 @@ export function Term({ def, children }: { def: ReactNode; children: ReactNode })
   return <><strong data-term style={{ color: 'var(--ink)' }}>{children}</strong> <span data-noprose style={{ color: 'var(--ink-3)' }}>({def})</span></>
 }
 
+/**
+ * A reference that lives somewhere else (ticket, PR, issue, dashboard, doc): always a real link.
+ * <Ref href="https://github.com/org/repo/pull/12">repo#12</Ref>. Inline, safe in prose and eyebrows.
+ */
+export function Ref({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noreferrer" data-noprose className="mono underline decoration-dotted underline-offset-2 hover:decoration-solid"
+      style={{ color: 'var(--brand-ink)', fontSize: 'max(12px, 0.92em)' }}>{children}</a>
+  )
+}
+
 /** Inline identifier: <Id>fetchUser()</Id>. */
 export function Id({ children }: { children: ReactNode }) {
   return <code className="mono px-1 py-px rounded" style={{ fontSize: 'max(12px, 0.9em)', background: 'var(--brand-soft)', color: 'var(--brand-ink)' }}>{children}</code>
 }
 
-/** Something that no longer exists, inside an example value: <Gone>Backoffice account</Gone>. */
+/** Something that no longer exists, inside an example value: <Gone>Expired card</Gone>. */
 export function Gone({ children }: { children: ReactNode }) {
   return <s data-noprose className="mono inline-block text-xs px-2 py-0.5 rounded-full whitespace-nowrap align-middle decoration-1" style={{ color: 'var(--rm)', background: 'var(--rm-soft)' }}>{children}</s>
 }
 
-/** Something new, inside an example value: <Added>staff_member row</Added>. */
+/** Something new, inside an example value: <Added>retry_count column</Added>. */
 export function Added({ children }: { children: ReactNode }) {
   return <span data-noprose className="mono inline-block text-xs px-2 py-0.5 rounded-full whitespace-nowrap align-middle" style={{ color: 'var(--add)', background: 'var(--add-soft)' }}>+ {children}</span>
 }
@@ -286,6 +306,47 @@ export function Grid({ cols = 2, children }: { cols?: 2 | 3 | 4; children: React
   return <div className={`grid grid-cols-1 ${c} gap-4 min-w-0`}>{children}</div>
 }
 
+type TldrTone = 'problem' | 'change' | 'result' | 'neutral'
+type TldrItem = { label: ReactNode; statement: ReactNode; example?: ReactNode; tone?: TldrTone }
+
+const TLDR_TONE = {
+  problem: { color: 'var(--rm)', fill: 'var(--rm-soft)' },
+  change: { color: 'var(--brand-ink)', fill: 'var(--brand-soft)' },
+  result: { color: 'var(--add)', fill: 'var(--add-soft)' },
+  neutral: { color: 'var(--ink-3)', fill: 'color-mix(in srgb, var(--ink) 4%, transparent)' },
+} as const satisfies Record<TldrTone, { color: string; fill: string }>
+
+/**
+ * The whole story in one glance: 2–4 cards in reading order (problem → change → result, then e.g.
+ * rollout), joined by arrows. Each card is a label, a statement of ≤ 8 words and an optional
+ * example line. Stacks below md.
+ */
+export function Tldr({ items }: { items: TldrItem[] }) {
+  return (
+    <ol className="grid grid-cols-1 md:grid-flow-col md:auto-cols-fr gap-2 md:gap-0 min-w-0">
+      {items.map((item, index) => (
+        <li key={index} className="flex flex-col md:flex-row items-stretch min-w-0">
+          <TldrCard item={item} />
+          {index < items.length - 1 && (
+            <span aria-hidden className="grid place-items-center py-1 md:py-0 md:px-1.5 rotate-90 md:rotate-0" style={{ color: 'var(--ink-3)' }}><ArrowRight size={18} /></span>
+          )}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function TldrCard({ item }: { item: TldrItem }) {
+  const tone = TLDR_TONE[item.tone ?? 'neutral']
+  return (
+    <div className="flex-1 min-w-0 rounded-xl p-4 grid gap-1.5 content-start" style={{ background: tone.fill, borderTop: `3px solid ${tone.color}` }}>
+      <span className={SMALL_CAPS} style={{ color: tone.color }}>{item.label}</span>
+      <span className="text-base md:text-lg font-semibold leading-snug" style={{ color: 'var(--ink)' }}>{item.statement}</span>
+      {item.example && <span className="text-sm leading-relaxed" style={{ color: 'var(--ink-2)' }}>{item.example}</span>}
+    </div>
+  )
+}
+
 type ShiftRow = { aspect: ReactNode; hint?: ReactNode; before: ReactNode; after: ReactNode; same?: boolean }
 type ShiftResult = { before: ReactNode; after: ReactNode }
 
@@ -295,7 +356,7 @@ const SHIFT_COLUMNS = 'md:grid-cols-[minmax(7rem,10rem)_1fr_1fr]'
 const SMALL_CAPS = 'mono text-xs uppercase tracking-[0.12em]'
 
 /**
- * Old → new, shown on one concrete example. `example` names it ("Ido: one person, two sign-ins"),
+ * Old → new, shown on one concrete example. `example` names it ("Sam: one customer, two cards"),
  * each row is a short label with compact example values (ids, chips, a few words; `hint` is a small line
  * under the label, `same` marks a row that didn't change), `result` is the outcome on both sides, and `caption` is the one-sentence
  * description at the end. Free-form `before`/`after` is for mockups and screenshots.
@@ -827,8 +888,6 @@ function FigureFullscreen({ caption, onClose, children }: { caption?: ReactNode;
 
 const FULLSCREEN_CHROME_PX = 96
 const FULLSCREEN_MAX_FIT = 2
-// The library scales this by the wheel delta: one mouse-wheel notch (~100) zooms ~25%, a pinch tick much less.
-const WHEEL_ZOOM_STEP = 0.0025
 
 function DiagramViewer({ heightLimit, fill = false, onExpand, children }: {
   heightLimit: number; fill?: boolean; onExpand?: () => void; children: ReactNode
@@ -841,11 +900,12 @@ function DiagramViewer({ heightLimit, fill = false, onExpand, children }: {
   const fitScale = Math.min(fill ? FULLSCREEN_MAX_FIT : 1, (frameWidth || natural.width) / natural.width, heightLimit / natural.height)
   const frameHeight = fill ? heightLimit : Math.ceil(natural.height * fitScale)
   return (
-    <div ref={frameRef} className="grid gap-2 min-w-0">
+    <div ref={frameRef} tabIndex={0} aria-label="Diagram: click, then + − 0 arrows F; ctrl/⌘ + scroll or pinch to zoom"
+      className="xk-viewer grid gap-2 min-w-0 rounded-lg outline-none" onPointerDown={() => frameRef.current?.focus({ preventScroll: true })}>
       <TransformWrapper key={`${frameWidth}x${frameHeight}`} initialScale={fitScale} minScale={fitScale} maxScale={Math.max(MAX_ZOOM, fitScale)}
         centerOnInit limitToBounds centerZoomedOut
-        wheel={{ activationKeys: isZoomModifierHeld, step: WHEEL_ZOOM_STEP }}
-        doubleClick={{ mode: 'toggle' }} keyboard={{ disabled: false }}>
+        wheel={{ disabled: true }} doubleClick={{ mode: 'toggle' }}>
+        <ViewerInput frameRef={frameRef} fitScale={fitScale} onExpand={onExpand} />
         <ViewerToolbar fitScale={fitScale} onExpand={onExpand} legend={natural.legend} />
         <TransformComponent wrapperClass="rounded-lg" wrapperStyle={{ width: '100%', height: frameHeight }}>
           <div className="xk-stage" style={{ width: natural.width, height: natural.height }}>{children}</div>
@@ -855,9 +915,64 @@ function DiagramViewer({ heightLimit, fill = false, onExpand, children }: {
   )
 }
 
-/** ctrl or ⌘ (either one; a trackpad pinch arrives as ctrl) zooms; a plain wheel scrolls the page. */
-function isZoomModifierHeld(keys: string[]) {
-  return keys.includes('Control') || keys.includes('Meta')
+const MIN_ZOOM_FACTOR_PER_EVENT = 1 / 1.5
+const MAX_ZOOM_FACTOR_PER_EVENT = 1.5
+const WHEEL_ZOOM_SENSITIVITY = 0.01
+const LINE_HEIGHT_PX = 16
+const KEY_PAN_PX = 80
+const KEY_ZOOM_FACTOR = 1.25
+
+/**
+ * Wheel and keys on top of the library's transform. ctrl/⌘ + wheel (a trackpad pinch arrives as
+ * ctrl + wheel) zooms by e^(−delta), so a pinch is as smooth as the gesture; one mouse notch is capped
+ * at 1.5×. Zoom stays anchored under the pointer. A plain wheel keeps scrolling the page. Keys work while the
+ * figure has focus (click it): + / − zoom, 0 fits, arrows pan, F opens fullscreen.
+ */
+function ViewerInput({ frameRef, fitScale, onExpand }: { frameRef: RefObject<HTMLDivElement | null>; fitScale: number; onExpand?: () => void }) {
+  const { instance, setTransform, resetTransform } = useControls()
+  useEffect(() => {
+    const frame = frameRef.current
+    if (!frame) return
+    const zoomBy = ({ factor, at }: { factor: number; at: { x: number; y: number } }) => {
+      const { scale, positionX, positionY } = instance.state
+      const nextScale = Math.min(Math.max(scale * factor, fitScale), Math.max(MAX_ZOOM, fitScale))
+      if (nextScale === fitScale) return resetTransform(0)
+      const ratio = nextScale / scale
+      setTransform(at.x - (at.x - positionX) * ratio, at.y - (at.y - positionY) * ratio, nextScale, 0)
+    }
+    const zoomOnWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      const wrapper = instance.wrapperComponent
+      if (!wrapper || !(event.target instanceof Node) || !wrapper.contains(event.target)) return
+      event.preventDefault()
+      const pixels = event.deltaMode === 1 ? event.deltaY * LINE_HEIGHT_PX : event.deltaY
+      const factor = Math.min(Math.max(Math.exp(-pixels * WHEEL_ZOOM_SENSITIVITY), MIN_ZOOM_FACTOR_PER_EVENT), MAX_ZOOM_FACTOR_PER_EVENT)
+      const bounds = wrapper.getBoundingClientRect()
+      zoomBy({ factor, at: { x: event.clientX - bounds.left, y: event.clientY - bounds.top } })
+    }
+    const handleKey = (event: KeyboardEvent) => {
+      const wrapper = instance.wrapperComponent
+      if (!wrapper || event.metaKey || event.ctrlKey || event.altKey) return
+      const center = { x: wrapper.clientWidth / 2, y: wrapper.clientHeight / 2 }
+      const { scale, positionX, positionY } = instance.state
+      const pan = (dx: number, dy: number) => setTransform(positionX + dx, positionY + dy, scale, 120)
+      const actions: Record<string, () => unknown> = {
+        '+': () => zoomBy({ factor: KEY_ZOOM_FACTOR, at: center }), '=': () => zoomBy({ factor: KEY_ZOOM_FACTOR, at: center }),
+        '-': () => zoomBy({ factor: 1 / KEY_ZOOM_FACTOR, at: center }), '0': () => resetTransform(150),
+        ArrowLeft: () => pan(KEY_PAN_PX, 0), ArrowRight: () => pan(-KEY_PAN_PX, 0),
+        ArrowUp: () => pan(0, KEY_PAN_PX), ArrowDown: () => pan(0, -KEY_PAN_PX),
+        f: () => onExpand?.(), F: () => onExpand?.(),
+      }
+      const action = actions[event.key]
+      if (!action) return
+      event.preventDefault()
+      action()
+    }
+    frame.addEventListener('wheel', zoomOnWheel, { passive: false })
+    frame.addEventListener('keydown', handleKey)
+    return () => { frame.removeEventListener('wheel', zoomOnWheel); frame.removeEventListener('keydown', handleKey) }
+  }, [frameRef, instance, setTransform, resetTransform, fitScale, onExpand])
+  return null
 }
 
 function ViewerToolbar({ fitScale, onExpand, legend }: { fitScale: number; onExpand?: () => void; legend: SVGSVGElement | null }) {
@@ -867,10 +982,10 @@ function ViewerToolbar({ fitScale, onExpand, legend }: { fitScale: number; onExp
   return (
     <div className="flex flex-wrap items-center justify-end gap-1">
       {legend && <div className="mr-auto min-w-0 max-w-full"><PinnedLegend legend={legend} /></div>}
-      <ViewerButton label="Zoom out" onClick={() => zoomOut()}><ZoomOut size={16} /></ViewerButton>
-      <ViewerButton label="Fit" onClick={() => resetTransform()}><span className="mono text-xs px-1 tabular-nums">{Math.round(scale * 100)}%</span></ViewerButton>
-      <ViewerButton label="Zoom in" onClick={() => zoomIn()}><ZoomIn size={16} /></ViewerButton>
-      {onExpand && <ViewerButton label="Fullscreen" onClick={onExpand}><Maximize2 size={16} /></ViewerButton>}
+      <ViewerButton label="Zoom out (−)" onClick={() => zoomOut()}><ZoomOut size={16} /></ViewerButton>
+      <ViewerButton label="Fit (0)" onClick={() => resetTransform()}><span className="mono text-xs px-1 tabular-nums">{Math.round(scale * 100)}%</span></ViewerButton>
+      <ViewerButton label="Zoom in (+)" onClick={() => zoomIn()}><ZoomIn size={16} /></ViewerButton>
+      {onExpand && <ViewerButton label="Fullscreen (F)" onClick={onExpand}><Maximize2 size={16} /></ViewerButton>}
     </div>
   )
 }

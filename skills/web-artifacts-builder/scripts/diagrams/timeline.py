@@ -28,7 +28,7 @@ def _glyph(inner: str) -> str:
 # ============================================================ timeline
 
 # numeric-axis unit → tick-label prefix
-NUM_PREFIX = {'week': 'W', 'day': 'D', 'sprint': 'S', 'month': 'M', 'quarter': 'Q', 'release': 'R', 'number': ''}
+NUM_PREFIX = {'week': 'W', 'day': 'D', 'sprint': 'S', 'month': 'M', 'quarter': 'Q', 'release': 'R', 'number': '', 'hour': ''}
 DATE_UNITS = ('day', 'week', 'month', 'quarter', 'year')
 _ISO = re.compile(r'^(\d{4})-(\d{2})(?:-(\d{2}))?$')
 
@@ -43,6 +43,9 @@ def _parse_time(v, what: str):
         s = v.strip()
         if re.fullmatch(r'-?\d+(\.\d+)?', s):
             return 'n', float(s), 'n'
+        clock = re.fullmatch(r'(\d{1,2}):(\d{2})', s)
+        if clock:
+            return 'n', int(clock[1]) + int(clock[2]) / 60, 'n'
         m = _ISO.match(s)
         if m:
             y, mo, d = int(m[1]), int(m[2]), int(m[3] or 1)
@@ -51,7 +54,13 @@ def _parse_time(v, what: str):
             except ValueError:
                 pass
     raise SpecError(f'{what} = {v!r} is not a time — use an ISO date ("2026-03-15" or "2026-03") '
-                    f'or a plain number (week 3 → 3)')
+                    f'or a plain number (week 3 → 3), or "HH:MM" on an hour axis')
+
+
+def _fmt_clock(hours: float) -> str:
+    """Hours since midnight (an "hour" axis) as HH:MM."""
+    minutes = round(hours * 60)
+    return f'{minutes // 60:02d}:{minutes % 60:02d}'
 
 
 def _date_ticks(a: float, b: float, unit: str):
@@ -129,7 +138,7 @@ def render_timeline(spec: dict):
         ticks = _date_ticks(a, b, unit)
     else:
         pre = NUM_PREFIX[unit]
-        ticks = [(float(i), f'{pre}{i}') for i in range(int(math.ceil(a)), int(math.floor(b)) + 1)]
+        ticks = [(float(i), _fmt_clock(i) if unit == 'hour' else f'{pre}{i}') for i in range(int(math.ceil(a)), int(math.floor(b)) + 1)]
     step = 1
     while len(ticks) > 1 and (x1 - x0) / max(1, (len(ticks) - 1)) * step < 16:
         step += 1
@@ -156,7 +165,7 @@ def render_timeline(spec: dict):
             d = dt.date.fromordinal(int(t))
             tag = f'{MONTHS[d.month - 1]} {d.day:02d}' if prec == 'day' else f'{MONTHS[d.month - 1]} {d.year}'
         else:
-            tag = f'{NUM_PREFIX[unit]}{_fmt_num(t)}'
+            tag = _fmt_clock(t) if unit == 'hour' else f'{NUM_PREFIX[unit]}{_fmt_num(t)}'
         major = bool(e.get('major'))
         lines = [(tag.upper(), 8, True, 400, 0.14, ACCENT if major else MUTED),
                  (e['label'], 14 if major else 12, False, 600, 0, INK)]
@@ -227,7 +236,8 @@ def render_timeline(spec: dict):
     # axis
     svg.el('edges', 'line', x1=x0, y1=Y, x2=x1, y2=Y, stroke=tint('muted', 0.45), stroke_width=1)
     unit_name = {'day': 'DAYS', 'week': 'WEEKS', 'month': 'MONTHS', 'quarter': 'QUARTERS', 'year': 'YEARS',
-                 'sprint': 'SPRINTS', 'release': 'RELEASES', 'number': str(axis.get('label', 'UNITS')).upper()}[unit]
+                 'sprint': 'SPRINTS', 'release': 'RELEASES', 'hour': str(axis.get('label', 'TIME')).upper(),
+                 'number': str(axis.get('label', 'UNITS')).upper()}[unit]
     svg.text('labels', x0 - 16, Y + 4, unit_name, size=8, mono=True, fill=SOFT, anchor='end', spacing='0.14em')
     tick_xs = {x0, x1} | {px(t) for t, _ in ticks}
     for x in sorted(tick_xs):
