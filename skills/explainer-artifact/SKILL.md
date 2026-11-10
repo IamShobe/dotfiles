@@ -19,7 +19,7 @@ This skill owns the **story**: structure, formatting and content. Everything mec
 ## Non-negotiables
 
 - **TLDR-first.** The hero states the thesis in one sentence. Every section opens with its takeaway.
-- **Visual over prose.** Diagram, before/after, diff chips, table, numbered steps. No prose block over ~3 lines.
+- **Visual over prose: the glance test.** Every block makes its point to a reader who reads no sentence in it: one concrete example, values not sentences, outcome first, explanation last. The principles and which block fits which content: `references/formatting.md`. No prose block over ~3 lines.
 - **No filler.** No vanity-metric strips ("5 files removed!"), no restating the obvious, no marketing voice, no hedging. If a line wouldn't survive "so what?", delete it.
 - **Real examples only.** Actual identifiers, code and names from the change, verified against source. A wrong example is worse than none.
 
@@ -54,7 +54,7 @@ It returns the `meta` line for `<Page>`, the commits, files by status, changed d
 
 ### 2. Story plan: before any code
 
-Write the thesis and one takeaway per section, and run the takeaway test on them. Choose sections from this menu, in this order, and drop any that carry nothing:
+Write the thesis and one takeaway per section, and run the takeaway test on them. Choose sections from this menu, in this order, and drop any that carry nothing; within a section, the block is chosen by what the content is (`references/formatting.md`):
 
 | Section | Kit |
 |---|---|
@@ -131,7 +131,7 @@ Then **stop and let the user prune** ("delete that", "too AI"). Edit, `$WAB/scri
 
 - [ ] The takeaway paragraph `verify.sh` prints reads as one coherent story.
 - [ ] Each diagram's type fits the question its section answers (`$WAB/references/diagram-types.md`), not a default.
-- [ ] Every before → after shows one concrete example in compact values, with its result row, and the description in `caption` (`references/formatting.md`).
+- [ ] Every block passes the glance test (`references/formatting.md`): one example, values not sentences, outcome first, the difference marked, the explanation last. No table of sentences.
 - [ ] Thesis is one sentence a non-author understands. No filler, no vanity metrics.
 - [ ] Deprecations say "gone" vs "kept, don't build on it". Interface changes split user-facing from developer-facing, old → new.
 - [ ] Every example is real, from the diff. `<Src lines>` values come from `gather-facts.sh`'s link ranges.

@@ -1,7 +1,8 @@
 # Design rules for custom JSX
 
-The kit already follows all of this. Read it only when writing a component the kit
-doesn't have (a UI mockup, a custom chart). `verify.sh` checks the rules marked ✔.
+The kit already follows all of this. Read it before writing a component the kit doesn't
+have (a UI mockup, a custom chart) or styling values inside kit blocks. `verify.sh` checks
+the rules marked ✔.
 
 ## Theme
 
@@ -15,6 +16,25 @@ Style every color through the vars `<Page>` provides:
 - Tints: `color-mix(in srgb, var(--brand) 12%, transparent)`, never an invented hex. No `dark:` variants: if something needs different colors per theme, you picked the wrong var.
 - Screenshots of a light UI stay light on a dark page. That's fine if they're framed with `--border` so they read as images.
 - Sans body, `.mono` for identifiers, no display serif, `tabular-nums` in data columns. To re-skin, edit `web-artifacts-builder/template/src/theme.tsx`; hex values are in `theme-tokens.md`.
+
+## Color carries meaning
+
+Each color says one thing, everywhere on the page, so the eye learns it once:
+
+- `--rm` red: removed, broken, damage done, the bad outcome. `--add` green: added, fixed, the good outcome. `--brand`: the new state and the one thing to look at. `--ink-3` / dimmed: context, unchanged.
+- Color marks a **value** (a chip, an icon, a cell tint), never a paragraph. Body text stays `--ink` / `--ink-2`; a red sentence is hard to read and says nothing a red chip doesn't.
+- A status is shape + color (✓ in a green circle, `−` chip), never color alone.
+
+## Type carries meaning
+
+- `.mono` only for real identifiers: code names, ids, file names, env vars. A plain-words label in mono reads as code.
+- Small caps (`.mono text-xs uppercase`) for structural labels: column titles, "Example", "In short", areas. One weight of emphasis per block.
+
+## Interaction is whole
+
+- A hover or active state covers the whole row or card, edge to edge, as one even tint. Tinting each child separately leaves patches wherever there is padding or a gap between children.
+- Cells that fill their row (no gap, no padding between them) may tint per cell, to keep their own fills.
+- Anything clickable looks clickable at rest (a bordered pill, an underline), not only on hover.
 
 ## Narrow widths: reflow, never squash
 
