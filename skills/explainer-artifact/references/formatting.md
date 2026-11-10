@@ -55,7 +55,7 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 
 ## Readable everywhere
 
-The TL;DR rules hold for the whole page, at a lower density: lead with the outcome, plain short sentences, numbers where the eye can find them, lists of ≤ 5 items (split longer ones into "now" and "later"), and every section's takeaway is one sentence a tired reader understands on first read. When a paragraph needs a second read, it gets shorter or becomes a block.
+The TL;DR rules hold for the whole page: `references/readability.md` is the core standard (outcome first, short takeaways and paragraphs, numbers not adjectives, lists ≤ 5, one word per concept, no filler, end on an action).
 
 ## Introduce before you use
 

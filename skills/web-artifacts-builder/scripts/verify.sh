@@ -151,12 +151,17 @@ const story=(()=>{const X="code,pre,nav,title,desc,style,script,[data-noprose],a
  for(const g of seg)if(g.term){const k=g.t.trim().toLowerCase();if(k in defs)dup.push(g.t.trim());else defs[k]=g.at}
  for(const k in defs){const re=new RegExp("(^|[^a-z0-9])"+k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(s|es)?(?![a-z0-9])","g");const m=re.exec(low);
   if(m&&m.index+m[1].length<defs[k]){const i=m.index+m[1].length;early.push({term:k,ctx:txt.slice(Math.max(0,i-40),i+k.length+30).replace(/\s+/g," ").trim()})}}
- const OK=new Set("API APIS URL URLS UI UX DB SQL HTTP HTTPS JSON YAML CSS HTML CI CD PR PRS ID IDS CPU GPU RAM SDK CLI OK TLDR JS TS AWS GCP OS IO DNS TCP UDP TLS SSL SSH REST CRUD ORM JWT UUID CSV PDF SVG PNG MVP QA SLA SLO RPC GRPC VM VMS K8S".split(" "));
+ const OK=new Set("API APIS URL URLS UI UX DB SQL HTTP HTTPS JSON YAML CSS HTML CI CD PR PRS ID IDS CPU GPU RAM SDK CLI OK TLDR JS TS AWS GCP OS IO DNS TCP UDP TLS SSL SSH REST CRUD ORM JWT UUID CSV PDF SVG PNG MVP QA SLA SLO RPC GRPC VM VMS K8S TL DR TLDR UTC GMT ETA FAQ".split(" "));
  const jar=new Set();for(const g of seg){if(g.svg||g.term)continue;
   for(const w of g.t.match(/\b[A-Z][A-Z0-9]{1,5}s?\b|\b[a-z]+[A-Z][A-Za-z0-9]*\b|\b[a-z0-9]+_[a-z0-9_]+\b/g)||[]){
    const u=w.replace(/s$/,"").toUpperCase();if(OK.has(u)||OK.has(w.toUpperCase())||w.toLowerCase() in defs||/^[0-9]/.test(w)||/^(k|M|G|T)?(B|b|iB)$|^(ms|us|ns)$/.test(w))continue;jar.add(w)}}
  const q=e=>e?e.textContent.replace(/\s+/g," ").trim():"";
- return{thesis:q(document.querySelector("[data-thesis]")),takeaways:[...document.querySelectorAll("[data-takeaway]")].map(q),early,dup,jargon:[...jar].slice(0,10)}})();
+ const main=document.querySelector("main")||document.body,words=e=>q(e).split(" ").filter(Boolean).length;
+ const longParas=[...main.querySelectorAll("p")].filter(p=>!p.closest("figure,table,nav,dl,[data-noprose]")&&words(p)>60).map(p=>q(p).slice(0,70));
+ const longLists=[...main.querySelectorAll("ul,ol")].filter(l=>!l.closest("nav")&&l.children.length>5).map(l=>l.children.length);
+ const longTakeaways=[...main.querySelectorAll("[data-takeaway]")].filter(t=>words(t)>25).map(t=>q(t).slice(0,70));
+ const hedges=[...new Set((q(main).toLowerCase().match(/\b(perhaps|possibly|might|basically|essentially|in order to|it is worth noting|circle back|on the same page|get the ball rolling|leverage)\b/g)||[]))];
+ return{longParas,longLists,longTakeaways,hedges,thesis:q(document.querySelector("[data-thesis]")),takeaways:[...document.querySelectorAll("[data-takeaway]")].map(q),early,dup,jargon:[...jar].slice(0,10)}})();
 parent.postMessage({verify:1,theme:document.documentElement.dataset.theme||"light",W,h,overflow,small,story},"*")},600))</script>'
 python3 - "$BUNDLE" "$OUT" "$PROBE" <<'PY'
 import sys
@@ -214,6 +219,14 @@ if st:
         print("✓ every <Term> is introduced before it's used (prose and diagrams)")
     if st['dup']:
         print(f"✗ <Term> defined more than once: {', '.join(sorted(set(st['dup'])))} (define once, then use the bare word)")
+    if st['longTakeaways']:
+        print(f"⚠ {len(st['longTakeaways'])} takeaways over 25 words (one or two short sentences, outcome first): " + ' | '.join(st['longTakeaways'][:3]))
+    if st['longParas']:
+        print(f"⚠ {len(st['longParas'])} paragraphs over 60 words (cut, or turn into a block): " + ' | '.join(st['longParas'][:3]))
+    if st['longLists']:
+        print(f"⚠ lists over 5 items ({', '.join(map(str, st['longLists']))}): group them, or split into now / later")
+    if st['hedges']:
+        print(f"⚠ hedges or idioms: {', '.join(st['hedges'])} (say it plainly)")
     if st['jargon']:
         print(f"⚠ possible jargon never introduced: {', '.join(st['jargon'])} (wrap in <Term def=…> or <Id>, or rephrase)")
 print('HS=' + ','.join(hs))

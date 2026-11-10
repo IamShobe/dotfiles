@@ -18,6 +18,7 @@ This skill owns the **story**: structure, formatting and content. Everything mec
 
 ## Non-negotiables
 
+- **Readability is the core standard.** Write the whole page for a tired, interrupted reader: outcome first, takeaways ≤ 25 words, paragraphs ≤ 60 words, numbers instead of adjectives, lists ≤ 5, one word per concept, no filler, and it ends on one next action. Read `references/readability.md` before writing; `verify.sh` warns (⚠) on what it can measure. Every rule below serves this one.
 - **TL;DR first, and visual.** The hero states the thesis in one sentence; the first section is a TL;DR: a `<Tldr>` (what broke, why, the fix, status, what you do; ≤ 8-word statements, numbers as pills) and the main before → after, in plain words. Only then the long version. Every section opens with its takeaway.
 - **Visual over prose: the glance test.** Every block makes its point to a reader who reads no sentence in it: one concrete example, values not sentences, outcome first, explanation last. The principles and which block fits which content: `references/formatting.md`. No prose block over ~3 lines.
 - **No filler.** No vanity-metric strips ("5 files removed!"), no restating the obvious, no marketing voice, no hedging. If a line wouldn't survive "so what?", delete it.
@@ -130,6 +131,7 @@ Then **stop and let the user prune** ("delete that", "too AI"). Edit, `$WAB/scri
 
 ## Final check (content only; `verify.sh` covers the rest)
 
+- [ ] Readability (`references/readability.md`): no ⚠ readability lines from `verify.sh`; reading only the TL;DR and each section's first line tells what happened and what to do next.
 - [ ] The takeaway paragraph `verify.sh` prints reads as one coherent story.
 - [ ] The TL;DR reads in seconds: ≤ 8-word statements leading with the outcome, numbers in `facts` pills, status honest (merged ≠ deployed) with links, a next-action row; then the main example. The rail shows 3–4 named parts with short titles.
 - [ ] Every ticket, PR and doc is a `<Ref>` link, every code mention a `<Src>`; the status in the eyebrow is current.
