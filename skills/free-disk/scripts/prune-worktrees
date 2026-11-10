@@ -1,0 +1,243 @@
+#!/usr/bin/env zsh
+# Remove git worktrees whose work is done. Dry run unless --apply.
+#
+# Done means one of:
+#   - its PR is merged (found by branch name, or by HEAD commit for a detached checkout)
+#   - it has been idle 2+ days and every commit is already on the default branch
+# A done worktree with uncommitted changes is removed only once idle 2+ days, after
+# `git stash push -u` saves the changes in its repo (`git stash list` shows "prune-worktrees: <name>").
+#
+# Never touched: a worktree that is protected, open in a Herdr pane, the working
+# folder of a running process, or used in the last hour.
+#
+#   prune-worktrees            # show what would be removed
+#   prune-worktrees --apply    # remove it
+#   prune-worktrees --closed   # also treat closed (unmerged) PRs as done
+#   prune-worktrees --builds   # also delete gitignored dist/ folders in worktrees idle 2+ days
+#
+# Worktree folders: $PRUNE_WORKTREES_ROOTS (colon-separated; default ~/.herdr/worktrees),
+# scanned one and two levels deep. Names listed one per line in
+# ~/.config/prune-worktrees/protected (e.g. "infra-main" or "myrepo/some-worktree") are never removed.
+
+setopt pipe_fail no_nomatch
+zmodload zsh/datetime
+zmodload -F zsh/stat b:zstat
+
+apply=false
+include_closed=false
+clear_builds=false
+for arg in "$@"; do
+  case $arg in
+    --apply) apply=true ;;
+    --closed) include_closed=true ;;
+    --builds) clear_builds=true ;;
+    *) print -u2 "unknown option: $arg"; exit 2 ;;
+  esac
+done
+
+worktree_roots=(${(s.:.)${PRUNE_WORKTREES_ROOTS:-$HOME/.herdr/worktrees}})
+protected_names=(${(f)"$(cat ~/.config/prune-worktrees/protected 2>/dev/null)"})
+recent_activity_seconds=$((60 * 60))
+idle_seconds=$((2 * 24 * 60 * 60))
+typeset -U repos_with_removals=()
+pane_cwds=""
+process_cwds=""
+typeset -A fetched_default_branches
+
+main() {
+  print "free before: $(free_space)"
+  for checkout in $(list_worktrees); do
+    prune_if_done "$checkout"
+  done
+  for repo in $repos_with_removals; do
+    prune_package_store $repo
+  done
+  print "free after:  $(free_space)"
+  $apply || print "dry run — rerun with --apply to remove"
+}
+
+list_worktrees() {
+  for root in $worktree_roots; do
+    for dir in $root/*/*(N/) $root/*(N/); do
+      [[ -f $dir/.git ]] && print -- $dir
+    done
+  done
+}
+
+prune_if_done() {
+  local checkout=$1
+  local name=$(worktree_name $checkout)
+  local main_repo=${$(git -C $checkout rev-parse --path-format=absolute --git-common-dir):h}
+
+  if (( ${protected_names[(Ie)$name]} )); then keep $name "protected"; return; fi
+  if is_open_in_pane $checkout; then keep $name "open in a pane"; return; fi
+  if has_process_running_inside $checkout; then keep $name "process running inside"; return; fi
+  if was_used_recently $checkout; then keep $name "used in last hour"; return; fi
+  if $clear_builds && is_idle $checkout; then clear_build_output $checkout $name; fi
+
+  local done_reason=$(done_reason_for $main_repo $checkout)
+  if [[ -z $done_reason ]]; then keep $name "$(why_not_done $checkout)"; return; fi
+  if has_uncommitted_changes $checkout; then
+    if ! is_idle $checkout; then keep $name "$done_reason, uncommitted changes, idle under 2 days"; return; fi
+    stash_changes $checkout $name || { keep $name "$done_reason, stash failed"; return; }
+    done_reason+=", changes stashed"
+  fi
+
+  remove $main_repo $checkout $name "$done_reason"
+}
+
+worktree_name() {
+  local checkout=$1
+  for root in $worktree_roots; do
+    [[ $checkout == $root/* ]] && { print -- ${checkout#$root/}; return; }
+  done
+  print -- $checkout
+}
+
+# Prints why the worktree is done, or nothing when it is not.
+done_reason_for() {
+  local main_repo=$1 checkout=$2
+  local branch=$(git -C $checkout branch --show-current)
+  local pr_state
+
+  if [[ -n $branch ]]; then
+    pr_state=$(pr_state_for_branch $checkout $branch)
+    if is_finished_pr $pr_state && ! has_commits_after_pr $checkout $branch; then print "PR $pr_state"; return; fi
+  else
+    pr_state=$(pr_state_for_commit $checkout)
+    if is_finished_pr $pr_state; then print "PR $pr_state (by commit)"; return; fi
+  fi
+  if is_idle $checkout && is_on_default_branch $main_repo $checkout; then print "all commits on default branch"; fi
+}
+
+why_not_done() {
+  local checkout=$1
+  local branch=$(git -C $checkout branch --show-current)
+  [[ -z $branch ]] && { print "detached HEAD, no finished PR"; return; }
+  local pr_state=$(pr_state_for_branch $checkout $branch)
+  if is_finished_pr $pr_state; then print "commits after PR"; else print "PR ${pr_state:-none}"; fi
+}
+
+# Open in Herdr: a terminal of the Herdr app (`hc ls`) or a pane of the Herdr TUI
+# (`herdr pane list`) has its folder inside the checkout.
+is_open_in_pane() {
+  local checkout=$1
+  [[ -z $pane_cwds ]] && pane_cwds=$(
+    hc ls --json 2>/dev/null | jq -r '.terminals[].cwd // empty'
+    herdr pane list 2>/dev/null | jq -r '.result.panes[] | .cwd, .foreground_cwd'
+    print "-"
+  )
+  print -- $pane_cwds | grep -qE "^${checkout}(/|$)"
+}
+
+has_process_running_inside() {
+  local checkout=$1
+  [[ -z $process_cwds ]] && process_cwds=$(lsof -a -d cwd -u $USER -Fn 2>/dev/null | sed -n 's/^n//p'; print "-")
+  print -- $process_cwds | grep -qE "^${checkout}(/|$)"
+}
+
+was_used_recently() {
+  (( $(seconds_since_last_use $1) < recent_activity_seconds ))
+}
+
+is_idle() {
+  (( $(seconds_since_last_use $1) >= idle_seconds ))
+}
+
+seconds_since_last_use() {
+  local worktree_reflog="$(git -C $1 rev-parse --path-format=absolute --git-dir)/logs/HEAD"
+  local last_used=$(zstat +mtime $worktree_reflog 2>/dev/null)
+  print $(( EPOCHSECONDS - ${last_used:-0} ))
+}
+
+clear_build_output() {
+  local checkout=$1 name=$2
+  local build_dirs=(${(f)"$(git -C $checkout ls-files --others --ignored --exclude-standard --directory 2>/dev/null | grep -E '(^|/)dist/$')"})
+  (( $#build_dirs )) || return
+  if ! $apply; then print "would clear   $name  ($#build_dirs dist folders)"; return; fi
+  for build_dir in $build_dirs; do
+    rm -rf -- $checkout/$build_dir
+  done
+  print "cleared       $name  ($#build_dirs dist folders)"
+}
+
+has_uncommitted_changes() {
+  [[ -n $(git -C $1 status --porcelain 2>/dev/null | grep -v '^?? \.mise/') ]]
+}
+
+stash_changes() {
+  local checkout=$1 name=$2
+  $apply || return 0
+  git -C $checkout stash push -q -u -m "prune-worktrees: $name" && print "stashed       $name  (git stash list in its repo)"
+}
+
+repo_slug() {
+  (cd $1 && gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null)
+}
+
+pr_state_for_branch() {
+  local checkout=$1 branch=$2
+  local repo=$(repo_slug $checkout)
+  [[ -n $repo ]] || { print -u2 "gh repo view failed in $checkout"; return; }
+  gh pr list -R $repo --head $branch --state all --json state -q '.[0].state'
+}
+
+# A detached checkout has no branch to look up, so find the PR that contains its HEAD commit.
+pr_state_for_commit() {
+  local checkout=$1
+  local repo=$(repo_slug $checkout)
+  [[ -n $repo ]] || return
+  gh pr list -R $repo --search "$(git -C $checkout rev-parse HEAD)" --state all --json state \
+    -q 'if any(.[]; .state == "MERGED") then "MERGED" else (.[0].state // "") end'
+}
+
+is_finished_pr() {
+  [[ $1 == MERGED ]] || { $include_closed && [[ $1 == CLOSED ]] }
+}
+
+has_commits_after_pr() {
+  local checkout=$1 branch=$2
+  git -C $checkout fetch -q origin $branch 2>/dev/null || return 1
+  [[ -n $(git -C $checkout log --oneline origin/$branch..HEAD 2>/dev/null) ]]
+}
+
+# Every commit's patch is already on the default branch, so rebased and cherry-picked
+# work counts; this covers detached checkouts and branches that never got a PR.
+is_on_default_branch() {
+  local main_repo=$1 checkout=$2
+  local default_branch=$(git -C $main_repo symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  [[ -n $default_branch ]] || return 1
+  if [[ -z ${fetched_default_branches[$main_repo]} ]]; then
+    git -C $main_repo fetch -q origin ${default_branch#origin/} 2>/dev/null
+    fetched_default_branches[$main_repo]=1
+  fi
+  [[ -z $(git -C $checkout cherry $default_branch HEAD 2>/dev/null | grep '^+') ]]
+}
+
+remove() {
+  local main_repo=$1 checkout=$2 name=$3 reason=$4
+  if ! $apply; then print "would remove  $name  ($reason)"; return; fi
+  if git -C $main_repo worktree remove --force $checkout; then
+    print "removed       $name  ($reason)"
+    repos_with_removals+=($main_repo)
+  else
+    print "FAILED        $name"
+  fi
+}
+
+prune_package_store() {
+  local repo=$1
+  git -C $repo worktree prune
+  [[ -f $repo/pnpm-lock.yaml ]] || return
+  (cd $repo && pnpm store prune >/dev/null 2>&1) && print "pruned pnpm store for ${repo:t}"
+}
+
+keep() {
+  print "keep          $1  ($2)"
+}
+
+free_space() {
+  df -h / | awk 'NR==2 {print $4}'
+}
+
+main

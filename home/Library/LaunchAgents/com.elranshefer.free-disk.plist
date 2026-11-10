@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.elranshefer.herdr-prune-worktrees</string>
+  <string>com.elranshefer.free-disk</string>
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
     <string>-c</string>
-    <string>date; $HOME/.local/bin/herdr-prune-worktrees --apply</string>
+    <string>$HOME/.claude/skills/free-disk/scripts/free-disk --apply --if-below 40</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
@@ -17,14 +17,12 @@
   </dict>
   <key>StartCalendarInterval</key>
   <dict>
-    <key>Hour</key>
-    <integer>13</integer>
     <key>Minute</key>
     <integer>0</integer>
   </dict>
   <key>StandardOutPath</key>
-  <string>/Users/elranshefer/Library/Logs/herdr-prune-worktrees.log</string>
+  <string>/Users/elranshefer/Library/Logs/free-disk.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/elranshefer/Library/Logs/herdr-prune-worktrees.log</string>
+  <string>/Users/elranshefer/Library/Logs/free-disk.log</string>
 </dict>
 </plist>

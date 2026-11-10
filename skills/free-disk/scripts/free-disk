@@ -1,0 +1,138 @@
+#!/usr/bin/env zsh
+# Free disk space without losing work: remove finished git worktrees (prune-worktrees),
+# delete build output in idle ones, then trim caches that rebuild themselves.
+# Dry run unless --apply. Every step skips itself when its tool is not installed.
+#
+#   free-disk                          # report what each step would free
+#   free-disk --apply                  # run every step
+#   free-disk --apply --if-below 40    # only when under 40 GiB free or 20+ hours since the last run
+#
+# Leftovers it reports but never deletes: Docker volumes, the largest cache folders.
+
+setopt pipe_fail no_nomatch
+zmodload zsh/datetime
+zmodload -F zsh/stat b:zstat
+
+script_dir=${0:A:h}
+apply=false
+threshold_gib=""
+while (( $# )); do
+  case $1 in
+    --apply) apply=true ;;
+    --if-below) threshold_gib=$2; shift ;;
+    *) print -u2 "unknown option: $1"; exit 2 ;;
+  esac
+  shift
+done
+
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/free-disk
+last_run_file=$state_dir/last-run
+max_seconds_between_runs=$((20 * 60 * 60))
+lock_wait_seconds=60
+unused_image_age=168h
+
+main() {
+  if [[ -n $threshold_gib ]] && ! is_due; then
+    print "$(date '+%F %T')  $(free_gib) GiB free, last run under 20h ago: skipping"
+    return
+  fi
+  print "== $(date '+%F %T')  free: $(free_human)"
+  step worktrees  prune_worktrees
+  step brew       clean_brew
+  step go         clean_go
+  step npm        clean_npm
+  step uv         clean_uv
+  step docker     clean_docker
+  report_leftovers
+  print "== free: $(free_human)"
+  if $apply; then mark_run; else print "dry run — rerun with --apply"; fi
+}
+
+is_due() {
+  (( $(free_gib) < threshold_gib )) && return 0
+  local last_run=$(zstat +mtime $last_run_file 2>/dev/null)
+  (( EPOCHSECONDS - ${last_run:-0} >= max_seconds_between_runs ))
+}
+
+step() {
+  local label=$1 action=$2
+  print -r -- "-- $label"
+  $action 2>&1 | sed 's/^/   /'
+}
+
+prune_worktrees() {
+  local args=(--builds)
+  $apply && args+=(--apply)
+  $script_dir/prune-worktrees $args | grep -v '^keep'
+}
+
+clean_brew() {
+  has brew || { print "not installed"; return; }
+  if $apply; then brew cleanup -s 2>/dev/null | tail -1; else brew cleanup -s -n 2>/dev/null | tail -1; fi
+}
+
+clean_go() {
+  has go || { print "not installed"; return; }
+  if $apply; then go clean -cache && print "build cache cleared"; else size_of "$(go env GOCACHE)"; fi
+}
+
+clean_npm() {
+  has npm || { print "not installed"; return; }
+  if $apply; then npm cache clean --force 2>/dev/null && print "cache cleared"; else size_of "$(npm config get cache)"; fi
+}
+
+# uv waits forever for a cache lock held by long-running `uvx` tools (MCP servers), so give up
+# after a minute rather than forcing past it and breaking them.
+clean_uv() {
+  has uv || { print "not installed"; return; }
+  $apply || { size_of "$(uv cache dir)"; return; }
+  uv cache prune 2>&1 | tail -1 &
+  local prune_pid=$!
+  for _ in {1..$lock_wait_seconds}; do
+    kill -0 $prune_pid 2>/dev/null || { wait $prune_pid; return; }
+    sleep 1
+  done
+  kill $prune_pid 2>/dev/null
+  print "cache locked by a running uv process: skipped"
+}
+
+clean_docker() {
+  has docker && docker info >/dev/null 2>&1 || { print "not running"; return; }
+  if $apply; then
+    docker image prune -a -f --filter "until=$unused_image_age" | tail -1
+    docker builder prune -f --filter "until=$unused_image_age" | tail -1
+  else
+    docker system df | awk 'NR==1 || /^(Images|Build Cache)/'
+  fi
+}
+
+report_leftovers() {
+  print -r -- "-- left for you to decide (never deleted automatically)"
+  if has docker && docker info >/dev/null 2>&1; then
+    docker system df | awk '/^Local Volumes/ {print "   docker volumes: " $5 " total, " $6 " reclaimable (may hold databases)"}'
+  fi
+  local cache_dirs=(~/Library/Caches/*(N/) ~/.cache/*(N/))
+  (( $#cache_dirs )) && du -sh $cache_dirs 2>/dev/null | sort -rh | head -5 | sed 's/^/   /'
+}
+
+has() {
+  (( $+commands[$1] ))
+}
+
+size_of() {
+  [[ -d $1 ]] && print "$(du -sh $1 2>/dev/null | cut -f1) in $1"
+}
+
+free_gib() {
+  df -g / | awk 'NR==2 {print $4}'
+}
+
+free_human() {
+  df -h / | awk 'NR==2 {print $4}'
+}
+
+mark_run() {
+  mkdir -p $state_dir && touch $last_run_file
+}
+
+main

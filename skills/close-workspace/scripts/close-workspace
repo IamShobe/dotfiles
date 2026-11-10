@@ -1,0 +1,129 @@
+#!/usr/bin/env zsh
+# Close a Herdr workspace and remove every linked git worktree its panes are in.
+# Dry run unless --apply. Loses no work:
+#   - uncommitted changes are saved with `git stash push -u` ("close-workspace: <folder>")
+#   - a detached HEAD whose commits are on no branch or remote gets a `keep/<folder>` branch
+#   - the repo's main checkout is never removed, and a worktree another workspace has open is kept
+#
+#   close-workspace <workspace id or label>            # show the plan
+#   close-workspace <workspace id or label> --apply    # do it
+
+setopt pipe_fail no_nomatch
+
+target=""
+apply=false
+for arg in "$@"; do
+  case $arg in
+    --apply) apply=true ;;
+    -*) print -u2 "unknown option: $arg"; exit 2 ;;
+    *) target=$arg ;;
+  esac
+done
+[[ -n $target ]] || { print -u2 "usage: close-workspace <workspace id or label> [--apply]"; exit 2; }
+
+main() {
+  local workspace_id=$(resolve_workspace $target)
+  [[ -n $workspace_id ]] || { print -u2 "no workspace matches '$target' (herdr workspace list)"; exit 1; }
+  local label=$(herdr workspace get $workspace_id | jq -r '.result.workspace.label')
+  local worktrees=(${(f)"$(worktrees_in_workspace $workspace_id)"})
+
+  print "workspace  $workspace_id  \"$label\""
+  report_agents $workspace_id
+  for checkout in $worktrees; do
+    plan_worktree $workspace_id $checkout
+  done
+  (( $#worktrees )) || print "worktrees  none (panes are only in main checkouts)"
+
+  if ! $apply; then print "dry run — rerun with --apply"; return; fi
+  # Closing the caller's own workspace ends this script, so it goes last there.
+  [[ $workspace_id != $HERDR_WORKSPACE_ID ]] && close_workspace $workspace_id
+  for checkout in $worktrees; do
+    is_open_elsewhere $workspace_id $checkout || remove_worktree $checkout
+  done
+  [[ $workspace_id == $HERDR_WORKSPACE_ID ]] && close_workspace $workspace_id
+}
+
+resolve_workspace() {
+  herdr workspace list | jq -r --arg target $1 \
+    '.result.workspaces[] | select(.workspace_id == $target or .label == $target) | .workspace_id' | head -1
+}
+
+pane_cwds() {
+  herdr pane list --workspace $1 | jq -r '.result.panes[] | .cwd, .foreground_cwd' | sort -u
+}
+
+# Linked worktrees only: their git dir differs from the shared common dir.
+worktrees_in_workspace() {
+  local workspace_id=$1
+  {
+    herdr workspace get $workspace_id | jq -r '.result.workspace.worktree | select(.is_linked_worktree) | .checkout_path'
+    for cwd in ${(f)"$(pane_cwds $workspace_id)"}; do
+      [[ -d $cwd ]] || continue
+      local git_dir=$(git -C $cwd rev-parse --path-format=absolute --git-dir 2>/dev/null)
+      local common_dir=$(git -C $cwd rev-parse --path-format=absolute --git-common-dir 2>/dev/null)
+      [[ -n $git_dir && $git_dir != $common_dir ]] && git -C $cwd rev-parse --show-toplevel
+    done
+  } | sort -u
+}
+
+report_agents() {
+  herdr pane list --workspace $1 | jq -r \
+    '.result.panes[] | select(.agent != null) | "agent      \(.pane_id)  \(.agent)  \(.agent_status)"'
+}
+
+plan_worktree() {
+  local workspace_id=$1 checkout=$2
+  local actions=()
+  if is_open_elsewhere $workspace_id $checkout; then print "keep       $checkout  (open in another workspace)"; return; fi
+  has_uncommitted_changes $checkout && actions+=("stash $(git -C $checkout status --porcelain | wc -l | tr -d ' ') changes")
+  needs_keep_branch $checkout && actions+=("branch keep/${checkout:t}")
+  actions+=(remove)
+  print "worktree   $checkout  ($(branch_label $checkout); ${(j:, :)actions})"
+}
+
+is_open_elsewhere() {
+  local workspace_id=$1 checkout=$2
+  herdr pane list | jq -r --arg ws $workspace_id \
+    '.result.panes[] | select(.workspace_id != $ws) | .cwd, .foreground_cwd' |
+    grep -qE "^${checkout}(/|$)"
+}
+
+has_uncommitted_changes() {
+  [[ -n $(git -C $1 status --porcelain 2>/dev/null) ]]
+}
+
+# A detached HEAD's commits survive removal only if some branch or remote already has them.
+needs_keep_branch() {
+  local checkout=$1
+  [[ -z $(git -C $checkout branch --show-current) ]] &&
+    [[ -n $(git -C $checkout rev-list -1 HEAD --not --branches --remotes 2>/dev/null) ]]
+}
+
+branch_label() {
+  local branch=$(git -C $1 branch --show-current)
+  local unpushed=$(git -C $1 rev-list --count HEAD --not --remotes 2>/dev/null)
+  print "${branch:-detached}, $unpushed unpushed"
+}
+
+close_workspace() {
+  herdr workspace close $1 >/dev/null && print "closed     $1"
+}
+
+remove_worktree() {
+  local checkout=$1
+  local main_repo=${$(git -C $checkout rev-parse --path-format=absolute --git-common-dir):h}
+  if has_uncommitted_changes $checkout; then
+    git -C $checkout stash push -q -u -m "close-workspace: ${checkout:t}" || { print "FAILED     $checkout  (stash)"; return; }
+    print "stashed    $checkout  (git -C $main_repo stash list)"
+  fi
+  if needs_keep_branch $checkout; then
+    git -C $checkout branch keep/${checkout:t} HEAD && print "branched   keep/${checkout:t}"
+  fi
+  if git -C $main_repo worktree remove --force $checkout; then
+    print "removed    $checkout"
+  else
+    print "FAILED     $checkout"
+  fi
+}
+
+main
