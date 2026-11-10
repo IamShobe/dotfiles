@@ -34,7 +34,7 @@ The template ships the kit at `src/kit`. Every component is theme-driven, reflow
 |---|---|
 | `<BeforeAfter example rows={[{ aspect, hint?, before, after, same? }]} result={{ before, after }} caption beforeLabel? afterLabel? />` | Old → new on one concrete example: a compact card, one row per aspect (`hint` = small line under the label, `same` = unchanged: dimmed, `=` on the seam, hideable), a ✗/✓ verdict row, an "In short" caption. Stacks below md. |
 | `<BeforeAfter before={…} after={…} caption? />` | Free-form old → new, for what doesn't split into rows (a mockup, a screenshot). |
-| `<Changes rows={[{ name, before?, after?, note? }]} />` | Interface changes: name + added/changed/removed tag, then Was / Now. Only `after` = added, only `before` = removed. |
+| `<Changes rows={[{ name, area?, before?, after?, note? }]} />` | Compact changelog: status dot, name + area (`config` `behavior` `data` `api` `ui` `access`, each with an icon), `was → now` inline, `note` small underneath. Only `after` = added, only `before` = removed. |
 | `<Deprecations removed={[{what, why}]} kept={[{what, why}]} />` | Gone for good vs kept as fallback. |
 | `<Card label? title? accent?>` | Surface card. `accent` = the focal one. |
 | `<Grid cols={2 \| 3 \| 4}>` | Responsive card grid, one column below md. |

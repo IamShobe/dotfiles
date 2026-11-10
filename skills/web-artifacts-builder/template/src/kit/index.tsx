@@ -6,7 +6,8 @@
 import { Children, createContext, Fragment, isValidElement, useContext, useEffect, useRef, useState } from 'react'
 import type { MouseEvent, ReactElement, ReactNode, RefObject } from 'react'
 import { Highlight, themes } from 'prism-react-renderer'
-import { ArrowRight, Check, X } from 'lucide-react'
+import { ArrowRight, Check, Database, KeyRound, PanelsTopLeft, Plug, Settings2, Workflow, X } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Scrollspy } from '@/components/ui/scrollspy'
 import { Theme } from '@/theme'
 
@@ -505,37 +506,68 @@ export function Table({ columns, rows, mono = [] }: { columns: ReactNode[]; rows
   )
 }
 
-type InterfaceChange = { name: ReactNode; before?: ReactNode; after?: ReactNode; note?: ReactNode }
+type ChangeArea = 'config' | 'behavior' | 'data' | 'api' | 'ui' | 'access'
+type InterfaceChange = { name: ReactNode; area?: ChangeArea; before?: ReactNode; after?: ReactNode; note?: ReactNode }
 type ChangeKind = 'added' | 'removed' | 'changed'
 
-const CHIP_KIND = { added: 'add', removed: 'rm', changed: 'change' } as const satisfies Record<ChangeKind, string>
+const CHANGE_TONE = {
+  added: { color: 'var(--add)', fill: 'var(--add-soft)', sign: '+' },
+  removed: { color: 'var(--rm)', fill: 'var(--rm-soft)', sign: '−' },
+  changed: { color: 'var(--brand-ink)', fill: 'var(--brand-soft)', sign: '~' },
+} as const satisfies Record<ChangeKind, { color: string; fill: string; sign: string }>
+
+const AREA_ICON = {
+  config: Settings2, behavior: Workflow, data: Database, api: Plug, ui: PanelsTopLeft, access: KeyRound,
+} as const satisfies Record<ChangeArea, LucideIcon>
 
 /**
- * Interface changes, one block per thing that changed: its name and status first,
- * then what it was and what it is now. Only `after` = added, only `before` = removed.
+ * Interface changes as a compact changelog: one line per change with a status dot, the name and
+ * its area, then `was → now` in a few words. Only `after` = added, only `before` = removed.
+ * `note` is the one detail a reader needs (a required value, an action), shown small underneath.
  */
 export function Changes({ rows }: { rows: InterfaceChange[] }) {
   return (
-    <div className="grid min-w-0 rounded-lg overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
-      {rows.map((change, index) => <ChangeBlock key={index} change={change} isFirst={index === 0} />)}
+    <div className="grid min-w-0 rounded-xl overflow-hidden text-sm" style={{ border: '1px solid var(--border)', background: 'var(--surface)' }}>
+      {rows.map((change, index) => <ChangeLine key={index} change={change} isFirst={index === 0} />)}
     </div>
   )
 }
 
-function ChangeBlock({ change, isFirst }: { change: InterfaceChange; isFirst: boolean }) {
+function ChangeLine({ change, isFirst }: { change: InterfaceChange; isFirst: boolean }) {
   const kind = changeKindOf(change)
+  const tone = CHANGE_TONE[kind]
   return (
-    <div className="grid gap-2.5 p-4 md:px-5 min-w-0" style={{ borderTop: isFirst ? undefined : '1px solid var(--border)' }}>
-      <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-medium" style={{ color: 'var(--ink)' }}>
-        <Chip kind={CHIP_KIND[kind]}>{kind}</Chip>
-        <span className="min-w-0">{change.name}</span>
-      </p>
-      <dl className="grid grid-cols-[3.25rem_1fr] gap-x-3 gap-y-1.5 min-w-0 leading-relaxed">
-        {change.before && <ChangeLine label="Was" color="var(--ink-3)">{change.before}</ChangeLine>}
-        {change.after && <ChangeLine label="Now" color="var(--ink)">{change.after}</ChangeLine>}
-      </dl>
-      {change.note && <p className="text-sm" style={{ color: 'var(--ink-3)' }}>{change.note}</p>}
+    <div className="xk-shift-row grid grid-cols-[1.75rem_1fr] md:grid-cols-[1.75rem_minmax(11rem,16rem)_1fr] gap-x-3 gap-y-1.5 px-4 py-3 min-w-0 items-start"
+      style={{ borderTop: isFirst ? undefined : '1px solid var(--border)' }}>
+      <span title={kind} className="mono grid place-items-center w-6 h-6 rounded-full font-semibold" style={{ color: tone.color, background: tone.fill }}>{tone.sign}</span>
+      <ChangeName change={change} kind={kind} />
+      <div className="col-start-2 md:col-start-3 min-w-0 grid gap-1">
+        <ChangeDiff change={change} />
+        {change.note && <p className="text-xs leading-relaxed" style={{ color: 'var(--ink-3)' }}>{change.note}</p>}
+      </div>
     </div>
+  )
+}
+
+function ChangeName({ change, kind }: { change: InterfaceChange; kind: ChangeKind }) {
+  const AreaIcon = change.area ? AREA_ICON[change.area] : undefined
+  return (
+    <div className="min-w-0 pt-0.5">
+      <p className="font-medium break-words" style={{ color: 'var(--ink)' }}>{change.name}</p>
+      <p className={`${SMALL_CAPS} flex items-center gap-1.5 mt-0.5`} style={{ color: 'var(--ink-3)' }}>
+        {AreaIcon && <AreaIcon size={12} />}{change.area ?? ''}{change.area ? ' · ' : ''}{kind}
+      </p>
+    </div>
+  )
+}
+
+function ChangeDiff({ change }: { change: InterfaceChange }) {
+  return (
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 leading-relaxed pt-0.5">
+      {change.before && <span style={{ color: 'var(--ink-3)' }}>{change.before}</span>}
+      {change.before && change.after && <ArrowRight size={14} style={{ color: 'var(--ink-3)', flexShrink: 0 }} />}
+      {change.after && <span style={{ color: 'var(--ink)' }}>{change.after}</span>}
+    </p>
   )
 }
 
@@ -543,13 +575,6 @@ function changeKindOf(change: InterfaceChange): ChangeKind {
   if (!change.before) return 'added'
   if (!change.after) return 'removed'
   return 'changed'
-}
-
-function ChangeLine({ label, color, children }: { label: string; color: string; children: ReactNode }) {
-  return <>
-    <dt className="mono text-xs uppercase tracking-[0.12em] pt-1" style={{ color: 'var(--ink-3)' }}>{label}</dt>
-    <dd className="min-w-0" style={{ color }}>{children}</dd>
-  </>
 }
 
 /** Deprecations: gone for good vs kept as fallback (don't build on those). */

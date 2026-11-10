@@ -29,7 +29,7 @@ Show the change on **one concrete case** (the page's running example), not as st
 
 ## Interface changes
 
-`<Changes>`: the name is the thing a reader looks up (`<Id>` for code names), Was / Now one sentence each. Split user-facing from developer-facing with a short `<P>` above each list.
+`<Changes>`: the name is the thing a reader looks up (`<Id>` for code names), with its `area`. `before` / `after` are a few words each, read as one line (`One unlisted account disables the person → Disabled only when no account is listed`); the one detail a reader must act on goes in `note`. Split user-facing from developer-facing with a short `<P>` above each list.
 
 ## Tables
 
