@@ -1,7 +1,7 @@
 """Stacked-hierarchy engines: `layers` (layer stack), `pyramid` (pyramid / funnel), `nested` (containment).
 
 Layout grammar from diagram-design type-layers.md / type-pyramid.md / type-nested.md and
-their example assets, recoloured to the explainer palette (coral → ACCENT, muted/ink tints → tint()).
+their example assets, recoloured to the template palette (coral → ACCENT, muted/ink tints → tint()).
 """
 from __future__ import annotations
 

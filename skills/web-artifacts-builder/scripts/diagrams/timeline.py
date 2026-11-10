@@ -1,7 +1,7 @@
 """Time-axis engines: `timeline` (events on an honest time scale) and `gantt` (phased task plan).
 
 Layout grammar from diagram-design type-timeline.md / type-gantt.md and their example
-assets, recoloured to the explainer palette (coral → ACCENT, muted/ink tints → tint()).
+assets, recoloured to the template palette (coral → ACCENT, muted/ink tints → tint()).
 """
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render explainer diagrams from JSON specs, then (optionally) convert them.
+"""Render diagrams from JSON specs, then (optionally) convert them.
 
   render.py specs.json [--out DIR] [--artifact NAME]   # one spec object or an array
   render.py --list                                     # rendered types + one-line use
@@ -28,7 +28,7 @@ from diagrams.core import SpecError, document  # noqa: E402
 
 # Engine modules. Each defines TYPES = {type: (render_fn, example_spec, one_line_use)};
 # render_fn(spec) -> (Svg, legend_y | None).
-PAGE_W = 990   # usable figure width on a desktop explainer page
+PAGE_W = 990   # usable figure width on a desktop page
 ENGINE_MODULES = ('graph', 'sequence', 'timeline', 'stack', 'charts', 'matrix')
 
 

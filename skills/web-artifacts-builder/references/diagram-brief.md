@@ -16,7 +16,7 @@ never the output. For layout, give nodes `col`/`row` for editorial control; omit
 them for an automatic layered layout.
 
 The rest of this file is for the ✎ types, drawn by hand. It's condensed from `diagram-design`
-(v2.6, MIT, by Cathryn Lavery) with the `explainer` palette baked in. Read it
+(v2.6, MIT, by Cathryn Lavery) with the template palette baked in. Read it
 **instead of** diagram-design's SKILL.md, style guide and profile, plus the one
 `$DIAGRAM_DESIGN/references/type-<type>.md` for the diagram you draw.
 

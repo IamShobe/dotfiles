@@ -2,7 +2,7 @@
 
 Layout grammar from diagram-design's type-bar.md (incl. dumbbell), type-line.md
 (slopegraph) and type-waterfall.md, on the house 1000-wide frame (plot x 80→960,
-y 40→420), recoloured to the explainer palette: coral → ACCENT, ink/muted tints
+y 40→420), recoloured to the template palette: coral → ACCENT, ink/muted tints
 → tint('ink'|'muted', a). Honest data: value axes include zero (bar, dumbbell,
 waterfall), data coordinates round but never snap, waterfalls must reconcile.
 Focal text stays ink; focus is carried by the mark (accent fill/stroke, weight).

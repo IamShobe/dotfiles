@@ -1,10 +1,10 @@
 <!-- diagram-design-profile
-name: Explainer Artifact
-slug: explainer
+name: Web Artifacts
+slug: web-artifacts
 source-url: none
 created: 2026-09-15
 updated: 2026-09-15
-notes: Mirrors explainer-artifact theme tokens; sans+mono, no display serif
+notes: Mirrors the web-artifacts-builder theme tokens; sans+mono, no display serif
 -->
 # Style Guide
 
@@ -35,7 +35,7 @@ Every token is referred to by **semantic role**, not by its hex value. Type refe
 | `accent-tint` | Fill for accent-bordered boxes | `color-mix(in srgb, #4f46e5 8%, transparent)` | `color-mix(in srgb, #8b93fa 10%, transparent)` |
 | `link` | HTTP/API calls, external arrows | `#4338ca` | `#a6acff` |
 
-> **Brand palette source:** this skin mirrors the `explainer-artifact` theme tokens (`web-artifacts-builder` `src/theme.tsx`) — indigo `--brand #4f46e5`, ink `#414448`, surface `#ffffff` on bg `#fafbfb`. Each role above carries that theme's light and dark value, so a generated diagram lands in the page palette with no hex rewrite.
+> **Brand palette source:** this skin mirrors the `web-artifacts-builder` theme tokens (`template/src/theme.tsx`) — indigo `--brand #4f46e5`, ink `#414448`, surface `#ffffff` on bg `#fafbfb`. Each role above carries that theme's light and dark value, so a generated diagram lands in the page palette with no hex rewrite.
 
 > **Note:** The pre-baked example HTML files in `assets/` were built under an earlier skin. Regenerating them against the current `style-guide.md` is a v5.1 task. New diagrams the skill produces will use the tokens above.
 

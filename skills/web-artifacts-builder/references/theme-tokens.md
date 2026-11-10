@@ -23,4 +23,4 @@ Editing the palette itself → edit `template/src/theme.tsx` (single source of t
 
 ## Diagrams
 
-`scripts/diagram-to-jsx.sh` maps every diagram color to these vars: the explainer profile's hexes, diagram-design's default skin, and their `rgba()` tints, marker fills included. That's why a converted diagram follows light/dark on its own. Don't hand-edit colors in `src/diagrams/`. To support a new palette color, add it to the `HEX` / `RGB` tables in the converter, once, for every future diagram.
+`scripts/diagram-to-jsx.sh` maps every diagram color to these vars: the `web-artifacts` profile's hexes, diagram-design's default skin, and their `rgba()` tints, marker fills included. That's why a converted diagram follows light/dark on its own. Don't hand-edit colors in `src/diagrams/`. To support a new palette color, add it to the `HEX` / `RGB` tables in the converter, once, for every future diagram.

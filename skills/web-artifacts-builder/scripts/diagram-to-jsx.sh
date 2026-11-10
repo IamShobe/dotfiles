@@ -5,8 +5,8 @@
 #
 # For each file (slug = file name without .html):
 #   - runs diagram-design's self_check.py (accessible-SVG contract)
-#   - extracts the first <svg>, maps every palette color to explainer CSS vars
-#     (explainer profile AND diagram-design's default skin, hex and rgba), so the
+#   - extracts the first <svg>, maps every palette color to the theme CSS vars
+#     (the web-artifacts profile AND diagram-design's default skin, hex and rgba), so the
 #     diagram follows light/dark with no hand-editing
 #   - prefixes ids per slug, so markers/patterns never collide between diagrams
 #   - writes <artifact-dir>/src/diagrams/<slug>.tsx, creating the build
@@ -31,7 +31,10 @@ for SRC in "$@"; do
   if ! [[ "$SLUG" =~ ^[a-z][a-z0-9-]*$ ]]; then
     echo "✗ $SRC: name the file <kebab-slug>.html (got '$SLUG')" >&2; FAIL=1; continue
   fi
-  if ! CHECK="$(python3 "$DIAGRAM_DESIGN/scripts/self_check.py" "$SRC" 2>&1)"; then
+  # self_check reads a whole HTML document; a diagram file holds only its <svg>.
+  PAGE="$(mktemp -d)/$SLUG.html"
+  { printf '<!doctype html><html><head><meta charset="utf-8"><title>%s</title></head><body>\n' "$SLUG"; cat "$SRC"; printf '\n</body></html>\n'; } >"$PAGE"
+  if ! CHECK="$(python3 "$DIAGRAM_DESIGN/scripts/self_check.py" "$PAGE" 2>&1)"; then
     echo "✗ $SRC failed diagram-design self_check — fix the source, then re-run:" >&2
     printf '%s\n' "$CHECK" | sed 's/^/    /' >&2; FAIL=1; continue
   fi
@@ -43,10 +46,10 @@ if not m:
     sys.exit(f'✗ {src}: no <svg> found')
 svg = m.group(0)
 
-# Palette → CSS vars. Explainer profile first, then diagram-design's shipped skin,
+# Palette → CSS vars. The web-artifacts profile first, then diagram-design's shipped skin,
 # so even a diagram drawn with the wrong profile lands in-palette.
 HEX = {
-    # explainer profile (= theme.tsx light values)
+    # web-artifacts profile (= theme.tsx light values)
     '#ffffff': 'surface', '#fafbfb': 'bg', '#414448': 'ink', '#62676c': 'ink-2',
     '#6f767d': 'ink-3', '#e3e6e8': 'border', '#d1d5d9': 'border-hi',
     '#4f46e5': 'brand', '#4338ca': 'brand-ink', '#ffc533': 'signal',

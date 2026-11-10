@@ -1,6 +1,6 @@
 ---
 name: web-artifacts-builder
-description: Build elaborate, multi-component claude.ai HTML artifacts with modern frontend tech (React, TypeScript, Tailwind, shadcn/ui, and a rich-library kit — recharts, mermaid, rough-notation, tippy, and more). A pre-installed template + one-call build script produce a self-contained bundle in ~0.6s. Use for interactive artifacts needing state, charts, diagrams, or shadcn components — not for a trivial single-file HTML/JSX snippet.
+description: Build claude.ai HTML artifacts from a React + Tailwind + shadcn template with a page kit, a theme design system, a themed diagram renderer and a one-call build+verify. Use for interactive or multi-section artifacts needing state, charts, diagrams or components — not a trivial single-file snippet.
 license: Complete terms in LICENSE.txt
 ---
 
@@ -14,18 +14,13 @@ React + TS + Tailwind + shadcn/ui (41 components) + rich libs → one self-conta
 
 The bottleneck is agent round-trips, not the build. Minimize turns:
 
-1. Write your `App.tsx` to a file (scratchpad ok).
-2. `bash scripts/make-artifact.sh <name> <App.tsx>` — clones template, drops in App, bundles → `<name>/bundle.html`.
-3. `cp <name>/bundle.html <name>.html` and publish `<name>.html` with the Artifact tool — the tab/gallery identity is the published file's *basename*, so publishing `bundle.html` shows as "bundle". Re-publish the same `<name>.html` path on edits to keep the URL.
-
 ```bash
-bash scripts/make-artifact.sh <name> App.tsx      # from a file
-cat App.tsx | bash scripts/make-artifact.sh <name> -   # from stdin
-bash scripts/make-artifact.sh <name>              # rebuild after in-place edit (skips clone, ~0.35s)
+bash scripts/build.sh <name> App.tsx [--specs specs.json] [--repo <checkout>]   # render diagrams, bundle, verify → <name>.html
+bash scripts/build.sh <name>                                                    # rebuild after editing <name>/src/App.tsx
 ```
 
-Iterating: edit `<name>/src/App.tsx`, re-run, re-publish the **same** path to keep the URL.
-Node missing (bare shell): `export PATH="$(dirname "$(mise which node)"):$PATH"`.
+Publish `<name>.html` with the Artifact tool (the published file's basename is the gallery title, so never `bundle.html`). Re-publish the same path on edits to keep the URL. `scripts/make-artifact.sh <name> [App.tsx | -]` is the bare bundle step, without diagrams or verify.
+Node missing (bare shell): `export PATH="$(dirname "$(mise which node)"):$PATH"`. First run on a machine: `eval "$(bash scripts/ensure-deps.sh)"` installs the template packages and finds diagram-design.
 
 **Document title** (browser tab + Artifact gallery name). Put a `@title` comment on its own line in `App.tsx` — the build stamps it into `index.html` on every run:
 
@@ -35,6 +30,13 @@ export default function App() { … }
 ```
 
 Without it the title falls back to `<name>`, so pick a human-readable `<name>` (`billing-review`, not `demo`). Never leave the placeholder `__ARTIFACT_TITLE__` in `template/index.html` hardcoded to a real name — every future artifact inherits it.
+
+## Building blocks
+
+- **Page kit** (`@/kit`, shipped in the template): `Page` (hero, theme, scroll container, TOC), `Section`, text (`P`, `Term`, `Id`, `Src`, `Mark`, `Chip`) and blocks (`BeforeAfter`, `Table`, `Card`, `Grid`, `Callout`, `Code`, `Steps`, `Figure`). Read `references/kit.md` before writing `App.tsx`; prefer the kit over hand-written JSX.
+- **Design system**: theme vars, colors, contrast, narrow-width rules → `references/design.md` (rules for any custom JSX) and `references/theme-tokens.md` (raw values; the palette lives in `template/src/theme.tsx`).
+- **Diagrams**: `references/diagram-types.md` is the catalog (which type answers which question). ⚙ types render from a JSON spec: `python3 scripts/diagrams/render.py --example <type>`, then pass the specs to `build.sh --specs`. ✎ types are drawn by hand following `references/diagram-brief.md` and converted with `scripts/diagram-to-jsx.sh <name> <files>`, which maps every color to the theme vars.
+- **Verify**: `build.sh` ends with `scripts/verify.sh <name> [repo]`: theme-only colors, no shadows, responsive grids, title, `<Src>` links resolve, `<Term>` order, overflow and tiny text at 390/768/1280px, one light+dark contact sheet. Fix every ✗ in one pass.
 
 ## Rich libraries (pre-installed; import directly, Vite inlines them)
 
@@ -69,7 +71,7 @@ Scaffolds + jitter-free CSS: `references/recipes.md`.
 
 ## Design
 
-Avoid "AI slop": no excessive centering, purple gradients, uniform rounded corners, or Inter. Deliberate palette/type/layout. Both themes (`dark:` wired). Wide content gets `overflow-x`.
+Avoid "AI slop": no excessive centering, purple gradients, uniform rounded corners, or Inter. Deliberate palette/type/layout. Both themes through the theme vars (`references/design.md`). Wide content gets `overflow-x`.
 
 ## Notes
 

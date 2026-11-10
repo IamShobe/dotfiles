@@ -1,9 +1,9 @@
-"""Shared primitives for the explainer diagram renderer.
+"""Shared primitives for the diagram renderer.
 
 Every engine builds an `Svg`, draws with the helpers below, and returns it; the
 entry point (render.py) wraps it with the accessible root, markers and legend.
 Visual rules come from references/diagram-brief.md (diagram-design v2.6 with the
-explainer palette): 4px grid, orthogonal r=8 connectors, masked labels 6-10px
+template palette): 4px grid, orthogonal r=8 connectors, masked labels 6-10px
 off their line, focal accent on at most two elements, legend strip at the bottom.
 Output is light-theme hexes only; diagram-to-jsx.sh maps them to theme vars.
 """
@@ -14,7 +14,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from html import escape
 
-# ---------- palette (explainer profile, light) ----------
+# ---------- palette (web-artifacts profile, light) ----------
 
 PAPER = '#ffffff'
 PAPER_2 = '#fafbfb'

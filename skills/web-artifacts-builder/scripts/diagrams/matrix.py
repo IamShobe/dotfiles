@@ -1,7 +1,7 @@
 """Matrix engines: quadrant (standard 2×2 with positioned items) and heatmap.
 
 Grammar from diagram-design's type-quadrant.md and type-heatmap.md, recoloured to
-the explainer palette. Quadrant: one word per axis tip, dots r=4 (focal r=6 in
+the template palette. Quadrant: one word per axis tip, dots r=4 (focal r=6 in
 accent), labels placed off-axis without collisions or the spec fails. Heatmap:
 one ink ramp for every non-focal cell (monotone in value), the single focal cell
 in accent and excluded from the ramp scale, complete rows × cols grid.

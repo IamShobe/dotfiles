@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
-# Locate what explainer-artifact needs and prepare it for this machine:
+# Locate web-artifacts-builder (the toolchain this skill writes content for) and
+# let it prepare itself (template node packages, diagram-design, theme profile).
 #
-#   web-artifacts-builder  skill  build toolchain (template node_modules installed here)
-#   diagram-design         skill  diagram generator
-#   explainer profile      file   ~/.diagram-design/profiles/explainer.md
-#
-# Installing the two skills is the package manager's job, not this script's:
-# skillshare (or the iamshobe marketplace, whose explainer-artifact plugin depends
-# on both) installs and updates them. This finds them wherever they were put,
-# installs the template's node packages once, and copies the profile.
-# Idempotent: later runs only print the paths.
+# Installing it is the package manager's job, not this script's: skillshare (or
+# the iamshobe marketplace, whose explainer-artifact plugin depends on it).
 #
 # Prints shell assignments on stdout — eval them:
 #   eval "$(bash scripts/ensure-deps.sh)"   # → $WAB, $DIAGRAM_DESIGN
@@ -45,56 +39,6 @@ find_skill() {
   return 1
 }
 
-require_skill() {  # require_skill <name> <sentinel> <how to install it>
-  find_skill "$1" "$2" || die "$1 is not installed. Install it: $3"
-}
-
-WAB="$(require_skill web-artifacts-builder scripts/make-artifact.sh \
-  "skillshare install IamShobe/dotfiles/skills/web-artifacts-builder, or the iamshobe marketplace plugin")"
-DIAGRAM_DESIGN="$(require_skill diagram-design SKILL.md \
-  "skillshare plugin add https://github.com/cathrynlavery/diagram-design --plugin diagram-design --target claude")"
-
-# references/diagram-brief.md is condensed from diagram-design 2.6; say so if it moved on.
-DD_VER="$(printf '%s' "$DIAGRAM_DESIGN" | grep -oE '/[0-9]+\.[0-9]+\.[0-9]+/' | tr -d / | head -1 || true)"
-case "$DD_VER" in ""|2.6.*) ;; *) log "⚠️  diagram-design is $DD_VER; references/diagram-brief.md matches 2.6.x. Check its type-*.md if a rule looks off." ;; esac
-
-# node on PATH (mise/nvm users often run in a bare non-login shell)
-if ! command -v node >/dev/null 2>&1 && command -v mise >/dev/null 2>&1; then
-  PATH="$(dirname "$(mise which node)"):$PATH"; export PATH
-fi
-command -v node >/dev/null 2>&1 || die "node not found on PATH — install Node 18+."
-command -v python3 >/dev/null 2>&1 || die "python3 not found — scripts/diagram-to-jsx.sh needs it."
-
-# Template deps, once. vite is the sentinel make-artifact.sh itself checks.
-TPL="$WAB/template"
-[ -d "$TPL" ] || die "no template/ in $WAB — incomplete install."
-if [ ! -f "$TPL/node_modules/vite/bin/vite.js" ]; then
-  log "→ First run: installing web-artifacts-builder template deps (~290MB, usually <1 min)…"
-  PM=""
-  for c in pnpm npm; do command -v "$c" >/dev/null 2>&1 && { PM="$c"; break; }; done
-  if [ "$PM" != "pnpm" ] && command -v corepack >/dev/null 2>&1; then
-    corepack enable pnpm >/dev/null 2>&1 && command -v pnpm >/dev/null 2>&1 && PM="pnpm"
-  fi
-  [ -n "$PM" ] || die "neither pnpm nor npm found — install one."
-  if [ "$PM" = "pnpm" ]; then
-    ( cd "$TPL" && pnpm install --frozen-lockfile >&2 ) || {
-      log "→ frozen install failed (lockfile drift); retrying unpinned…"
-      ( cd "$TPL" && pnpm install >&2 )
-    }
-  else
-    log "⚠️  pnpm not available; falling back to npm (pnpm-lock.yaml is ignored)."
-    ( cd "$TPL" && npm install >&2 )
-  fi
-  [ -f "$TPL/node_modules/vite/bin/vite.js" ] || die "install finished but vite is missing."
-  log "✅ template deps installed."
-fi
-
-# The explainer diagram profile. Never overwrite one the user already has.
-PROFILE="$HOME/.diagram-design/profiles/explainer.md"
-if [ ! -f "$PROFILE" ]; then
-  mkdir -p "$(dirname "$PROFILE")"
-  cp "$SKILL/assets/diagram-design-profile.md" "$PROFILE"
-  log "✅ installed diagram-design profile → $PROFILE"
-fi
-
-printf 'WAB=%q\nDIAGRAM_DESIGN=%q\n' "$WAB" "$DIAGRAM_DESIGN"
+WAB="$(find_skill web-artifacts-builder scripts/build.sh)" \
+  || die "web-artifacts-builder is not installed. Install it: skillshare install IamShobe/dotfiles/skills/web-artifacts-builder, or the iamshobe marketplace plugin"
+exec bash "$WAB/scripts/ensure-deps.sh"
