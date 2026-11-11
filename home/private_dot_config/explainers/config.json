@@ -1,0 +1,11 @@
+{
+  "repos": {
+    "act-security/act": {
+      "deploy_check": "~/.config/explainers/act-deploy-check.sh {sha}",
+      "ticket_url": "https://linear.app/act-security/issue/{id}"
+    },
+    "act-security/gitops": {
+      "ticket_url": "https://linear.app/act-security/issue/{id}"
+    }
+  }
+}

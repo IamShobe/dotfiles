@@ -16,22 +16,23 @@ This skill owns the **story** (structure, formatting, content). `web-artifacts-b
 
 ## Fewest turns
 
-The cost is agent round-trips, not builds. A first publish takes **5 turns**; each later edit takes **1**.
+The cost is agent round-trips, not builds. A first publish takes **3 turns**; each later edit takes **1**.
 
-| Turn | What you send (one response) |
+| Turn | What you send (one response, calls run in order) |
 |---|---|
-| 1 | `X start --name <name> [inputs]`: paths, every rule file, PR status, inputs to fetch, git facts, and a workspace with a starting `App.tsx` |
-| 2 | In parallel: `Read` the scaffold App.tsx (the tool refuses to `Write` over an unread file), every source read, the ticket and thread fetches it lists, and the ✎ diagram subagent if any |
-| 3 | `Write` App.tsx (over the scaffold) + `Write` specs.json + `Bash X build <name>` |
-| 4 | All fixes for ✗/⚠ and the contact sheet as `Edit`s + `X build <name>`; publish too when turn 3 was clean |
-| 5 | `Artifact` publish; in the same response, `X url <name> <url>` once the URL is known, and the share message |
+| 1 | `X start --name <name> [inputs]`: paths, every rule file, PR and deploy status, ticket links, git facts with the code diff, and the App.tsx scaffold |
+| 2 | `Write` App.tsx (a new file) + `Write` specs.json + `Bash X build <name>` + `Read` the contact sheet + `Artifact` publish (private, so a first draft is fine) |
+| 3 | `Bash X url <name> <url>` + any fixes as `Edit`s + `X build <name>` + publish again; then the reply with the share message |
 | edit | `Edit` App.tsx + `X build <name>` + `Artifact` publish (with `url` from explainer.json) |
 
-- Don't `Read` the rule files: `start` printed them. Don't re-read a file you just wrote.
-- `start` prints absolute paths; every shell is fresh, so use them.
+- `start` prints the code diff when it's under ~900 lines (tests and generated files left out). Read source files only when it says the diff is too big, or for a *why* the diff and PR don't show; then add those reads to turn 2 before the `Write`.
+- Fetch a ticket or thread only when the PR doesn't explain the why; send the fetch in turn 1 alongside `start` when you already know it's needed.
+- Never `Read` the rule files: `start` printed them. Never re-read a file you wrote.
+- Change App.tsx only with `Edit`, never `sed`: a shell edit forces a re-read before the next `Edit`.
 - `verify.sh` checks only literal values: write `<Src path="…">` and ticket links inline, never through a constant.
-- Text-only edits: skip the contact sheet; verify's text checks still run. Open the sheet only when layout changed.
-- Status moved (deployed now)? `X refresh <name>` re-checks it, rebuilds, and lists the prose to update.
+- `start` prints absolute paths; every shell is fresh, so use them.
+- Text-only edits: skip the contact sheet. Open it only when layout changed.
+- Status moved? `X refresh <name>` re-checks PRs and deploys, rebuilds and lists the prose to update.
 - A later session: `X list` finds the workspace and URL; `Read` its App.tsx once, then edit turns as above.
 - Ask the user nothing before the first publish. They prune afterwards.
 
@@ -43,9 +44,9 @@ Every input is a flag of `X start`, repeatable, all optional:
 |---|---|---|
 | A git range | `[base] [head]`, `--path <dir>` | facts: commits, files, interface lines, link ranges, migrations |
 | A PR | `--pr 123` / `owner/repo#123` / URL | merged or open, merge SHA, and with one PR of this repo, the git range |
-| Deploy state | `--deploy-check '<cmd {sha}>'` | runs it per merged PR: exit 0 deployed, 1 not yet |
-| A ticket | `--ticket ID` / URL | GitHub issues: fetched inline. Others: the exact fetch for turn 2 (`EXPLAINER_TICKET_URL=https://…/{id}` makes ids links) |
-| A Slack thread | `--thread <url>` | the exact `slack_read_thread` call for turn 2 |
+| Deploy state | per repo in `EXPLAINERS_CONFIG` (`~/.config/explainers/config.json`), or `--deploy-check '<cmd {sha}>'` for one run | runs it per merged PR: exit 0 deployed, 1 not yet |
+| A ticket | `--ticket ID` / URL; ids in PR titles are found automatically | GitHub issues: fetched inline. Others: the link (the repo's `ticket_url` in the config) and the fetch to use if needed |
+| A Slack thread | `--thread <url>` | the exact `slack_read_thread` call to send |
 | The page kind | `--kind change` (default) / `incident` | which sections the scaffold starts with |
 
 No PR given: the current branch's PR is used. Not in a repo: the story comes from the inputs alone.

@@ -13,17 +13,24 @@
   url      remember the published URL
   list     every explainer, with its URL
 
-EXPLAINERS_DIR defaults to ~/.local/share/explainers. EXPLAINER_TICKET_URL turns a
-ticket id into a link: https://linear.app/acme/issue/{id}.
+EXPLAINERS_DIR defaults to ~/.local/share/explainers. EXPLAINERS_CONFIG (default
+~/.config/explainers/config.json) holds per-repo settings, so no flag is needed per run:
+
+  {"repos": {"acme/shop": {"deploy_check": "my-check {sha}", "ticket_url": "https://linear.app/acme/issue/{id}"}}}
+
+deploy_check runs per merged PR of that repo (exit 0 deployed, 1 not yet); ticket_url turns
+ticket ids found in PR titles into links. EXPLAINER_TICKET_URL is the fallback ticket_url.
 """
 
 import datetime as dt
+import functools
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
 from pathlib import Path
 from typing import Annotated, Literal, assert_never
@@ -34,7 +41,10 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError,
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 EXPLAINERS_DIR = Path(os.environ.get("EXPLAINERS_DIR", Path.home() / ".local/share/explainers"))
-TICKET_URL_TEMPLATE = os.environ.get("EXPLAINER_TICKET_URL", "")
+EXPLAINERS_CONFIG = Path(os.environ.get("EXPLAINERS_CONFIG", Path.home() / ".config/explainers/config.json"))
+TICKET_URL_FALLBACK = os.environ.get("EXPLAINER_TICKET_URL", "")
+TICKET_ID = re.compile(r"\b[A-Z][A-Z0-9]{1,9}-\d+\b")
+BUILD_NOISE = re.compile(r"^(✓ |.*VITE_CONFIG|.*\(!\) |\s*$)")
 DEPLOY_CHECK_TIMEOUT_S = 120
 ISSUE_BODY_MAX_CHARS = 2500
 ISSUE_COMMENTS_SHOWN = 10
@@ -80,6 +90,20 @@ class Workspace(BaseModel):
     threads: list[str]
     deploy_check: str | None
     url: str | None = None
+
+
+class RepoConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    deploy_check: str | None = None
+    ticket_url: str | None = None
+
+
+class Config(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    repos: dict[str, RepoConfig] = Field(default_factory=dict)
+
+    def for_repo(self, repo: str | None) -> RepoConfig:
+        return self.repos.get(repo or "", RepoConfig())
 
 
 class GhCommit(BaseModel):
@@ -128,6 +152,7 @@ class Deps(BaseModel):
 
 
 class PrRef(BaseModel):
+    model_config = ConfigDict(frozen=True)
     repo: str
     number: int
 
@@ -156,23 +181,26 @@ def start(
 ) -> None:
     """Print paths, rules and facts; with --name, also set up the workspace."""
     deps = resolve_deps()
+    config = load_config()
     repo_dir = git_toplevel()
     pr_refs = [parse_pr_ref(raw=raw, repo_dir=repo_dir) for raw in pr or []] or current_branch_pr(repo_dir=repo_dir)
-    status = check_status(pr_refs=pr_refs, deploy_check=deploy_check, repo_dir=repo_dir)
+    status = check_status(pr_refs=pr_refs, deploy_check=deploy_check, config=config, repo_dir=repo_dir)
     git_range = choose_git_range(base=base, head=head, status=status, pr_refs=pr_refs, repo_dir=repo_dir)
+    ticket_url = config.for_repo(pr_refs[0].repo if pr_refs else None).ticket_url or TICKET_URL_FALLBACK
     workspace = Workspace(
         name=name or "", kind=kind, repo_dir=str(repo_dir) if repo_dir else None,
         base=git_range[0], head=git_range[1], paths=path or [],
-        prs=[f"{ref.repo}#{ref.number}" for ref in pr_refs], tickets=ticket or [], threads=thread or [],
-        deploy_check=deploy_check,
+        prs=[f"{ref.repo}#{ref.number}" for ref in pr_refs],
+        tickets=tickets_with_pr_titles(tickets=ticket or [], status=status, ticket_url=ticket_url),
+        threads=thread or [], deploy_check=deploy_check,
     )
     print_paths(deps=deps, name=name)
     print_rules(deps=deps)
-    print_status(status=status, deploy_check=deploy_check)
-    print_inputs(tickets=workspace.tickets, threads=workspace.threads)
+    print_status(status=status)
+    print_inputs(tickets=workspace.tickets, threads=workspace.threads, ticket_url=ticket_url)
     print_git_facts(workspace=workspace)
     if name:
-        create_workspace(workspace=workspace, status=status)
+        create_workspace(workspace=workspace, status=status, ticket_url=ticket_url)
 
 
 @app.command()
@@ -192,7 +220,7 @@ def refresh(name: str) -> None:
     previous = load_status(name)
     repo_dir = Path(workspace.repo_dir) if workspace.repo_dir else None
     pr_refs = [parse_pr_ref(raw=raw, repo_dir=repo_dir) for raw in workspace.prs]
-    current = check_status(pr_refs=pr_refs, deploy_check=workspace.deploy_check, repo_dir=repo_dir)
+    current = check_status(pr_refs=pr_refs, deploy_check=workspace.deploy_check, config=load_config(), repo_dir=repo_dir)
     write_status(name=name, status=current)
     print_status_changes(previous=previous, current=current)
     code = build_workspace(workspace=workspace, deps=resolve_deps(), verify=True)
@@ -246,6 +274,7 @@ def parse_pr_ref(*, raw: str, repo_dir: Path | None) -> PrRef:
     raise typer.BadParameter(f"PR '{raw}': use 123 (inside a repo), owner/repo#123 or the PR URL")
 
 
+@functools.cache
 def current_repo_slug(*, repo_dir: Path) -> str:
     result = run(["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"], cwd=repo_dir)
     return result.stdout.strip()
@@ -261,9 +290,26 @@ def current_branch_pr(*, repo_dir: Path | None) -> list[PrRef]:
     return [PrRef(repo=current_repo_slug(repo_dir=repo_dir), number=branch_pr.number)]
 
 
-def check_status(*, pr_refs: list[PrRef], deploy_check: str | None, repo_dir: Path | None) -> Status:
-    prs = [pr_status(ref=ref, deploy_check=deploy_check, repo_dir=repo_dir) for ref in pr_refs]
+def load_config() -> Config:
+    if not EXPLAINERS_CONFIG.exists():
+        return Config()
+    return Config.model_validate_json(EXPLAINERS_CONFIG.read_text())
+
+
+def check_status(*, pr_refs: list[PrRef], deploy_check: str | None, config: Config, repo_dir: Path | None) -> Status:
+    """A deploy check given for this run wins over the repo's configured one."""
+    with ThreadPoolExecutor() as pool:
+        prs = list(pool.map(
+            lambda ref: pr_status(ref=ref, deploy_check=deploy_check or config.for_repo(ref.repo).deploy_check, repo_dir=repo_dir),
+            pr_refs,
+        ))
     return Status(checked_at=dt.datetime.now(dt.UTC).strftime("%Y-%m-%d %H:%M UTC"), prs=[p for p in prs if p])
+
+
+def tickets_with_pr_titles(*, tickets: list[str], status: Status, ticket_url: str) -> list[str]:
+    """Ticket ids in PR titles join the given tickets when the repo has a ticket link."""
+    found = [match for pr in status.prs for match in TICKET_ID.findall(pr.title)] if ticket_url else []
+    return list(dict.fromkeys([*tickets, *found]))
 
 
 def pr_status(*, ref: PrRef, deploy_check: str | None, repo_dir: Path | None) -> PrStatus | None:
@@ -279,6 +325,7 @@ def pr_status(*, ref: PrRef, deploy_check: str | None, repo_dir: Path | None) ->
     )
 
 
+@functools.cache
 def fetch_pr(*, ref: PrRef) -> GhPr | None:
     result = run(["gh", "pr", "view", str(ref.number), "--repo", ref.repo, "--json", GH_PR_FIELDS], cwd=None)
     if result.returncode != 0:
@@ -368,12 +415,12 @@ def print_rules(*, deps: Deps) -> None:
         print(rule_file.read_text())
 
 
-def print_status(*, status: Status, deploy_check: str | None) -> None:
+def print_status(*, status: Status) -> None:
     if not status.prs:
         return
     print("\n# Status\n")
     for pr in status.prs:
-        print(f"- {pr.ref} · {pr.state}{merged_detail(pr)} · {deploy_detail(pr=pr, deploy_check=deploy_check)} · {pr.url}")
+        print(f"- {pr.ref} · {pr.state}{merged_detail(pr)} · {deploy_detail(pr)} · {pr.url}")
         print(f"  {pr.title}")
     print(f"\nChecked {status.checked_at}. Merged is not deployed: say which on the page.")
 
@@ -382,34 +429,31 @@ def merged_detail(pr: PrStatus) -> str:
     return f" {pr.merged_at[:10]} as {pr.merge_sha[:9]}" if pr.merged_at and pr.merge_sha else ""
 
 
-def deploy_detail(*, pr: PrStatus, deploy_check: str | None) -> str:
+def deploy_detail(pr: PrStatus) -> str:
     if pr.state != "merged":
         return "not deployed"
-    if not deploy_check:
-        return "deployed: unknown (no --deploy-check)"
-    return {True: "deployed", False: "NOT deployed yet", None: "deployed: check failed"}[pr.deployed]
+    return {True: "deployed", False: "NOT deployed yet", None: "deployed: unknown (no deploy check for this repo)"}[pr.deployed]
 
 
-def print_inputs(*, tickets: list[str], threads: list[str]) -> None:
+def print_inputs(*, tickets: list[str], threads: list[str], ticket_url: str) -> None:
     if not tickets and not threads:
         return
     print("\n# Inputs\n")
     for ticket in tickets:
-        print_ticket(ticket)
+        print_ticket(ticket=ticket, ticket_url=ticket_url)
     for thread_url in threads:
         print_thread(thread_url)
 
 
-def print_ticket(ticket: str) -> None:
+def print_ticket(*, ticket: str, ticket_url: str) -> None:
     parsed = urlparse(ticket)
     parts = parsed.path.strip("/").split("/")
     if parsed.netloc == "github.com" and len(parts) == 4 and parts[2] == "issues":
         print_github_issue(ticket)
         return
-    link = ticket if parsed.scheme else TICKET_URL_TEMPLATE.replace("{id}", ticket)
-    print(f"## Ticket {ticket}")
-    print(f"Link: {link or '(set EXPLAINER_TICKET_URL to link ids)'}")
-    print("Fetch it in turn 2, with the source reads: your tracker's tool (Linear: get_issue + list_comments).\n")
+    link = ticket if parsed.scheme else ticket_url.replace("{id}", ticket)
+    print(f"## Ticket {ticket}: {link or '(no ticket_url for this repo in EXPLAINERS_CONFIG)'}")
+    print("Optional: fetch it alongside writing App.tsx only if the PR doesn't explain the why (Linear: get_issue).\n")
 
 
 def print_github_issue(issue_url: str) -> None:
@@ -446,7 +490,8 @@ def print_git_facts(*, workspace: Workspace) -> None:
     subprocess.run(["bash", str(SKILL_DIR / "scripts/gather-facts.sh"), *args], cwd=workspace.repo_dir)
 
 
-def create_workspace(*, workspace: Workspace, status: Status) -> None:
+def create_workspace(*, workspace: Workspace, status: Status, ticket_url: str) -> None:
+    """Prints the scaffold instead of writing App.tsx, so App.tsx is a new file the agent writes in one call."""
     directory = EXPLAINERS_DIR / workspace.name
     directory.mkdir(parents=True, exist_ok=True)
     existing = load_workspace(workspace.name) if (directory / "explainer.json").exists() else None
@@ -455,18 +500,23 @@ def create_workspace(*, workspace: Workspace, status: Status) -> None:
     if not (directory / "specs.json").exists():
         (directory / "specs.json").write_text("[]\n")
     app_file = directory / "App.tsx"
-    if not app_file.exists():
-        app_file.write_text(scaffold_app(workspace=workspace))
-    print(f"\n# Workspace\n\n{directory}: App.tsx ({'kept' if existing else 'scaffolded'}), specs.json, status.ts")
+    print(f"\n# Workspace\n\n{directory}: specs.json, status.ts")
+    if app_file.exists():
+        print(f"App.tsx exists: Read it before editing ({app_file}).")
+        return
+    print(f"Write {app_file} (a new file) starting from this scaffold:\n")
+    print("```tsx")
+    print(scaffold_app(workspace=workspace, ticket_url=ticket_url), end="")
+    print("```")
 
 
 # ---------------------------------------------------------------- scaffold
 
 
-def scaffold_app(*, workspace: Workspace) -> str:
+def scaffold_app(*, workspace: Workspace, ticket_url: str) -> str:
     """A starting point with every slot marked ⟨…⟩; verify.sh fails until each is replaced or cut."""
     meta = page_meta(workspace)
-    tickets = " · ".join(ticket_ref(t) for t in workspace.tickets)
+    tickets = " · ".join(ticket_ref(ticket=t, ticket_url=ticket_url) for t in workspace.tickets)
     eyebrow_tickets = f"{tickets} · " if tickets else ""
     return (
         SCAFFOLD_HEAD.replace("__META__", meta).replace("__TICKETS__", eyebrow_tickets)
@@ -483,8 +533,8 @@ def page_meta(workspace: Workspace) -> str:
     return f"{{ repo: '{current_repo_slug(repo_dir=repo_dir)}', sha: '{sha}' }}"
 
 
-def ticket_ref(ticket: str) -> str:
-    link = ticket if urlparse(ticket).scheme else TICKET_URL_TEMPLATE.replace("{id}", ticket) or "⟨ticket URL⟩"
+def ticket_ref(*, ticket: str, ticket_url: str) -> str:
+    link = ticket if urlparse(ticket).scheme else ticket_url.replace("{id}", ticket) or "⟨ticket URL⟩"
     label = ticket.rstrip("/").split("/")[-1] if urlparse(ticket).scheme else ticket
     return f'<Ref href="{link}">{label}</Ref>'
 
@@ -626,6 +676,9 @@ SCAFFOLD_TAIL = """    </Page>
 
 def build_workspace(*, workspace: Workspace, deps: Deps, verify: bool) -> int:
     directory = EXPLAINERS_DIR / workspace.name
+    if not (directory / "App.tsx").exists():
+        print(f"✗ no {directory / 'App.tsx'}: write it from the scaffold `start` printed")
+        return 1
     artifact_src = directory / workspace.name / "src"
     if not artifact_src.exists():
         run(["bash", str(deps.wab / "scripts/new-artifact.sh"), workspace.name], cwd=directory)
@@ -634,8 +687,17 @@ def build_workspace(*, workspace: Workspace, deps: Deps, verify: bool) -> int:
     command += ["--specs", "specs.json"] if has_specs(directory / "specs.json") else []
     command += ["--repo", workspace.repo_dir] if workspace.repo_dir else []
     command += [] if verify else ["--no-verify"]
+    return run_quietly(command=command, cwd=directory)
+
+
+def run_quietly(*, command: list[str], cwd: Path) -> int:
+    """Streams the build and verify report without passed checks and bundler noise: only what needs acting on."""
     sys.stdout.flush()
-    return subprocess.run(command, cwd=directory).returncode
+    with subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True) as process:
+        for line in process.stdout or []:
+            if not BUILD_NOISE.match(line):
+                print(line, end="")
+    return process.returncode
 
 
 def has_specs(specs_file: Path) -> bool:

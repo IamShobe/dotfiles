@@ -149,3 +149,17 @@ if [ -n "$DEPS" ]; then
     git diff -U0 "$RANGE" -- "$f" | grep -E '^[+-][[:space:]]*"?[A-Za-z0-9@/_.-]+"?[[:space:]]*[:=]' | grep -vE '^(\+\+\+|---)' | sed 's/^/    /' | head -12
   done
 fi
+
+# The code diff itself when it fits, so the story can be written without opening files.
+# Tests, lockfiles, snapshots and generated metadata are left out; their names are above.
+DIFF_MAX_LINES="${GATHER_DIFF_MAX_LINES:-900}"
+CODE_DIFF="$(git diff -U4 "$RANGE" -- "${PS[@]}" ':(exclude)*.lock' ':(exclude)*lock.json' ':(exclude)*lock.yaml' \
+  ':(exclude)*.snap' ':(exclude)**/meta/*.json' ':(exclude)**/__snapshots__/**' ':(exclude)*.spec.*' ':(exclude)*.test.*' \
+  ':(exclude)**/__integration__/**' ':(exclude)**/tests/**' ':(exclude)*.min.*')"
+N_DIFF="$(printf '%s\n' "$CODE_DIFF" | wc -l | tr -d ' ')"
+if [ -n "$CODE_DIFF" ] && [ "$N_DIFF" -le "$DIFF_MAX_LINES" ]; then
+  echo; echo "## Code diff ($N_DIFF lines; tests and generated files left out)"
+  echo '```diff'; printf '%s\n' "$CODE_DIFF"; echo '```'
+elif [ -n "$CODE_DIFF" ]; then
+  echo; echo "## Code diff: $N_DIFF lines, over $DIFF_MAX_LINES — read the files the story needs (narrow with --path)"
+fi
