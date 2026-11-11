@@ -1,6 +1,6 @@
 # Readability: the core standard
 
-Write every page for a reader with no working memory to spare: tired, interrupted, skimming between two other tasks. If that reader gets it, everyone does. These rules apply to the whole page, not only the TL;DR. `$WAB/scripts/verify.sh` warns on the measurable ones (⚠ lines); the rest are yours to apply.
+Write every page for a reader with no working memory to spare: tired, interrupted, skimming between two other tasks. If that reader gets it, everyone does. These rules apply to the whole page, not only the TL;DR. `verify.sh` warns on the measurable ones (⚠ lines); the rest are yours to apply.
 
 What drives the rules:
 
@@ -12,10 +12,10 @@ What drives the rules:
 
 ## Rules
 
-1. **Lead with the outcome.** Every section's first line (its `takeaway`) is the result, not the background: "Every 6 hours, a check disabled Ido", not "To understand the issue, we first need to look at how accounts work". Background comes after, and only if needed.
+1. **Lead with the outcome.** Every section's first line (its `takeaway`) is the result, not the background: "Sam's order was cancelled with a valid card on file", not "To understand the issue, we first need to look at how accounts work". Background comes after, and only if needed.
 2. **Takeaways are one or two short sentences, ≤ 25 words.** Read in order, the takeaways tell the whole story (the takeaway test). ⚠ when over 25 words.
 3. **Short paragraphs.** ≤ 3 lines, ≤ 60 words. One idea per paragraph. A paragraph that needs a second read gets shorter or becomes a block (table, before/after, steps). ⚠ when over 60 words.
-4. **Numbers, not adjectives.** "6 people, 35 memberships, every 6 hours", not "several users, regularly". Times and dates are concrete ("15:43 UTC", "since Nov 4"). Time estimates are ranges in units ("about 15 minutes", "one afternoon").
+4. **Numbers, not adjectives.** "312 orders, since Mar 3, every retry", not "several orders, recently". Times and dates are concrete ("15:43 UTC", "since Nov 4"). Time estimates are ranges in units ("about 15 minutes", "one afternoon").
 5. **Ordered actions are numbered `<Steps>`.** One bounded action per step, no "and then" twice. Done steps say so (✓), the next one is marked ("Next: …").
 6. **Lists stay at ≤ 5 items.** Group or rank longer ones, or split into "now" and "later". ⚠ when a list runs past 5.
 7. **One word per thing, plain words first.** Pick one name per concept and keep it everywhere (prose, tables, diagrams, TL;DR). Prefer the everyday word ("sign-in") to the system's word until a `<Term>` introduces the system's word.

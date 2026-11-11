@@ -14,6 +14,11 @@ React + TS + Tailwind + shadcn/ui (41 components) + rich libs → one self-conta
 
 The bottleneck is agent round-trips, not the build. Minimize turns:
 
+- Send independent calls in one response: `Write App.tsx` + `Bash build.sh`; on edits `Edit` + `build.sh` + `Artifact` publish together.
+- Read the references you need in one `cat`, not one `Read` each. Don't re-read a file you just wrote.
+- Each Bash call is a fresh shell: call scripts by absolute path (`build.sh` resolves its own deps).
+- Fix every ✗ from verify in one edit pass, then one rebuild.
+
 ```bash
 bash scripts/build.sh <name> App.tsx [--specs specs.json] [--repo <checkout>]   # render diagrams, bundle, verify → <name>.html
 bash scripts/build.sh <name>                                                    # rebuild after editing <name>/src/App.tsx
@@ -33,7 +38,7 @@ Without it the title falls back to `<name>`, so pick a human-readable `<name>` (
 
 ## Building blocks
 
-- **Page kit** (`@/kit`, shipped in the template): `Page` (hero, theme, scroll container, TOC), `Section`, text (`P`, `Term`, `Id`, `Src`, `Mark`, `Chip`, `Gone`) and blocks (`BeforeAfter`, `Changes`, `Deprecations`, `Table`, `Card`, `Grid`, `Callout`, `Code`, `Steps`, `Figure`). Read `references/kit.md` before writing `App.tsx`; prefer the kit over hand-written JSX.
+- **Page kit** (`@/kit`, shipped in the template): `Page` (hero, theme, scroll container, grouped TOC rail), `Section`, text (`P`, `Term`, `Id`, `Ref`, `Src`, `Mark`, `Chip`, `Gone`, `Added`) and blocks (`Tldr`, `BeforeAfter`, `Changes`, `Deprecations`, `TimeChart`, `Table`, `Card`, `Grid`, `Callout`, `Code`, `Steps`, `Figure`, `Playground`). Read `references/kit.md` before writing `App.tsx`; prefer the kit over hand-written JSX.
 - **Design system**: theme vars, colors, contrast, narrow-width rules → `references/design.md` (rules for any custom JSX) and `references/theme-tokens.md` (raw values; the palette lives in `template/src/theme.tsx`).
 - **Diagrams**: `references/diagram-types.md` is the catalog (which type answers which question). ⚙ types render from a JSON spec: `python3 scripts/diagrams/render.py --example <type>`, then pass the specs to `build.sh --specs`. ✎ types are drawn by hand following `references/diagram-brief.md` and converted with `scripts/diagram-to-jsx.sh <name> <files>`, which maps every color to the theme vars.
 - **Verify**: `build.sh` ends with `scripts/verify.sh <name> [repo]` (✗ fails, ⚠ readability warnings: long takeaways and paragraphs, lists over 5, hedges and idioms): theme-only colors, no shadows, responsive grids, title, `<Src>` links resolve, `<Term>` order, overflow and tiny text at 390/768/1280px, one light+dark contact sheet. Fix every ✗ in one pass.
@@ -47,8 +52,8 @@ Reach for one only when it beats plain JSX; unused imports tree-shake out. **Bef
 | Highlight/circle/underline a phrase | `react-rough-notation` → `RoughNotation` |
 | Hover tooltip (wrap a `<span>`) | `@tippyjs/react` → `Tippy` + `import 'tippy.js/dist/tippy.css'` |
 | Syntax-highlighted code | `prism-react-renderer` → `Highlight, themes` |
-| Charts | `recharts` (wrap in `ResponsiveContainer`) |
-| Flow/sequence/state diagram | `import mermaid` + render in `useEffect` (see Mermaid below) (+3MB) |
+| Charts | `recharts` (wrap in `ResponsiveContainer`); values over time → kit `<TimeChart>` |
+| Flow/sequence/state diagram | `scripts/diagrams/render.py` spec (themed SVG); mermaid only as a last resort (+3MB, ignores the theme) |
 | Before/after wipe | `react-compare-slider` (img src = data-URI) |
 | Staggered animation | `animejs` → `animate, stagger` |
 | Hand-drawn shapes | `roughjs` → `rough` |
@@ -57,7 +62,7 @@ Reach for one only when it beats plain JSX; unused imports tree-shake out. **Bef
 Icons: `lucide-react`. Brand logos: inline Simple-Icons `<svg fill="currentColor">`.
 Bundle baseline ~450KB; `+recharts` ~+500KB; `import mermaid` ~+3MB.
 
-**Mermaid:** `import mermaid`, render in a `useEffect` (native `<pre className="mermaid">` no-ops — host only scans initial static HTML). Component → `references/recipes.md`. **Authoring clear, color-coded diagrams** (4–7 nodes, `classDef` color-by-role, shapes, syntax) → `references/mermaid.md`.
+**Mermaid (last resort):** `import mermaid`, render in a `useEffect` (native `<pre className="mermaid">` no-ops — host only scans initial static HTML). Component → `references/recipes.md`. **Authoring clear, color-coded diagrams** (4–7 nodes, `classDef` color-by-role, shapes, syntax) → `references/mermaid.md`.
 
 ## The iframe scrolls differently (critical)
 
@@ -76,6 +81,6 @@ Avoid "AI slop": no excessive centering, purple gradients, uniform rounded corne
 ## Notes
 
 - shadcn docs: https://ui.shadcn.com/docs/components · adding a component (vendor it, no build-time network): `references/recipes.md`.
-- Skip pre-publish testing (adds latency); Playwright after, only if needed.
+- `verify.sh` is the pre-publish test; Playwright only for interaction bugs it can't see.
 - `new-artifact.sh` / `build-artifact-fast.sh` = clone / build separately. Template deps missing → `(cd template && pnpm install)`.
 - **Stale-clone gotcha:** `make-artifact.sh <name>` skips the clone if `<name>/` exists (rebuild only). Added a file to `template/src` since? An old clone won't have it → `UNLOADABLE_DEPENDENCY`. Fix: `rm -rf <name>` and re-run.
