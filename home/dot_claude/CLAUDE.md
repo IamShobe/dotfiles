@@ -4,6 +4,10 @@
 
 Use `gh` CLI for all GitHub work (authenticated as IamShobe). No GitHub MCP server — don't install/use one.
 
+# Search
+
+Text search: `rg` (skips .gitignore'd files, ~13× faster than grep in rtk stats). Code structure: `ast-grep` (`sg`). Never `grep -r` or `git grep`; a PreToolUse hook blocks them. Plain `grep` on a pipe or one file is fine.
+
 # chezmoi
 
 `~` is chezmoi-managed (source: `~/.local/share/chezmoi`); some files are templates (`~/.claude/settings.json`, `~/.zshrc`, `~/.gitconfig`). Editing anything under `~`, `~/.config`, `~/.claude` — even without the user saying "chezmoi" — invoke the `chezmoi` skill before touching the file; don't just run `source-path` from memory. Never `chezmoi add` an already-tracked file (destroys templates) — use `re-add`.

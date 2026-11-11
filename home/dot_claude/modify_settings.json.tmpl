@@ -93,6 +93,10 @@ MANAGED = json.loads(r"""
         "hooks": [
           {
             "type": "command",
+            "command": "bash '{{ .chezmoi.homeDir }}/.claude/hooks/prefer-rg.sh'"
+          },
+          {
+            "type": "command",
             "command": "/opt/homebrew/bin/rtk hook claude"
           }
         ]
