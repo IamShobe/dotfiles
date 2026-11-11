@@ -35,7 +35,10 @@ fi
 mkdir -p "$NAME/src/kit"
 cp "$HERE/../template/src/kit/index.tsx" "$NAME/src/kit/index.tsx"
 
-bash "$WAB/scripts/make-artifact.sh" "$NAME" $APP >/dev/null
+[ -e "$NAME/node_modules" ] || ln -s "$WAB/template/node_modules" "$NAME/node_modules"   # a moved or copied workspace
+if ! out="$(bash "$WAB/scripts/make-artifact.sh" "$NAME" $APP 2>&1)"; then
+  printf '%s\n' "$out" | tail -25 >&2; echo "❌ bundle failed" >&2; exit 1
+fi
 cp "$NAME/bundle.html" "$NAME.html"
 echo "✅ $NAME.html ($(du -h "$NAME.html" | cut -f1)) — publish this path"
 
