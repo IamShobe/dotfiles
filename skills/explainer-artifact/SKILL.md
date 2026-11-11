@@ -21,7 +21,7 @@ The cost is agent round-trips, not builds. A first publish takes **5 turns**; ea
 | Turn | What you send (one response) |
 |---|---|
 | 1 | `X start --name <name> [inputs]`: paths, every rule file, PR status, inputs to fetch, git facts, and a workspace with a starting `App.tsx` |
-| 2 | In parallel: every source read, the ticket and thread fetches it lists, and the ✎ diagram subagent if any |
+| 2 | In parallel: `Read` the scaffold App.tsx (the tool refuses to `Write` over an unread file), every source read, the ticket and thread fetches it lists, and the ✎ diagram subagent if any |
 | 3 | `Write` App.tsx (over the scaffold) + `Write` specs.json + `Bash X build <name>` |
 | 4 | All fixes for ✗/⚠ and the contact sheet as `Edit`s + `X build <name>`; publish too when turn 3 was clean |
 | 5 | `Artifact` publish; in the same response, `X url <name> <url>` once the URL is known, and the share message |
@@ -29,6 +29,7 @@ The cost is agent round-trips, not builds. A first publish takes **5 turns**; ea
 
 - Don't `Read` the rule files: `start` printed them. Don't re-read a file you just wrote.
 - `start` prints absolute paths; every shell is fresh, so use them.
+- `verify.sh` checks only literal values: write `<Src path="…">` and ticket links inline, never through a constant.
 - Text-only edits: skip the contact sheet; verify's text checks still run. Open the sheet only when layout changed.
 - Status moved (deployed now)? `X refresh <name>` re-checks it, rebuilds, and lists the prose to update.
 - A later session: `X list` finds the workspace and URL; `Read` its App.tsx once, then edit turns as above.
