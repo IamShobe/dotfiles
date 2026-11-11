@@ -28,6 +28,9 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 | A flow, a sequence, a lifecycle | a diagram in a `<Figure>` (`$WAB/references/diagram-types.md`) |
 | Something the reader should try (pick a case, toggle a mode, click a node) | `<Playground controls>` with each chart in a `<Figure>` |
 | Ordered actions (rollout, how to extend) | `<Steps>` |
+| Proof that it works (a command, query or URL) | `<Code>` under "How to check it" |
+| What could break, how you'd see it, how to undo | `<Table>` If · You see · Undo, under "Risk and rollback" |
+| Open questions | `<Table>` Question · Who · By, under "Decisions needed" |
 | A lookup of homogeneous items with short attributes | `<Table>` |
 
 ## TL;DR first, then the story
@@ -56,6 +59,13 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 ## Readable everywhere
 
 The TL;DR rules hold for the whole page: `references/readability.md` is the core standard (outcome first, short takeaways and paragraphs, numbers not adjectives, lists ≤ 5, one word per concept, no filler, end on an action).
+
+## Shipping and what's next
+
+- **Rollout status** comes from `status.ts` (written by `explainer.py`): the steps, the eyebrow and the TL;DR status row show merged, not deployed yet, or deployed without hand-editing. Add the step after deploy by hand ("Then: access returns at the next check").
+- **How to check it**: the one command, query or URL that proves the change works in production, and what the reader should see.
+- **Risk and rollback**: only real risks. Each row: the failure, the alert or dashboard that shows it, how to undo it. "Revert act#42" counts.
+- **Decisions needed**: only when something is open. Each question names who decides and by when. No owner → it's not a decision, it's a note in *What's next*.
 
 ## Introduce before you use
 

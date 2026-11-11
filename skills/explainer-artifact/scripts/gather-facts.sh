@@ -38,7 +38,8 @@ URL="$(git remote get-url origin 2>/dev/null || true)"
 REPO="$(printf '%s' "$URL" | sed -E 's#^(ssh://)?(git@|https?://)?[^/:]+[:/]##; s#\.git$##')"
 HOST="$(printf '%s' "$URL" | sed -E 's#^(ssh://)?(git@|https?://)?([^/:]+).*#\3#')"
 
-echo "# Facts: $(git rev-parse --abbrev-ref "$HEAD_REF") vs $BASE"
+HEAD_NAME="$(git rev-parse --abbrev-ref "$HEAD_REF" 2>/dev/null)"; [ -n "$HEAD_NAME" ] || HEAD_NAME="$(git rev-parse --short "$HEAD_REF")"
+echo "# Facts: $HEAD_NAME vs $BASE"
 echo
 echo '```ts'
 if [ -n "$REPO" ]; then
