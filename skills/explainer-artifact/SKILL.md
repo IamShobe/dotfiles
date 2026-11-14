@@ -71,6 +71,10 @@ The scaffold is a starting point, not a form: every slot is a `⟨…⟩` placeh
 - **3–4 parts** with `group`, section titles ≤ 4 words.
 - **One running example** (a person, a request, a row) through the whole page, diagrams included.
 - **A smart outsider**: knows the product, not this code.
+- **Context before data.** Right after the TL;DR, one short section says what the system or step does and where the problem shows up, with one flow diagram, before any measurement, metric name or internal label. A reader who doesn't know the mechanism can't read the evidence; findings without it read as random words.
+- **One mental model.** The thesis names the single idea that explains the page ("work is split up front, so everything waits for the slowest piece"). Every section ties back to it; a section that doesn't is cut or moved to the appendix.
+- **Answer the reader's real questions.** Before writing, list the 2–4 questions the reader will ask ("does it get faster?", "by how much?", "what do I do?") and give each a TL;DR row or a section titled as the question. The headline effect (time, cost, errors) always gets a number, an estimate if that's all there is, with its arithmetic shown.
+- **A write-up, not a pitch.** Every claim says measured or estimated ("4.0 h, measured", "about 1.6 h, estimated: 448 ÷ 275"). No projections in the TL;DR beyond what the data supports, no slogans, no pills that sell.
 - **Takeaway test**: the thesis plus each `takeaway`, read in order, is one coherent paragraph (`verify.sh` prints it). If not, reorder or cut.
 
 | Section | Kit |
@@ -78,7 +82,9 @@ The scaffold is a starting point, not a form: every slot is a `⟨…⟩` placeh
 | Hero: eyebrow with `<Ref>` links and status, title, thesis | `<Page eyebrow title thesis pills>` |
 | TL;DR | `<Tldr>` + `<BeforeAfter example rows result>` |
 | What changed for users (if any) | `<BeforeAfter>`, a mockup |
-| How it works / why it broke | one diagram in `<Figure>` |
+| Background: what the system does | one flow diagram in `<Figure>` + 2 short paragraphs |
+| How it works / why it broke | one diagram in `<Figure>`; causes as `<Table>` Cause · Evidence · Effect |
+| Handover to another owner | `<Table>` Requirement · Why · Today, then open questions and where the evidence lives |
 | What happened (incident) | a timeline: `<Table>` When · What, or a `<TimeChart>` with milestones |
 | Interface changes | `<Changes>`, user-facing and developer-facing apart |
 | Deprecated & removed | `<Deprecations>` |
@@ -111,3 +117,5 @@ The reply after publishing ends with a message the user can paste into Slack as 
 ## Before publishing
 
 Read only the TL;DR and each section's first line: do you know what happened and what to do next? `verify.sh` shows no ✗ and no readability ⚠; deprecations say gone vs kept; each diagram's type fits its question.
+
+Then read it as the outsider: after the first two sections, could they explain the problem in one sentence? Does every chart have a sentence under it saying what to notice? Is every number labelled measured or estimated, and cross-checked (`references/formatting.md`, "Numbers you can defend")? If not, fix it before the first publish: a confusing first version costs the reader's trust.

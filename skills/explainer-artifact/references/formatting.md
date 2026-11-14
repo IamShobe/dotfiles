@@ -37,7 +37,7 @@ Every block passes the **glance test**: a reader who looks at it for three secon
 
 - **The first section is the TL;DR: facts, then the picture.** A `<Tldr>` answers the questions a reader comes with, one row each, in this order: *What broke* (or *What's new*), *Why*, *The fix*, *Status* (`<Ref>` links, merged vs deployed said honestly), *What you do* (the one next action, or "Nothing" plus when it resolves itself). Then the page's main `<BeforeAfter>` on the running example. No takeaway sentence and no `caption` there: the rows already say it. A reader who stops here has the full picture; every later section is the long version of one row.
 - **Readable in seconds.** Write the TL;DR for a reader with no working memory to spare:
-  - each `statement` is ≤ 8 plain words and leads with the outcome ("Act staff locked out", not "An issue was found where…");
+  - each `statement` is ≤ 8 plain words and leads with the outcome ("Admins locked out", not "An issue was found where…");
   - every number, count, date and frequency moves out of the sentence into a `facts` pill ("6 people", "every 6 hours", "since Nov 4"), so the eye picks numbers up without parsing;
   - one idea per row, no em-dash clauses, no "which means";
   - the last row is the reader's next action; "Nothing" is a valid, valuable answer.
@@ -64,7 +64,7 @@ The TL;DR rules hold for the whole page: `references/readability.md` is the core
 
 - **Rollout status** comes from `status.ts` (written by `explainer.py`): the steps, the eyebrow and the TL;DR status row show merged, not deployed yet, or deployed without hand-editing. Add the step after deploy by hand ("Then: access returns at the next check").
 - **How to check it**: the one command, query or URL that proves the change works in production, and what the reader should see.
-- **Risk and rollback**: only real risks. Each row: the failure, the alert or dashboard that shows it, how to undo it. "Revert act#42" counts.
+- **Risk and rollback**: only real risks. Each row: the failure, the alert or dashboard that shows it, how to undo it. "Revert shop#42" counts.
 - **Decisions needed**: only when something is open. Each question names who decides and by when. No owner → it's not a decision, it's a note in *What's next*.
 
 ## Introduce before you use
@@ -105,6 +105,19 @@ Every new word (a concept, an internal name, an acronym, a renamed thing) is def
 - **Every outlier gets its reason.** A spike, a dip or a hand-over has a milestone at its date ("New checkout for every order"), so the reader never asks "what happened here?". The milestone that is the story is `focal`.
 - **Show the rhythm the reader would otherwise misread:** weekends (`shadeDays`), and what the count includes, in the caption ("retries included").
 - Enough days on each side of the change to show the before is stable: about two weeks before and after.
+
+## Charts that carry the point
+
+- **Pick the chart for the story, not for the stats you have.** If the story is "most of the time went to a long tail", plot the quantity over time so the tail is visible. Summary statistics (percentiles, averages) hide shape: a reader sees five bars and no story.
+- **Every chart gets one sentence under it**: how to read it and what to notice ("Read left to right: until 05:50 every slot is busy; after that a few pods run on for two hours.").
+- **Check the rendered legend.** It must name what each color or series means. Commentary ("43× the plan") belongs in the caption or the sentence below, not in a series note that the renderer turns into a legend entry.
+- **No chart for two numbers.** If the point is one number against another, write them in the text or a table row.
+
+## Numbers you can defend
+
+- **Cross-check every metric** against a second source or a hard bound before publishing. A value above its own limit, a total above capacity, or two counts that disagree means a wrong metric or double counting: find out which before using either.
+- **Label each number** measured (with its source) or estimated (with its arithmetic), in the cell or sentence that holds it.
+- **When a published number turns out wrong**, fix it on the page and say so in the reply. Never leave a corrected claim silently.
 
 ## Interface changes
 
