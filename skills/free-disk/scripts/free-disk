@@ -1,6 +1,7 @@
 #!/usr/bin/env zsh
 # Free disk space without losing work: remove finished git worktrees (prune-worktrees),
-# delete build output in idle ones, then trim caches that rebuild themselves.
+# delete build output in idle ones, trim caches that rebuild themselves, and drop app copies
+# macOS left behind for apps that were killed (Chrome under browser automation).
 # Dry run unless --apply. Every step skips itself when its tool is not installed.
 #
 #   free-disk                          # report what each step would free
@@ -30,6 +31,7 @@ last_run_file=$state_dir/last-run
 max_seconds_between_runs=$((20 * 60 * 60))
 lock_wait_seconds=60
 unused_image_age=168h
+code_sign_clone_age_days=1
 
 main() {
   if [[ -n $threshold_gib ]] && ! is_due; then
@@ -43,6 +45,7 @@ main() {
   step npm        clean_npm
   step uv         clean_uv
   step docker     clean_docker
+  step app-clones clean_code_sign_clones
   report_leftovers
   print "== free: $(free_human)"
   if $apply; then mark_run; else print "dry run — rerun with --apply"; fi
@@ -103,6 +106,20 @@ clean_docker() {
     docker builder prune -f --filter "until=$unused_image_age" | tail -1
   else
     docker system df | awk 'NR==1 || /^(Images|Build Cache)/'
+  fi
+}
+
+# macOS copies an app bundle into <per-user folder>/X/<bundle id>.code_sign_clone each time it
+# starts, and deletes the copy on a clean exit. Apps that get killed (Chrome driven by browser
+# automation) leave one behind per launch. A running app only uses its newest copy.
+clean_code_sign_clones() {
+  local clones_root=${${TMPDIR%/}:h}/X
+  local stale=($clones_root/*.code_sign_clone/code_sign_clone.*(N/m+$code_sign_clone_age_days))
+  (( $#stale )) || { print "none older than $code_sign_clone_age_days day"; return; }
+  if $apply; then
+    rm -rf -- $stale && print "removed $#stale stale app copies"
+  else
+    print "$#stale stale app copies: $(du -shc $stale 2>/dev/null | tail -1 | cut -f1) (APFS clones: frees less)"
   fi
 }
 
