@@ -497,10 +497,9 @@ def create_workspace(*, workspace: Workspace, status: Status, ticket_url: str) -
     existing = load_workspace(workspace.name) if (directory / "explainer.json").exists() else None
     save_workspace(workspace.model_copy(update={"url": existing.url}) if existing else workspace)
     write_status(name=workspace.name, status=status)
-    if not (directory / "specs.json").exists():
-        (directory / "specs.json").write_text("[]\n")
     app_file = directory / "App.tsx"
-    print(f"\n# Workspace\n\n{directory}: specs.json, status.ts")
+    specs_note = "specs.json exists: Read it before editing" if (directory / "specs.json").exists() else "write specs.json (a new file) only if the page has rendered diagrams"
+    print(f"\n# Workspace\n\n{directory}: status.ts; {specs_note}")
     if app_file.exists():
         print(f"App.tsx exists: Read it before editing ({app_file}).")
         return
