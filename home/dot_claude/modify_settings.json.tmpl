@@ -166,7 +166,7 @@ MANAGED = json.loads(r"""
 """)
 
 # Keys left to whatever the machine already has.
-LOCAL_ONLY_KEYS = ("model", "modelPicker", "sshConfigs", "modelSettings")  # per machine: model choice, workplace models, SSH hosts, /autocompact choices
+LOCAL_ONLY_KEYS = ("model", "advisorModel", "modelPicker", "sshConfigs", "modelSettings")  # per machine: model and /advisor choice, workplace models, SSH hosts, /autocompact choices
 # Gateway rows say [1m], so Claude Code assumes a 1,000,000-token window. A model whose real
 # window is smaller would fail before auto-compaction starts, so it gets a per-model compaction
 # window from the gateway's model datasheet (or "context_window" in model_picker).
