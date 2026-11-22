@@ -146,8 +146,14 @@ line2 = []
 context_window = payload.get("context_window") or {}
 used = context_window.get("used_percentage")
 if used is not None:
-    color = pct_color(used)
     tokens = context_used_tokens(payload.get("transcript_path"))
+    window = context_window.get("context_window_size")
+    # Models behind a gateway that converts formats (GPT, Gemini) report input tokens only at
+    # the end of a streamed reply, so Claude Code's percentage stays 0; the transcript has
+    # the real usage.
+    if not used and tokens and window:
+        used = min(100, tokens / window * 100)
+    color = pct_color(used)
     tokens_str = f" ({fmt_tokens(tokens)})" if tokens is not None else ""
     line2.append(f"{color}◉{RESET} ctx {used:.0f}%{tokens_str}")
 
