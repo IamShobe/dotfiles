@@ -1,4 +1,21 @@
-{{- /* Only generic settings belong here. Local providers never enter the source tree. */ -}}
+{{- /* Only generic settings belong here. Local providers never enter the source tree.
+
+  Optional, in providers.local.json:
+    "subscription_fallbacks": ["azure/some-model"]   provider/model entries ("provider/" keeps the model)
+  When the subscription refuses a request at its usage limit (HTTP 429, which it returns once
+  extra usage is turned off in Claude's settings), Bifrost retries it on these providers with
+  their own keys. The setup script runs bifrost-fallback-check and removes the fallbacks again
+  if any of them would receive Claude Code's sign-in.
+*/ -}}
+{{- $claudeRule := dict
+  "id" "route-claude"
+  "name" "Claude subscription"
+  "enabled" true
+  "scope" "global"
+  "priority" 100
+  "cel_expression" "model.startsWith('claude-')"
+  "targets" (list (dict "provider" "anthropic" "weight" 1.0))
+  "fallbacks" (list) -}}
 {{- $config := dict
   "$schema" "https://www.getbifrost.ai/schema"
   "encryption_key" "env.BIFROST_ENCRYPTION_KEY"
@@ -15,28 +32,34 @@
       "admin_username" "admin"
       "admin_password" "env.BIFROST_ADMIN_PASSWORD"
       "disable_auth_on_inference" true)
-    "routing_rules" (list (dict
-      "id" "route-claude"
-      "name" "Claude subscription"
-      "enabled" true
-      "scope" "global"
-      "priority" 100
-      "cel_expression" "model.startsWith('claude-')"
-      "targets" (list (dict "provider" "anthropic" "weight" 1.0)))))
+    "routing_rules" (list $claudeRule))
   "providers" (dict "anthropic" (dict "keys" (list) "network_config" (dict "max_retries" 0)))
   "plugins" (list)
 -}}
 {{- $localPath := joinPath .chezmoi.homeDir ".config/bifrost/providers.local.json" -}}
 {{- if stat $localPath -}}
   {{- $local := include $localPath | fromJson -}}
-  {{- range $name, $provider := $local.providers -}}
+  {{- $localProviders := dig "providers" (dict) $local -}}
+  {{- range $name, $provider := $localProviders -}}
     {{- if eq $name "anthropic" -}}
       {{- fail "Local providers cannot override the generic Anthropic subscription route" -}}
     {{- end -}}
     {{- $_ := set $config.providers $name $provider -}}
   {{- end -}}
-  {{- if $local.routing_rules -}}
-    {{- $_ := set $config.governance "routing_rules" (concat $local.routing_rules $config.governance.routing_rules) -}}
+  {{- $fallbacks := dig "subscription_fallbacks" (list) $local -}}
+  {{- range $fallback := $fallbacks -}}
+    {{- $provider := index (splitList "/" $fallback) 0 -}}
+    {{- if eq $provider "anthropic" -}}
+      {{- fail "subscription_fallbacks cannot point back at the subscription provider \"anthropic\"" -}}
+    {{- end -}}
+    {{- if not (hasKey $localProviders $provider) -}}
+      {{- fail (printf "subscription_fallbacks entry %q names a provider not defined in providers.local.json" $fallback) -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $_ := set $claudeRule "fallbacks" $fallbacks -}}
+  {{- $localRules := dig "routing_rules" (list) $local -}}
+  {{- if $localRules -}}
+    {{- $_ := set $config.governance "routing_rules" (concat $localRules $config.governance.routing_rules) -}}
   {{- end -}}
 {{- end -}}
 {{ toPrettyJson $config }}

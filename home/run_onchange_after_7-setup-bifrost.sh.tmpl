@@ -81,17 +81,9 @@ if [ ! -x "${BIFROST_BIN}" ] || [ "${installed_version}" != "${BIFROST_VERSION}"
       [ -x "${BIFROST_BIN}" ] && cp "${BIFROST_BIN}" "${backup}/bifrost"
       echo "  backed up the config database and old binary to ${backup}"
     fi
-    was_running=0
-    gateway_up && was_running=1
     mv "${tmp}" "${BIFROST_BIN}"
     echo "${BIFROST_VERSION}" > "${VERSION_FILE}"
-    echo "  installed ${BIFROST_BIN}"
-    if [ "${was_running}" = 1 ] && [ -f "${SECRETS}" ]; then
-      pkill -f "bifrost -host 127.0.0.1 -port ${PORT}" 2>/dev/null || true
-      sleep 1
-      start_gateway && echo "  restarted the running gateway on ${BIFROST_VERSION}" \
-        || echo "  WARNING: gateway did not restart; see ~/.cache/bifrost/proxy.log"
-    fi
+    echo "  installed ${BIFROST_BIN} (a running gateway restarts in step 3)"
   fi
 fi
 
@@ -111,7 +103,39 @@ if [ ! -f "${SECRETS}" ]; then
   echo "  admin password: see ${SECRETS}"
 fi
 
-# --- 3. governance flags -----------------------------------------------------
+# --- 3. fallback safety, then reload -------------------------------------------
+# Some Bifrost versions forward Claude Code's sign-in to a fallback provider. Prove the
+# configured fallbacks receive only their own keys; otherwise remove them before the gateway
+# reads the config. Fail closed: a check that cannot run counts as a failure.
+CONFIG="${BIFROST_DIR}/config.json"
+if [ -f "${CONFIG}" ]; then
+  if "${HOME}/.local/bin/bifrost-fallback-check" --config "${CONFIG}" --bifrost "${BIFROST_BIN}"; then
+    :
+  else
+    python3 - "${CONFIG}" <<'PY'
+import json, sys
+path = sys.argv[1]
+config = json.load(open(path))
+for rule in config.get("governance", {}).get("routing_rules", []):
+    if rule.get("id") == "route-claude":
+        rule["fallbacks"] = []
+json.dump(config, open(path, "w"), indent=2)
+PY
+    echo "  WARNING: subscription fallbacks REMOVED from ${CONFIG}: they would receive Claude Code's sign-in."
+    echo "           Pin another Bifrost version or change the fallback provider, then rerun chezmoi apply."
+  fi
+fi
+
+# This script reruns only when the binary or the config changed, and the gateway reads both
+# only at start: restart a running one.
+if gateway_up && [ -f "${SECRETS}" ]; then
+  pkill -f "bifrost -host 127.0.0.1 -port ${PORT}" 2>/dev/null || true
+  sleep 1
+  start_gateway && echo "Restarted the running gateway (${BIFROST_VERSION})" \
+    || echo "  WARNING: gateway did not restart; see ~/.cache/bifrost/proxy.log"
+fi
+
+# --- 4. governance flags -----------------------------------------------------
 # These live in Bifrost's SQLite config.db, not config.json, so chezmoi cannot
 # manage them declaratively — they have to be set through the running admin API.
 command -v python3 >/dev/null || { echo "python3 missing; skipping governance fixup"; exit 0; }
