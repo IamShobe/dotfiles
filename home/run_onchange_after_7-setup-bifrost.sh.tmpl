@@ -3,7 +3,10 @@
 #
 # Three things are machine-local and therefore NOT in the dotfiles repo; each one of
 # them, when missing, used to need manual debugging:
-#   1. the bifrost binary          -> downloaded here
+#   1. the bifrost binary          -> downloaded here, pinned to BIFROST_VERSION below.
+#      Bumping that line changes this script, so chezmoi reruns it on every machine:
+#      each one backs up its config database, installs the new binary and restarts a
+#      running gateway. Releases: https://github.com/maximhq/bifrost/releases (transports/v*)
 #   2. ~/.config/bifrost/secrets.env -> generated here (random secrets, never committed)
 #   3. governance enforcement flags  -> disabled here via the admin API
 #
@@ -19,13 +22,34 @@
 
 set -euo pipefail
 
+BIFROST_VERSION="v2.6.0"
 BIFROST_BIN="${HOME}/.local/bin/bifrost"
 BIFROST_DIR="${HOME}/.config/bifrost"
 SECRETS="${BIFROST_DIR}/secrets.env"
+VERSION_FILE="${HOME}/.local/state/bifrost/installed-version"
 PORT="${CLAUDE_BIFROST_PORT:-4001}"
 
+gateway_up() { curl -sf -m 1 "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; }
+
+# Same environment as the claude wrapper (exact_dot_zshrc.d/claude-bifrost.zsh), so Azure
+# keys keep resolving tokens through the az shim.
+start_gateway() {
+  (
+    set -a; . "${SECRETS}"; set +a
+    az_bin="$(command -v az 2>/dev/null || echo "${HOME}/.local/share/mise/installs/azure-cli/latest/bin/az")"
+    export BIFROST_REAL_AZ="${az_bin}"
+    export PATH="${HOME}/.local/share/bifrost-az:$(dirname "${az_bin}"):${PATH}"
+    mkdir -p "${HOME}/.cache/bifrost"
+    nohup "${BIFROST_BIN}" -host 127.0.0.1 -port "${PORT}" -app-dir "${BIFROST_DIR}" -log-level warn \
+      >>"${HOME}/.cache/bifrost/proxy.log" 2>&1 &
+  )
+  for _ in $(seq 1 60); do gateway_up && return 0; sleep 0.5; done
+  return 1
+}
+
 # --- 1. binary ---------------------------------------------------------------
-if [ ! -x "${BIFROST_BIN}" ]; then
+installed_version="$(cat "${VERSION_FILE}" 2>/dev/null || true)"
+if [ ! -x "${BIFROST_BIN}" ] || [ "${installed_version}" != "${BIFROST_VERSION}" ]; then
   case "$(uname -s)" in
     Darwin) os=darwin ;;
     Linux)  os=linux ;;
@@ -37,20 +61,37 @@ if [ ! -x "${BIFROST_BIN}" ]; then
     *) echo "bifrost: unsupported arch $(uname -m); skipping"; exit 0 ;;
   esac
 
-  echo "Installing bifrost binary (${os}/${arch})..."
-  mkdir -p "${HOME}/.local/bin"
+  echo "Installing bifrost ${BIFROST_VERSION} (${os}/${arch}, was: ${installed_version:-unknown})..."
+  mkdir -p "${HOME}/.local/bin" "$(dirname "${VERSION_FILE}")"
   tmp="$(mktemp)"
-  if curl -fL --retry 2 -o "${tmp}" \
-      "https://downloads.getmaxim.ai/bifrost/latest/${os}/${arch}/bifrost-http"; then
-    chmod +x "${tmp}"
-    mv "${tmp}" "${BIFROST_BIN}"
-    # Unsigned download: clear the quarantine bit or macOS refuses to exec it.
-    [ "${os}" = darwin ] && xattr -d com.apple.quarantine "${BIFROST_BIN}" 2>/dev/null || true
-    echo "  installed ${BIFROST_BIN}"
-  else
+  if ! curl -fL --retry 2 -o "${tmp}" \
+      "https://downloads.getmaxim.ai/bifrost/${BIFROST_VERSION}/${os}/${arch}/bifrost-http"; then
     rm -f "${tmp}"
-    echo "  WARNING: download failed; claude will run direct until this is fixed"
-    exit 0
+    echo "  WARNING: download failed; keeping the current binary"
+    [ -x "${BIFROST_BIN}" ] || exit 0
+  else
+    chmod +x "${tmp}"
+    # Unsigned download: clear the quarantine bit or macOS refuses to exec it.
+    [ "${os}" = darwin ] && xattr -d com.apple.quarantine "${tmp}" 2>/dev/null || true
+    # New versions migrate config.db in place, and some migrations cannot be undone.
+    if ls "${BIFROST_DIR}"/config.db* >/dev/null 2>&1; then
+      backup="${BIFROST_DIR}/backup-${installed_version:-unknown}-$(date +%Y%m%d-%H%M%S)"
+      mkdir -p "${backup}"
+      cp "${BIFROST_DIR}"/config.db* "${backup}/"
+      [ -x "${BIFROST_BIN}" ] && cp "${BIFROST_BIN}" "${backup}/bifrost"
+      echo "  backed up the config database and old binary to ${backup}"
+    fi
+    was_running=0
+    gateway_up && was_running=1
+    mv "${tmp}" "${BIFROST_BIN}"
+    echo "${BIFROST_VERSION}" > "${VERSION_FILE}"
+    echo "  installed ${BIFROST_BIN}"
+    if [ "${was_running}" = 1 ] && [ -f "${SECRETS}" ]; then
+      pkill -f "bifrost -host 127.0.0.1 -port ${PORT}" 2>/dev/null || true
+      sleep 1
+      start_gateway && echo "  restarted the running gateway on ${BIFROST_VERSION}" \
+        || echo "  WARNING: gateway did not restart; see ~/.cache/bifrost/proxy.log"
+    fi
   fi
 fi
 
@@ -80,17 +121,11 @@ set -a
 . "${SECRETS}"
 set +a
 
-gateway_up() { curl -sf -m 1 "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; }
-
 started_here=0
 if ! gateway_up; then
   echo "Starting bifrost to apply governance settings..."
-  mkdir -p "${HOME}/.cache/bifrost"
-  nohup "${BIFROST_BIN}" -host 127.0.0.1 -port "${PORT}" \
-    -app-dir "${BIFROST_DIR}" -log-level warn \
-    >>"${HOME}/.cache/bifrost/proxy.log" 2>&1 &
   started_here=1
-  for _ in $(seq 1 60); do gateway_up && break; sleep 0.5; done
+  start_gateway || true
 fi
 
 if ! gateway_up; then
