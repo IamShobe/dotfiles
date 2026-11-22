@@ -8,7 +8,9 @@ no other machine should carry:
   - BlueBear's `bluebear hook claude …` hooks — installed and reconciled by the local
     BlueBear daemon, which is not present on every machine.
   - `model` — chosen per machine.
-  - `modelPicker` — extra /model rows for machine-local gateway models (workplace).
+  - `modelPicker` — /model rows, generated from the local gateway's providers
+    (~/.config/bifrost/providers.local.json) so a new gateway model shows up on the next
+    apply; rows added by hand for other models are kept.
   - `enabledPlugins` / `extraKnownMarketplaces` entries this template doesn't name —
     plugins another manager installed here (skillshare owns diagram-design). Entries
     named here still win.
@@ -17,6 +19,7 @@ Anything else in this template is authoritative and overwrites the local value.
 """
 
 import json
+import os
 import sys
 
 MANAGED = json.loads(r"""
@@ -162,7 +165,13 @@ MANAGED = json.loads(r"""
 """)
 
 # Keys left to whatever the machine already has.
-LOCAL_ONLY_KEYS = ("model", "modelPicker")  # modelPicker: workplace models, per machine
+LOCAL_ONLY_KEYS = ("model", "modelPicker", "sshConfigs")  # per machine: model choice, workplace models, SSH hosts
+# The local Bifrost gateway's providers (machine-local, never in this repo). Every model they
+# serve gets a /model row; optional "model_picker": {"<model>": {"label", "description",
+# "model"}} in the same file overrides a generated row.
+GATEWAY_PROVIDERS = os.path.expanduser("~/.config/bifrost/providers.local.json")
+PROVIDER_NAMES = {"azure": "Azure Foundry", "vertex": "Google Vertex", "bedrock": "AWS Bedrock", "openai": "OpenAI"}
+UPPERCASE_WORDS = {"gpt"}
 # Keys merged entry by entry: the machine's entries survive, the template's win.
 MERGED_KEYS = ("enabledPlugins", "extraKnownMarketplaces")
 
@@ -185,6 +194,10 @@ def main():
     for key in LOCAL_ONLY_KEYS:
         if key in current:
             result[key] = current[key]
+
+    picker = gateway_model_picker(current_picker=current.get("modelPicker", {}))
+    if picker is not None:
+        result["modelPicker"] = picker
 
     for key in MERGED_KEYS:
         result[key] = merge_machine_entries(managed=MANAGED.get(key, {}), machine=current.get(key, {}))
@@ -211,6 +224,68 @@ def main():
 def merge_machine_entries(*, managed, machine):
     """Entries only this machine has stay; entries the template names take its value."""
     return {**machine, **managed}
+
+
+def gateway_model_picker(*, current_picker):
+    """One /model row per gateway model, then any row added by hand for another model.
+
+    None when this machine has no gateway providers file: the picker stays as it is.
+    """
+    gateway = read_gateway_providers()
+    if gateway is None:
+        return None
+    overrides = gateway.get("model_picker", {})
+    rows = [
+        picker_row(provider=provider, model=model, override=overrides.get(model, {}))
+        for provider, model in gateway_models(gateway=gateway)
+    ]
+    served = {model for _, model in gateway_models(gateway=gateway)}
+    by_hand = [row for row in current_picker.get("options", []) if base_model(row.get("model", "")) not in served]
+    return {**current_picker, "options": rows + by_hand}
+
+
+def read_gateway_providers():
+    try:
+        with open(GATEWAY_PROVIDERS) as handle:
+            return json.load(handle)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def gateway_models(*, gateway):
+    """(provider, model) for every model a key serves, in file order, each model once."""
+    seen = set()
+    for provider, config in gateway.get("providers", {}).items():
+        for key in config.get("keys", []):
+            for model in key.get("models", []):
+                if model != "*" and model not in seen:
+                    seen.add(model)
+                    yield provider, model
+
+
+def picker_row(*, provider, model, override):
+    return {
+        "model": override.get("model", f"{model}[1m]"),
+        "label": override.get("label", readable_model_name(model)),
+        "description": override.get("description", f"{PROVIDER_NAMES.get(provider, provider)} via local gateway · 1M context"),
+    }
+
+
+def readable_model_name(model):
+    """gemini-4-neon → Gemini 4 Neon, gpt-6.1-sol → GPT-6.1 Sol."""
+    words = model.split("-")
+    parts = []
+    for word in words:
+        if parts and parts[-1].lower() in UPPERCASE_WORDS and word[:1].isdigit():
+            parts[-1] = f"{parts[-1]}-{word}"
+        else:
+            parts.append(word.upper() if word in UPPERCASE_WORDS else word[:1].upper() + word[1:])
+    return " ".join(parts)
+
+
+def base_model(model):
+    """The model id without Claude Code's context suffix: gpt-5.5[1m] → gpt-5.5."""
+    return model.split("[", 1)[0]
 
 
 main()
