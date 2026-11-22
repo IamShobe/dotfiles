@@ -21,6 +21,7 @@ Anything else in this template is authoritative and overwrites the local value.
 import json
 import os
 import sys
+import urllib.request
 
 MANAGED = json.loads(r"""
 {
@@ -165,7 +166,13 @@ MANAGED = json.loads(r"""
 """)
 
 # Keys left to whatever the machine already has.
-LOCAL_ONLY_KEYS = ("model", "modelPicker", "sshConfigs")  # per machine: model choice, workplace models, SSH hosts
+LOCAL_ONLY_KEYS = ("model", "modelPicker", "sshConfigs", "modelSettings")  # per machine: model choice, workplace models, SSH hosts, /autocompact choices
+# Gateway rows say [1m], so Claude Code assumes a 1,000,000-token window. A model whose real
+# window is smaller would fail before auto-compaction starts, so it gets a per-model compaction
+# window from the gateway's model datasheet (or "context_window" in model_picker).
+ASSUMED_WINDOW = 1_000_000
+GATEWAY_MODELS_URL = "http://127.0.0.1:{port}/v1/models".format(port=os.environ.get("CLAUDE_BIFROST_PORT", "4001"))
+GATEWAY_TIMEOUT_SECONDS = 2
 # The local Bifrost gateway's providers (machine-local, never in this repo). Every model they
 # serve gets a /model row; optional "model_picker": {"<model>": {"label", "description",
 # "model"}} in the same file overrides a generated row.
@@ -198,6 +205,7 @@ def main():
     picker = gateway_model_picker(current_picker=current.get("modelPicker", {}))
     if picker is not None:
         result["modelPicker"] = picker
+        result["modelSettings"] = with_gateway_compaction_windows(current_settings=current.get("modelSettings", {}))
 
     for key in MERGED_KEYS:
         result[key] = merge_machine_entries(managed=MANAGED.get(key, {}), machine=current.get(key, {}))
@@ -242,6 +250,36 @@ def gateway_model_picker(*, current_picker):
     served = {model for _, model in gateway_models(gateway=gateway)}
     by_hand = [row for row in current_picker.get("options", []) if base_model(row.get("model", "")) not in served]
     return {**current_picker, "options": rows + by_hand}
+
+
+def with_gateway_compaction_windows(*, current_settings):
+    """Add autoCompactWindow for gateway models smaller than the assumed 1M; a value set by hand wins."""
+    gateway = read_gateway_providers() or {}
+    overrides = gateway.get("model_picker", {})
+    datasheet = gateway_context_windows()
+    settings = {model: dict(values) for model, values in current_settings.items()}
+    for _, model in gateway_models(gateway=gateway):
+        window = overrides.get(model, {}).get("context_window") or datasheet.get(model)
+        if not window or window >= ASSUMED_WINDOW:
+            continue
+        entry = settings.setdefault(f"{model}[1m]", {})
+        entry.setdefault("autoCompactWindow", window)
+    return settings
+
+
+def gateway_context_windows():
+    """model → context window from the running gateway's datasheet; empty when it is not running."""
+    try:
+        with urllib.request.urlopen(GATEWAY_MODELS_URL, timeout=GATEWAY_TIMEOUT_SECONDS) as response:
+            listing = json.load(response)
+    except (OSError, json.JSONDecodeError):
+        return {}
+    windows = {}
+    for entry in listing.get("data", []):
+        window = entry.get("context_length")
+        if isinstance(window, int):
+            windows[entry.get("id", "").split("/", 1)[-1]] = window
+    return windows
 
 
 def read_gateway_providers():
