@@ -22,7 +22,8 @@
   "setup_token" "env.BIFROST_SETUP_TOKEN"
   "client" (dict
     "disable_content_logging" true
-    "enable_logging" false
+    "enable_logging" true
+    "log_retention_days" 7
     "logging_headers" (list)
     "allow_direct_keys" true
     "allowed_origins" (list "http://localhost:4001" "http://127.0.0.1:4001"))
