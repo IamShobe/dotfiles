@@ -18,7 +18,8 @@
 #
 # Safe to re-run: every step is skipped when already satisfied. Never fatal — the
 # claude wrapper falls back to a direct run if the gateway is unavailable.
-# config hash: {{ include "private_dot_config/bifrost/private_config.json.tmpl" | sha256sum }}
+# Rendered config hash (includes providers.local.json), so a local provider change reruns this:
+# config hash: {{ includeTemplate "private_dot_config/bifrost/private_config.json.tmpl" . | sha256sum }}
 
 set -euo pipefail
 
