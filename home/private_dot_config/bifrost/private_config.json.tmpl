@@ -1,6 +1,9 @@
 {{- /* Only generic settings belong here. Local providers never enter the source tree.
 
   Optional, in providers.local.json:
+    "same_model_fallbacks": {"anthropic": ["github-copilot"], "vertex": ["github-copilot"]}
+    "claude_secondary_fallbacks": {"claude-opus-": ["azure/some-model"]}
+    "anthropic_model_aliases": {"canonical-model-id": ["legacy-model-id"]}
     "subscription_fallbacks": ["azure/some-model"]   provider/model entries ("provider/" keeps the model)
   When the subscription refuses a request at its usage limit (HTTP 429, which it returns once
   extra usage is turned off in Claude's settings), Bifrost retries it on these providers with
@@ -91,7 +94,72 @@
     {{- $_ := set $claudeRule "fallbacks" $fallbacks -}}
   {{- end -}}
   {{- $localRules := dig "routing_rules" (list) $local -}}
-  {{- $allRules := concat $localRules $tierRules (list $claudeRule) -}}
+  {{- $sameModelRules := list -}}
+  {{- $sameModelPolicies := dig "same_model_fallbacks" (dict) $local -}}
+  {{- $priority := 75 -}}
+  {{- range $primary := keys $sameModelPolicies | sortAlpha -}}
+    {{- if not (hasKey $config.providers $primary) -}}{{- fail (printf "same_model_fallbacks primary provider %q is not configured" $primary) -}}{{- end -}}
+    {{- $primaryModels := list -}}
+    {{- range $key := (index $config.providers $primary).keys -}}
+      {{- range $model := $key.models -}}
+        {{- if ne $model "*" -}}{{- $primaryModels = append $primaryModels $model -}}{{- end -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if ne (len (index $sameModelPolicies $primary)) 1 -}}{{- fail "same_model_fallbacks requires exactly one same-model backup per primary provider" -}}{{- end -}}
+    {{- range $backup := index $sameModelPolicies $primary -}}
+      {{- if or (eq $primary $backup) (hasKey $sameModelPolicies $backup) -}}{{- fail "same_model_fallbacks must not contain loops or chained provider policies" -}}{{- end -}}
+      {{- if not (hasKey $localProviders $backup) -}}{{- fail (printf "same_model_fallbacks backup provider %q is not configured" $backup) -}}{{- end -}}
+      {{- $backupModels := list -}}
+      {{- range $key := (index $localProviders $backup).keys -}}
+        {{- range $model := $key.models -}}{{- $backupModels = append $backupModels $model -}}{{- end -}}
+      {{- end -}}
+      {{- if eq $primary "anthropic" -}}
+        {{- $claudePriority := 80 -}}
+        {{- $secondaryByFamily := dig "claude_secondary_fallbacks" (dict) $local -}}
+        {{- $modelAliases := dig "anthropic_model_aliases" (dict) $local -}}
+        {{- range $copilotModel := $backupModels | uniq -}}
+          {{- if regexMatch "^claude-[a-z]+-[0-9]+([.][0-9]+)?$" $copilotModel -}}
+            {{- $sourceModel := replace "." "-" $copilotModel -}}
+            {{- $family := regexFind "^claude-[a-z]+-" $copilotModel -}}
+            {{- $version := regexFind "[0-9]+([.][0-9]+)?$" $copilotModel -}}
+            {{- $id := printf "route-%s%s" $family (replace "." "" $version) -}}
+            {{- $sourceNames := prepend (dig $sourceModel (list) $modelAliases) $sourceModel -}}
+            {{- $secondary := dig $family (list) $secondaryByFamily -}}
+            {{- range $entry := $secondary -}}
+              {{- $provider := index (splitList "/" $entry) 0 -}}
+              {{- if or (eq $provider "anthropic") (eq $provider $backup) (not (hasKey $localProviders $provider)) -}}
+                {{- fail (printf "Invalid Claude secondary fallback %q" $entry) -}}
+              {{- end -}}
+            {{- end -}}
+            {{- if ge $claudePriority 100 -}}{{- fail "Too many Claude fallback rules for the reserved priority range" -}}{{- end -}}
+            {{- $sameModelRules = append $sameModelRules (dict
+              "id" $id "name" (printf "Same-model fallback: anthropic to %s (%s)" $backup $copilotModel)
+              "enabled" true "scope" "global" "priority" $claudePriority
+              "cel_expression" (printf "provider != '%s' && model in %s" $backup (toJson $sourceNames))
+              "targets" (list (dict "provider" "anthropic" "weight" 1.0))
+              "fallbacks" (concat (list (printf "%s/%s" $backup $copilotModel)) $secondary)) -}}
+            {{- $claudePriority = add $claudePriority 1 -}}
+          {{- end -}}
+        {{- end -}}
+      {{- else -}}
+      {{- $sharedModels := list -}}
+      {{- range $model := $primaryModels | uniq | sortAlpha -}}
+        {{- if has $model $backupModels -}}{{- $sharedModels = append $sharedModels $model -}}{{- end -}}
+      {{- end -}}
+      {{- if $sharedModels -}}
+        {{- $sameModelRules = append $sameModelRules (dict
+          "id" (printf "route-auto-%s-%s" $primary $backup)
+          "name" (printf "Same-model fallback: %s to %s" $primary $backup)
+          "enabled" true "scope" "global" "priority" $priority
+          "cel_expression" (printf "provider != '%s' && model in %s" $backup (toJson $sharedModels))
+          "targets" (list (dict "provider" $primary "weight" 1.0))
+          "fallbacks" (list (printf "%s/" $backup))) -}}
+        {{- $priority = add $priority 1 -}}
+      {{- end -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $allRules := concat $localRules $tierRules $sameModelRules (list $claudeRule) -}}
   {{- $_ := set $config.governance "routing_rules" $allRules -}}
 {{- end -}}
 {{ toPrettyJson $config }}

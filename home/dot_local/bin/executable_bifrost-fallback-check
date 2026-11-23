@@ -22,6 +22,8 @@ import json
 import os
 import secrets
 import socket
+import ssl
+from contextlib import ExitStack, contextmanager
 import subprocess
 import tempfile
 import threading
@@ -53,10 +55,16 @@ CLAUDE_CODE_HEADERS = {
 app = typer.Typer(add_completion=False)
 
 
+class RoutingTarget(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    provider: str
+
+
 class RoutingRule(BaseModel):
     model_config = ConfigDict(extra="allow")
     id: str
     fallbacks: list[str] = []
+    targets: list[RoutingTarget] = []
 
 
 class Governance(BaseModel):
@@ -81,19 +89,164 @@ class Recording:
 def main(
     config: Annotated[Path, typer.Option(help="Rendered Bifrost config.json")] = Path.home() / ".config/bifrost/config.json",
     bifrost: Annotated[Path, typer.Option(help="Bifrost binary")] = Path.home() / ".local/bin/bifrost",
+    repair: Annotated[bool, typer.Option(help="Disable only rules whose credential check failed")] = False,
 ) -> None:
     gateway_config = GatewayConfig.model_validate_json(config.read_text())
     fallbacks = subscription_fallbacks(gateway_config=gateway_config)
-    if not fallbacks:
-        print("bifrost-fallback-check: no subscription fallbacks configured; nothing to check")
-        return
-    problems = check_fallbacks(gateway_config=gateway_config, fallbacks=fallbacks, bifrost=bifrost)
+    problems = check_fallbacks(gateway_config=gateway_config, fallbacks=fallbacks, bifrost=bifrost) if fallbacks else []
+    unsafe_ids = {rule.id for rule in gateway_config.governance.routing_rules if rule.id == SUBSCRIPTION_RULE_ID or rule.id.startswith(f"{SUBSCRIPTION_RULE_ID}-")} if problems else set()
+    automatic_rules = [rule for rule in gateway_config.governance.routing_rules if rule.id.startswith("route-auto-") and rule.fallbacks]
+    for rule in automatic_rules:
+        rule_problems = check_same_model_rule(gateway_config=gateway_config, rule=rule, bifrost=bifrost)
+        if rule_problems:
+            unsafe_ids.add(rule.id)
+        problems.extend(rule_problems)
+    if repair and unsafe_ids:
+        disable_failed_rules(config_path=config, gateway_config=gateway_config, unsafe_ids=unsafe_ids)
     for problem in problems:
         print(f"✗ {problem}")
     if problems:
         print("bifrost-fallback-check: UNSAFE — do not enable these fallbacks with this Bifrost version")
         raise typer.Exit(1)
-    print(f"✓ bifrost-fallback-check: {len(fallbacks)} fallback(s) received only their own key")
+    print(f"✓ bifrost-fallback-check: {len(fallbacks)} subscription fallback(s) and {len(automatic_rules)} same-model rule(s) checked")
+
+
+def disable_failed_rules(*, config_path: Path, gateway_config: GatewayConfig, unsafe_ids: set[str]) -> None:
+    for rule in gateway_config.governance.routing_rules:
+        if rule.id in unsafe_ids:
+            rule.fallbacks = []
+    with tempfile.NamedTemporaryFile(mode="w", dir=config_path.parent, delete=False) as replacement:
+        replacement.write(gateway_config.model_dump_json(indent=2))
+    temporary = Path(replacement.name)
+    try:
+        temporary.chmod(config_path.stat().st_mode)
+        temporary.replace(config_path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def check_same_model_rule(*, gateway_config: GatewayConfig, rule: RoutingRule, bifrost: Path) -> list[str]:
+    if len(rule.targets) != 1 or rule.targets[0].provider != "vertex" or len(rule.fallbacks) != 1:
+        return [f"{rule.id}: unsupported safety-test path; fallback must remain disabled"]
+    backup = rule.fallbacks[0].removesuffix("/")
+    source_models = configured_models(provider=gateway_config.providers["vertex"])
+    backup_models = configured_models(provider=gateway_config.providers[backup])
+    shared = sorted(source_models & backup_models)
+    if not shared:
+        return [f"{rule.id}: no shared models to test"]
+    with ExitStack() as resources:
+        primary = resources.enter_context(native_vertex_recorder())
+        fallback = start_recorder(answers="ok")
+        resources.callback(fallback.server.server_close)
+        resources.callback(fallback.server.shutdown)
+        redirected = redirect_provider(name=backup, provider=gateway_config.providers[backup], url=fallback.url, model="*")
+        if redirected is None:
+            return [f"{rule.id}: backup cannot be redirected safely"]
+        config = gateway_config.model_copy(update={
+            "providers": {"vertex": primary.provider, backup: redirected},
+            "governance": gateway_config.governance.model_copy(update={"routing_rules": [rule]}),
+        })
+        for model in shared:
+            send_claude_code_request(config=config, bifrost=bifrost, model=model)
+        problems = judge(subscription=primary.recording, stand_ins={backup: fallback.recording})
+        if len(primary.recording.requests) != len(shared) or len(fallback.recording.requests) != len(shared):
+            problems.append(f"{rule.id}: every shared model must reach the primary and fallback exactly once")
+        actual_models = [request.get("model") for request in fallback.recording.requests]
+        if actual_models != shared:
+            problems.append(f"{rule.id}: fallback model changed: expected {shared}, received {actual_models}")
+        return problems
+
+
+def configured_models(*, provider: dict[str, JsonValue]) -> set[str]:
+    inventory = ProviderInventory.model_validate(provider)
+    return {model for key in inventory.keys for model in key.models if model != "*"}
+
+
+class InventoryKey(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    models: list[str]
+
+
+class ProviderInventory(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    keys: list[InventoryKey]
+
+
+@dataclass
+class NativeVertexFixture:
+    provider: dict[str, JsonValue]
+    recording: Recording
+
+
+@contextmanager
+def native_vertex_recorder():
+    with tempfile.TemporaryDirectory(prefix="vertex-fixture-") as directory:
+        key = Path(directory, "key.pem")
+        certificate = Path(directory, "certificate.pem")
+        subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", str(key),
+                        "-out", str(certificate), "-days", "1", "-subj", "/CN=aiplatform.googleapis.com",
+                        "-addext", "subjectAltName=DNS:aiplatform.googleapis.com"], check=True,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(certfile=certificate, keyfile=key)
+        recording = Recording()
+        server = ThreadingHTTPServer(("127.0.0.1", 0), vertex_proxy_handler(context=context, recording=recording))
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        url = f"http://127.0.0.1:{server.server_address[1]}"
+        credentials = JSON_BODY.dump_json({"type": "service_account", "project_id": "fixture",
+            "private_key_id": "fixture", "private_key": key.read_text(),
+            "client_email": "fixture@fixture.iam.gserviceaccount.com", "client_id": "123",
+            "token_uri": f"{url}/token"}).decode()
+        provider = {"keys": [{"name": "fixture", "value": "", "models": ["*"], "weight": 1,
+                    "vertex_key_config": {"project_id": "fixture", "region": "global", "auth_credentials": credentials}}],
+                    "network_config": {"max_retries": 0},
+                    "proxy_config": {"type": "http", "url": url, "ca_cert_pem": certificate.read_text()}}
+        try:
+            yield NativeVertexFixture(provider=provider, recording=recording)
+        finally:
+            server.shutdown()
+            server.server_close()
+
+
+def vertex_proxy_handler(*, context: ssl.SSLContext, recording: Recording) -> type[BaseHTTPRequestHandler]:
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def do_CONNECT(self) -> None:
+            if self.path != "aiplatform.googleapis.com:443":
+                self.send_error(403, "fixture does not forward external traffic")
+                return
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.flush()
+            self.connection = context.wrap_socket(self.connection, server_side=True)
+            self.rfile = self.connection.makefile("rb")
+            self.wfile = self.connection.makefile("wb")
+            self.close_connection = False
+
+        def do_GET(self) -> None:
+            self.reply(status=200, payload={"publisherModels": [], "data": []})
+
+        def do_POST(self) -> None:
+            self.rfile.read(int(self.headers.get("content-length", 0)))
+            if self.path.endswith("/token"):
+                self.reply(status=200, payload={"access_token": "vertex-fixture-token", "token_type": "Bearer", "expires_in": 3600})
+                return
+            recording.requests.append(dict(self.headers.items()))
+            self.reply(status=429, payload={"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "fixture capacity error"}})
+
+        def reply(self, *, status: int, payload: dict[str, JsonValue]) -> None:
+            data = JSON_BODY.dump_json(payload)
+            self.send_response(status)
+            self.send_header("content-type", "application/json")
+            self.send_header("content-length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+
+        def log_message(self, *_: object) -> None:
+            pass
+    return Handler
 
 
 def subscription_fallbacks(*, gateway_config: GatewayConfig) -> list[str]:
@@ -145,8 +298,9 @@ def start_recorder(*, answers: str) -> Recorder:
 def make_handler(*, recording: Recording, answers: str) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
-            self.rfile.read(int(self.headers.get("content-length", 0)))
-            recording.requests.append({key.lower(): value for key, value in self.headers.items()})
+            body = JSON_BODY.validate_json(self.rfile.read(int(self.headers.get("content-length", 0))))
+            model = body.get("model")
+            recording.requests.append({**{key.lower(): value for key, value in self.headers.items()}, "model": model if isinstance(model, str) else ""})
             if answers == "limit":
                 self.reply(status=429, payload={"type": "error", "error": {"type": "rate_limit_error", "message": "usage limit reached"}})
             else:
@@ -230,7 +384,7 @@ def redirect_provider(*, name: str, provider: dict[str, JsonValue], url: str, mo
     return None
 
 
-def send_claude_code_request(*, config: GatewayConfig, bifrost: Path) -> None:
+def send_claude_code_request(*, config: GatewayConfig, bifrost: Path, model: str = "claude-opus-5-5") -> None:
     with tempfile.TemporaryDirectory(prefix="bifrost-fallback-check-") as app_dir:
         Path(app_dir, "config.json").write_text(config.model_dump_json(exclude_none=True))
         port = free_port()
@@ -244,7 +398,7 @@ def send_claude_code_request(*, config: GatewayConfig, bifrost: Path) -> None:
                 wait_until_healthy(base=base)
                 disable_inference_auth(base=base, admin_password=admin_password)
                 post(url=f"{base}/anthropic/v1/messages", headers=CLAUDE_CODE_HEADERS,
-                     body={"model": "claude-opus-5-5", "max_tokens": 16, "messages": [{"role": "user", "content": "say ok"}]})
+                     body={"model": model, "max_tokens": 16, "messages": [{"role": "user", "content": "say ok"}]})
             finally:
                 gateway.terminate()
 

@@ -110,20 +110,14 @@ fi
 # reads the config. Fail closed: a check that cannot run counts as a failure.
 CONFIG="${BIFROST_DIR}/config.json"
 if [ -f "${CONFIG}" ]; then
-  if "${HOME}/.local/bin/bifrost-fallback-check" --config "${CONFIG}" --bifrost "${BIFROST_BIN}"; then
+  if "${HOME}/.local/bin/bifrost-fallback-check" --config "${CONFIG}" --bifrost "${BIFROST_BIN}" --repair; then
     :
   else
-    python3 - "${CONFIG}" <<'PY'
-import json, sys
-path = sys.argv[1]
-config = json.load(open(path))
-for rule in config.get("governance", {}).get("routing_rules", []):
-    if rule.get("id") == "route-claude" or str(rule.get("id", "")).startswith("route-claude-"):
-        rule["fallbacks"] = []
-json.dump(config, open(path, "w"), indent=2)
-PY
-    echo "  WARNING: subscription fallbacks REMOVED from ${CONFIG}: they would receive Claude Code's sign-in."
-    echo "           Pin another Bifrost version or change the fallback provider, then rerun chezmoi apply."
+    echo "  WARNING: unsafe fallback rules were disabled; checking the remaining routes."
+    if ! "${HOME}/.local/bin/bifrost-fallback-check" --config "${CONFIG}" --bifrost "${BIFROST_BIN}"; then
+      echo "  ERROR: fallback safety could not be verified. Gateway reload stopped."
+      exit 1
+    fi
   fi
 fi
 
