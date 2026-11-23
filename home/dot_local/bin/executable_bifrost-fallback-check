@@ -97,8 +97,18 @@ def main(
 
 
 def subscription_fallbacks(*, gateway_config: GatewayConfig) -> list[str]:
-    rules = [rule for rule in gateway_config.governance.routing_rules if rule.id == SUBSCRIPTION_RULE_ID]
-    return rules[0].fallbacks if rules else []
+    """One representative fallback entry per provider across every route-claude* rule."""
+    chosen: list[str] = []
+    seen_providers: set[str] = set()
+    for rule in gateway_config.governance.routing_rules:
+        if rule.id != SUBSCRIPTION_RULE_ID and not rule.id.startswith(f"{SUBSCRIPTION_RULE_ID}-"):
+            continue
+        for entry in rule.fallbacks:
+            provider = entry.partition("/")[0]
+            if provider not in seen_providers:
+                seen_providers.add(provider)
+                chosen.append(entry)
+    return chosen
 
 
 def check_fallbacks(*, gateway_config: GatewayConfig, fallbacks: list[str], bifrost: Path) -> list[str]:
@@ -213,6 +223,8 @@ def redirect_provider(*, name: str, provider: dict[str, JsonValue], url: str, mo
     key: dict[str, JsonValue] = {"name": "fallback-check", "value": FALLBACK_OWN_KEY, "models": [model or "*"], "weight": 1.0}
     if name == "azure":
         return {"keys": [{**key, "azure_key_config": {"endpoint": url}}], "network_config": {"max_retries": 0}}
+    if name == "github-copilot":
+        return {"keys": [key], "network_config": {"base_url": url, "max_retries": 0}}
     if "custom_provider_config" in provider:
         return {**provider, "keys": [key], "network_config": {"base_url": url, "max_retries": 0}}
     return None

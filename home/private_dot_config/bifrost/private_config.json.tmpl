@@ -48,19 +48,50 @@
     {{- $_ := set $config.providers $name $provider -}}
   {{- end -}}
   {{- $fallbacks := dig "subscription_fallbacks" (list) $local -}}
-  {{- range $fallback := $fallbacks -}}
-    {{- $provider := index (splitList "/" $fallback) 0 -}}
-    {{- if eq $provider "anthropic" -}}
-      {{- fail "subscription_fallbacks cannot point back at the subscription provider \"anthropic\"" -}}
+  {{- $tierRules := list -}}
+  {{- if kindIs "map" $fallbacks -}}
+    {{- $priority := 90 -}}
+    {{- range $prefix := keys $fallbacks | sortAlpha -}}
+      {{- $entries := index $fallbacks $prefix -}}
+      {{- range $fallback := $entries -}}
+        {{- $provider := index (splitList "/" $fallback) 0 -}}
+        {{- if eq $provider "anthropic" -}}
+          {{- fail "subscription_fallbacks cannot point back at the subscription provider \"anthropic\"" -}}
+        {{- end -}}
+        {{- if not (hasKey $localProviders $provider) -}}
+          {{- fail (printf "subscription_fallbacks entry %q names a provider not defined in providers.local.json" $fallback) -}}
+        {{- end -}}
+      {{- end -}}
+      {{- if eq $prefix "default" -}}
+        {{- $_ := set $claudeRule "fallbacks" $entries -}}
+      {{- else -}}
+        {{- $slug := trimSuffix "-" $prefix -}}
+        {{- $tierRules = append $tierRules (dict
+          "id" (printf "route-%s" $slug)
+          "name" (printf "Claude subscription (%s)" $slug)
+          "enabled" true
+          "scope" "global"
+          "priority" $priority
+          "cel_expression" (printf "model.startsWith('%s')" $prefix)
+          "targets" (list (dict "provider" "anthropic" "weight" 1.0))
+          "fallbacks" $entries) -}}
+        {{- $priority = add $priority 1 -}}
+      {{- end -}}
     {{- end -}}
-    {{- if not (hasKey $localProviders $provider) -}}
-      {{- fail (printf "subscription_fallbacks entry %q names a provider not defined in providers.local.json" $fallback) -}}
+  {{- else -}}
+    {{- range $fallback := $fallbacks -}}
+      {{- $provider := index (splitList "/" $fallback) 0 -}}
+      {{- if eq $provider "anthropic" -}}
+        {{- fail "subscription_fallbacks cannot point back at the subscription provider \"anthropic\"" -}}
+      {{- end -}}
+      {{- if not (hasKey $localProviders $provider) -}}
+        {{- fail (printf "subscription_fallbacks entry %q names a provider not defined in providers.local.json" $fallback) -}}
+      {{- end -}}
     {{- end -}}
+    {{- $_ := set $claudeRule "fallbacks" $fallbacks -}}
   {{- end -}}
-  {{- $_ := set $claudeRule "fallbacks" $fallbacks -}}
   {{- $localRules := dig "routing_rules" (list) $local -}}
-  {{- if $localRules -}}
-    {{- $_ := set $config.governance "routing_rules" (concat $localRules $config.governance.routing_rules) -}}
-  {{- end -}}
+  {{- $allRules := concat $localRules $tierRules (list $claudeRule) -}}
+  {{- $_ := set $config.governance "routing_rules" $allRules -}}
 {{- end -}}
 {{ toPrettyJson $config }}

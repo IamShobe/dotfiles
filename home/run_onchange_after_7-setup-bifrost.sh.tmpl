@@ -118,7 +118,7 @@ import json, sys
 path = sys.argv[1]
 config = json.load(open(path))
 for rule in config.get("governance", {}).get("routing_rules", []):
-    if rule.get("id") == "route-claude":
+    if rule.get("id") == "route-claude" or str(rule.get("id", "")).startswith("route-claude-"):
         rule["fallbacks"] = []
 json.dump(config, open(path, "w"), indent=2)
 PY
