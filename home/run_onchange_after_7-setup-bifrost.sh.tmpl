@@ -18,8 +18,11 @@
 #
 # Safe to re-run: every step is skipped when already satisfied. Never fatal — the
 # claude wrapper falls back to a direct run if the gateway is unavailable.
-# Rendered config hash (includes providers.local.json), so a local provider change reruns this:
-# config hash: {{ includeTemplate "private_dot_config/bifrost/private_config.json.tmpl" . | sha256sum }}
+# Config template and providers.local.json hashes, so a local provider change reruns this. Discovered
+# model lists are left out: bifrost-model-refresh reloads the gateway for those itself.
+# template hash: {{ include "private_dot_config/bifrost/private_config.json.tmpl" | sha256sum }}
+# providers hash: {{ $providers := joinPath .chezmoi.homeDir ".config/bifrost/providers.local.json" }}{{ if stat $providers }}{{ include $providers | sha256sum }}{{ end }}
+# refresh hash: {{ include "dot_local/bin/executable_bifrost-model-refresh" | sha256sum }}
 
 set -euo pipefail
 
@@ -32,21 +35,9 @@ PORT="${CLAUDE_BIFROST_PORT:-4001}"
 
 gateway_up() { curl -sf -m 1 "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; }
 
-# Same environment as the claude wrapper (exact_dot_zshrc.d/claude-bifrost.zsh), so Azure
-# keys keep resolving tokens through the az shim.
-start_gateway() {
-  (
-    set -a; . "${SECRETS}"; set +a
-    az_bin="$(command -v az 2>/dev/null || echo "${HOME}/.local/share/mise/installs/azure-cli/latest/bin/az")"
-    export BIFROST_REAL_AZ="${az_bin}"
-    export PATH="${HOME}/.local/share/bifrost-az:$(dirname "${az_bin}"):${PATH}"
-    mkdir -p "${HOME}/.cache/bifrost"
-    nohup "${BIFROST_BIN}" -host 127.0.0.1 -port "${PORT}" -app-dir "${BIFROST_DIR}" -log-level warn \
-      >>"${HOME}/.cache/bifrost/proxy.log" 2>&1 &
-  )
-  for _ in $(seq 1 60); do gateway_up && return 0; sleep 0.5; done
-  return 1
-}
+# Start/restart with the claude wrapper's environment (az shim for Azure tokens).
+start_gateway() { "${HOME}/.local/bin/bifrost-gateway" start; }
+restart_gateway() { "${HOME}/.local/bin/bifrost-gateway" restart; }
 
 # --- 1. binary ---------------------------------------------------------------
 installed_version="$(cat "${VERSION_FILE}" 2>/dev/null || true)"
@@ -124,9 +115,7 @@ fi
 # This script reruns only when the binary or the config changed, and the gateway reads both
 # only at start: restart a running one.
 if gateway_up && [ -f "${SECRETS}" ]; then
-  pkill -f "bifrost -host 127.0.0.1 -port ${PORT}" 2>/dev/null || true
-  sleep 1
-  start_gateway && echo "Restarted the running gateway (${BIFROST_VERSION})" \
+  restart_gateway && echo "Restarted the running gateway (${BIFROST_VERSION})" \
     || echo "  WARNING: gateway did not restart; see ~/.cache/bifrost/proxy.log"
 fi
 
@@ -183,6 +172,45 @@ fi
 
 if [ "${started_here}" = 1 ]; then
   pkill -f "bifrost -host 127.0.0.1 -port ${PORT}" 2>/dev/null || true
+fi
+
+# --- 5. model refresh ----------------------------------------------------------
+# Discovered model lists stay fresh through bifrost-model-refresh every REFRESH_SECONDS (macOS
+# launchd). It holds a lock, so overlapping runs skip; it reloads the gateway only on a change
+# and only while no request is in flight. Output goes to its status file, never a growing log.
+REFRESH_SECONDS=300
+if [ "$(uname -s)" = Darwin ] && [ -f "${BIFROST_DIR}/providers.local.json" ]; then
+  label="dev.local.bifrost-model-refresh"
+  plist="${HOME}/Library/LaunchAgents/${label}.plist"
+  tool_path="${HOME}/.local/bin"
+  for tool in uv az gcloud chezmoi curl; do
+    found="$(command -v "${tool}" 2>/dev/null || true)"
+    [ -n "${found}" ] && tool_path="${tool_path}:$(dirname "${found}")"
+  done
+  mkdir -p "$(dirname "${plist}")"
+  cat > "${plist}" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>${label}</string>
+  <key>ProgramArguments</key><array>
+    <string>/bin/bash</string><string>-c</string>
+    <string>set -a; . "\$HOME/.config/bifrost/secrets.env"; set +a; exec bifrost-model-refresh</string>
+  </array>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>${tool_path}:/usr/bin:/bin:/usr/sbin:/sbin</string></dict>
+  <key>StartInterval</key><integer>${REFRESH_SECONDS}</integer>
+  <key>RunAtLoad</key><true/>
+  <key>ProcessType</key><string>Background</string>
+  <key>LowPriorityIO</key><true/>
+  <key>Nice</key><integer>10</integer>
+  <key>StandardOutPath</key><string>/dev/null</string>
+  <key>StandardErrorPath</key><string>/dev/null</string>
+</dict></plist>
+PLIST
+  launchctl bootout "gui/$(id -u)/${label}" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "${plist}" \
+    && echo "Model refresh scheduled every ${REFRESH_SECONDS}s (status: ~/.local/state/bifrost/model-refresh-status.json)" \
+    || echo "  WARNING: could not schedule bifrost-model-refresh"
 fi
 
 echo "Bifrost ready: claude-proxy status"

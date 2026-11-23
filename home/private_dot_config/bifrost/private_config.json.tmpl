@@ -4,6 +4,9 @@
     "same_model_fallbacks": {"anthropic": ["github-copilot"], "vertex": ["github-copilot"]}
     "claude_secondary_fallbacks": {"claude-opus-": ["azure/some-model"]}
     "anthropic_model_aliases": {"canonical-model-id": ["legacy-model-id"]}
+    "model_discovery": {"vertex": {"include": ["gemini-4-*"]}}   catalog filter for bifrost-model-refresh
+  Model lists of discoverable keys come from ~/.local/state/bifrost/discovered-models.json
+  (written by bifrost-model-refresh) when present; aliases set here win over discovered ones.
     "subscription_fallbacks": ["azure/some-model"]   provider/model entries ("provider/" keeps the model)
   When the subscription refuses a request at its usage limit (HTTP 429, which it returns once
   extra usage is turned off in Claude's settings), Bifrost retries it on these providers with
@@ -44,9 +47,20 @@
 {{- if stat $localPath -}}
   {{- $local := include $localPath | fromJson -}}
   {{- $localProviders := dig "providers" (dict) $local -}}
+  {{- $discoveredPath := joinPath .chezmoi.homeDir ".local/state/bifrost/discovered-models.json" -}}
+  {{- $discovered := dict -}}
+  {{- if stat $discoveredPath -}}{{- $discovered = include $discoveredPath | fromJson | dig "providers" (dict) -}}{{- end -}}
   {{- range $name, $provider := $localProviders -}}
     {{- if eq $name "anthropic" -}}
       {{- fail "Local providers cannot override the generic Anthropic subscription route" -}}
+    {{- end -}}
+    {{- range $key := $provider.keys -}}
+      {{- $found := dig $name $key.name (dict) $discovered -}}
+      {{- if $found -}}
+        {{- $_ := set $key "models" $found.models -}}
+        {{- $aliases := merge (dig "aliases" (dict) $key) (dig "aliases" (dict) $found) -}}
+        {{- if $aliases -}}{{- $_ := set $key "aliases" $aliases -}}{{- end -}}
+      {{- end -}}
     {{- end -}}
     {{- $_ := set $config.providers $name $provider -}}
   {{- end -}}
@@ -117,7 +131,7 @@
         {{- $claudePriority := 80 -}}
         {{- $secondaryByFamily := dig "claude_secondary_fallbacks" (dict) $local -}}
         {{- $modelAliases := dig "anthropic_model_aliases" (dict) $local -}}
-        {{- range $copilotModel := $backupModels | uniq -}}
+        {{- range $copilotModel := $backupModels | uniq | sortAlpha -}}
           {{- if regexMatch "^claude-[a-z]+-[0-9]+([.][0-9]+)?$" $copilotModel -}}
             {{- $sourceModel := replace "." "-" $copilotModel -}}
             {{- $family := regexFind "^claude-[a-z]+-" $copilotModel -}}
@@ -159,7 +173,29 @@
       {{- end -}}
     {{- end -}}
   {{- end -}}
-  {{- $allRules := concat $localRules $tierRules $sameModelRules (list $claudeRule) -}}
+  {{- $backups := list -}}
+  {{- range $primary, $entries := $sameModelPolicies -}}{{- $backups = concat $backups $entries -}}{{- end -}}
+  {{- $serveRules := list -}}
+  {{- $servePriority := 90 -}}
+  {{- range $name := keys $localProviders | sortAlpha -}}
+    {{- if not (has $name $backups) -}}
+      {{- $served := list -}}
+      {{- range $key := (index $localProviders $name).keys -}}
+        {{- range $model := $key.models -}}{{- if ne $model "*" -}}{{- $served = append $served $model -}}{{- end -}}{{- end -}}
+      {{- end -}}
+      {{- if $served -}}
+        {{- $serveRules = append $serveRules (dict
+          "id" (printf "route-serve-%s" $name)
+          "name" (printf "Models served by %s" $name)
+          "enabled" true "scope" "global" "priority" $servePriority
+          "cel_expression" (printf "model in %s" ($served | uniq | sortAlpha | toJson))
+          "targets" (list (dict "provider" $name "weight" 1.0))
+          "fallbacks" (list)) -}}
+        {{- $servePriority = add $servePriority 1 -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- $allRules := concat $localRules $tierRules $sameModelRules $serveRules (list $claudeRule) -}}
   {{- $_ := set $config.governance "routing_rules" $allRules -}}
 {{- end -}}
 {{ toPrettyJson $config }}

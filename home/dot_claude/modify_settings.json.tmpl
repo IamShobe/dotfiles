@@ -177,6 +177,8 @@ GATEWAY_TIMEOUT_SECONDS = 2
 # serve gets a /model row; optional "model_picker": {"<model>": {"label", "description",
 # "model"}} in the same file overrides a generated row.
 GATEWAY_PROVIDERS = os.path.expanduser("~/.config/bifrost/providers.local.json")
+DISCOVERED_MODELS = os.path.expanduser("~/.local/state/bifrost/discovered-models.json")
+GENERATED_PICKER_MODELS = os.path.expanduser("~/.local/state/bifrost/picker-models.json")
 PROVIDER_NAMES = {"azure": "Azure Foundry", "vertex": "Google Vertex", "bedrock": "AWS Bedrock", "openai": "OpenAI"}
 UPPERCASE_WORDS = {"gpt"}
 # Keys merged entry by entry: the machine's entries survive, the template's win.
@@ -248,8 +250,30 @@ def gateway_model_picker(*, current_picker):
         for provider, model in gateway_models(gateway=gateway)
     ]
     served = {model for _, model in gateway_models(gateway=gateway)}
-    by_hand = [row for row in current_picker.get("options", []) if base_model(row.get("model", "")) not in served]
+    generated_before = read_generated_picker_models()
+    by_hand = [
+        row for row in current_picker.get("options", [])
+        if base_model(row.get("model", "")) not in served | generated_before
+    ]
+    remember_generated_picker_models(models=served | generated_before)
     return {**current_picker, "options": rows + by_hand}
+
+
+def read_generated_picker_models():
+    """Every model this script has listed, so a model the gateway stopped serving loses its row."""
+    try:
+        with open(GENERATED_PICKER_MODELS) as handle:
+            return set(json.load(handle))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return set()
+
+
+def remember_generated_picker_models(*, models):
+    os.makedirs(os.path.dirname(GENERATED_PICKER_MODELS), exist_ok=True)
+    temporary = f"{GENERATED_PICKER_MODELS}.tmp"
+    with open(temporary, "w") as handle:
+        json.dump(sorted(models), handle)
+    os.replace(temporary, GENERATED_PICKER_MODELS)
 
 
 def with_gateway_compaction_windows(*, current_settings):
@@ -291,14 +315,31 @@ def read_gateway_providers():
 
 
 def gateway_models(*, gateway):
-    """(provider, model) for every model a key serves, in file order, each model once."""
+    """(provider, model) for every model a primary provider's key serves, in file order, each model once.
+
+    Same-model backup providers are skipped: requests reach them only as fallbacks. Discovered
+    model lists (bifrost-model-refresh) replace a key's configured list, as in the gateway config.
+    """
+    discovered = read_discovered_models()
+    backups = {backup for entries in gateway.get("same_model_fallbacks", {}).values() for backup in entries}
     seen = set()
     for provider, config in gateway.get("providers", {}).items():
+        if provider in backups:
+            continue
         for key in config.get("keys", []):
-            for model in key.get("models", []):
+            found = discovered.get(provider, {}).get(key.get("name"), {})
+            for model in found.get("models", key.get("models", [])):
                 if model != "*" and model not in seen:
                     seen.add(model)
                     yield provider, model
+
+
+def read_discovered_models():
+    try:
+        with open(DISCOVERED_MODELS) as handle:
+            return json.load(handle).get("providers", {})
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
 
 
 def picker_row(*, provider, model, override):

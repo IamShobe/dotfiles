@@ -1,0 +1,447 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["pydantic>=2.7", "typer>=0.12"]
+# ///
+"""Keep the local Bifrost gateway's model lists in step with what each provider account can call.
+
+Lists the models of every discoverable provider key (GitHub Copilot catalog, Vertex publisher
+catalog filtered by "model_discovery", Azure deployments of the key's resource) and writes them to
+~/.local/state/bifrost/discovered-models.json. The config template and the /model picker overlay that
+file on providers.local.json. When it changes, the gateway config is re-rendered, safety-checked and
+reloaded once no request is in flight. A provider that cannot be listed keeps its last listing.
+"""
+
+import base64
+import fcntl
+import fnmatch
+import hashlib
+import json
+import os
+import subprocess
+import tempfile
+import time
+import urllib.parse
+import urllib.request
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+HOME = Path.home()
+PROVIDERS_FILE = HOME / ".config/bifrost/providers.local.json"
+CONFIG_FILE = HOME / ".config/bifrost/config.json"
+SETTINGS_FILE = HOME / ".claude/settings.json"
+STATE_DIR = HOME / ".local/state/bifrost"
+SNAPSHOT_FILE = STATE_DIR / "discovered-models.json"
+STATUS_FILE = STATE_DIR / "model-refresh-status.json"
+LOCK_FILE = STATE_DIR / "model-refresh.lock"
+APPLIED_FILE = STATE_DIR / "model-refresh-applied.json"
+GATEWAY_PORT = os.environ.get("CLAUDE_BIFROST_PORT", "4001")
+METRICS_URL = f"http://127.0.0.1:{GATEWAY_PORT}/metrics"
+ADMIN_USER = "admin"
+HEALTH_URL = f"http://127.0.0.1:{GATEWAY_PORT}/health"
+HTTP_TIMEOUT_SECONDS = 20
+IDLE_WAIT_SECONDS = 120
+IDLE_POLL_SECONDS = 2
+COPILOT_MODELS_URL = "https://api.githubcopilot.com/models"
+COPILOT_INTEGRATION_ID = "copilot-developer-cli"
+COPILOT_CHAT = "chat"
+VERTEX_CATALOG_URL = "https://aiplatform.googleapis.com/v1beta1/publishers/google/models"
+ARM = "https://management.azure.com"
+ARM_DEPLOYMENTS_API = "2024-10-01"
+RESOURCE_GRAPH_URL = f"{ARM}/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01"
+AZURE_ACCOUNTS_QUERY = (
+    "resources | where type =~ 'microsoft.cognitiveservices/accounts' | project id, endpoint=tostring(properties.endpoint)"
+)
+AZURE_PREFERRED_SKU = "GlobalStandard"
+AZURE_SERVABLE_FORMAT = "OpenAI"
+AZURE_ALIAS_API_VERSION = "preview"
+
+
+class Loose(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+class VertexKeyConfig(Loose):
+    project_id: str
+
+
+class AzureKeyConfig(Loose):
+    endpoint: str
+
+
+class ProviderKey(Loose):
+    name: str
+    value: str = ""
+    models: list[str] = []
+    vertex_key_config: VertexKeyConfig | None = None
+    azure_key_config: AzureKeyConfig | None = None
+
+
+class Provider(Loose):
+    keys: list[ProviderKey] = []
+
+
+class DiscoveryRule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    include: list[str] = Field(min_length=1)
+
+
+class LocalProviders(Loose):
+    providers: dict[str, Provider] = {}
+    model_discovery: dict[str, DiscoveryRule] = {}
+
+
+class Alias(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    model_id: str
+    model_family: str
+    api_version: str
+
+
+class DiscoveredKey(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    models: list[str]
+    aliases: dict[str, Alias] = {}
+
+
+class Snapshot(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    providers: dict[str, dict[str, DiscoveredKey]] = {}
+    azure_accounts: dict[str, str] = {}
+
+
+class ApplyState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    applied_snapshot: str = ""
+
+
+class Status(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    finished_at: str
+    outcome: str
+    errors: dict[str, str] = {}
+    applied_snapshot: str = ""
+
+
+class CopilotCapabilities(Loose):
+    type: str
+
+
+class CopilotModel(Loose):
+    id: str
+    capabilities: CopilotCapabilities
+    supported_endpoints: list[str] = []
+
+
+class CopilotCatalog(Loose):
+    data: list[CopilotModel]
+
+
+class VertexModel(Loose):
+    name: str
+
+
+class VertexCatalogPage(Loose):
+    publisherModels: list[VertexModel] = []
+    nextPageToken: str = ""
+
+
+class AzureAccountRow(Loose):
+    id: str
+    endpoint: str
+
+
+class ResourceGraphResult(Loose):
+    data: list[AzureAccountRow]
+
+
+class AzureDeploymentModel(Loose):
+    name: str
+    format: str
+
+
+class AzureDeploymentProperties(Loose):
+    model: AzureDeploymentModel
+    provisioningState: str
+
+
+class AzureSku(Loose):
+    name: str
+
+
+class AzureDeployment(Loose):
+    name: str
+    sku: AzureSku
+    properties: AzureDeploymentProperties
+
+
+class AzureDeploymentPage(Loose):
+    value: list[AzureDeployment]
+    nextLink: str | None = None
+
+
+def main(
+    apply: Annotated[bool, typer.Option(help="Reload the gateway when the discovered models changed")] = True,
+) -> None:
+    """Discover, then apply the change once; a run already in progress makes this one a no-op."""
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    with single_instance() as acquired:
+        if not acquired or not PROVIDERS_FILE.exists():
+            return
+        local = LocalProviders.model_validate_json(PROVIDERS_FILE.read_text())
+        previous = read_snapshot()
+        snapshot, errors = discover_all(local=local, previous=previous)
+        write_json_atomically(path=SNAPSHOT_FILE, payload=snapshot.model_dump(mode="json"))
+        outcome = apply_snapshot_or_report() if apply else "discovered"
+        write_status(outcome=outcome, errors=errors)
+
+
+@contextmanager
+def single_instance() -> Iterator[bool]:
+    with open(LOCK_FILE, "w") as handle:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            yield False
+            return
+        yield True
+
+
+def read_snapshot() -> Snapshot:
+    try:
+        return Snapshot.model_validate_json(SNAPSHOT_FILE.read_text())
+    except (FileNotFoundError, ValidationError):
+        return Snapshot()
+
+
+def discover_all(*, local: LocalProviders, previous: Snapshot) -> tuple[Snapshot, dict[str, str]]:
+    """Each key's fresh listing, or its previous listing when the provider could not be reached."""
+    snapshot = Snapshot(azure_accounts=dict(previous.azure_accounts))
+    errors: dict[str, str] = {}
+    for provider_name, provider in local.providers.items():
+        for key in provider.keys:
+            label = f"{provider_name}/{key.name}"
+            try:
+                found = discover_key(provider_name=provider_name, key=key, local=local, snapshot=snapshot)
+            except (OSError, ValueError, subprocess.CalledProcessError) as error:
+                errors[label] = f"{type(error).__name__}: {error}"[:300]
+                found = previous.providers.get(provider_name, {}).get(key.name)
+            if found is not None and found.models:
+                snapshot.providers.setdefault(provider_name, {})[key.name] = found
+    return snapshot, errors
+
+
+def discover_key(*, provider_name: str, key: ProviderKey, local: LocalProviders, snapshot: Snapshot) -> DiscoveredKey | None:
+    """None for keys whose provider has no listing this script can trust."""
+    match provider_name:
+        case "github-copilot":
+            return discover_copilot(key=key)
+        case "vertex":
+            rule = local.model_discovery.get(provider_name)
+            return discover_vertex(key=key, rule=rule) if rule and key.vertex_key_config else None
+        case "azure":
+            return discover_azure(key=key, provider=local.providers[provider_name], snapshot=snapshot) if key.azure_key_config else None
+        case _:
+            return None
+
+
+def discover_copilot(*, key: ProviderKey) -> DiscoveredKey:
+    """Chat models the account can call through an inference endpoint, as Copilot names them."""
+    token = os.environ[key.value.removeprefix("env.")]
+    body = http_get(url=COPILOT_MODELS_URL, headers={"Authorization": f"Bearer {token}", "Copilot-Integration-Id": COPILOT_INTEGRATION_ID})
+    catalog = CopilotCatalog.model_validate_json(body)
+    return DiscoveredKey(models=unique([model.id for model in catalog.data if model.capabilities.type == COPILOT_CHAT and model.supported_endpoints]))
+
+
+def discover_vertex(*, key: ProviderKey, rule: DiscoveryRule) -> DiscoveredKey:
+    """Google publisher models whose id matches one of the configured "include" patterns."""
+    assert key.vertex_key_config is not None
+    token = command_output(["gcloud", "auth", "application-default", "print-access-token"])
+    headers = {"Authorization": f"Bearer {token}", "x-goog-user-project": key.vertex_key_config.project_id}
+    names: list[str] = []
+    page_token = ""
+    while True:
+        query = urllib.parse.urlencode({"pageSize": 300, "pageToken": page_token})
+        page = VertexCatalogPage.model_validate_json(http_get(url=f"{VERTEX_CATALOG_URL}?{query}", headers=headers))
+        names += [Path(model.name).name for model in page.publisherModels]
+        page_token = page.nextPageToken
+        if not page_token:
+            break
+    matched = [name for name in names if any(fnmatch.fnmatchcase(name, pattern) for pattern in rule.include)]
+    return DiscoveredKey(models=sorted(unique(matched)))
+
+
+def discover_azure(*, key: ProviderKey, provider: Provider, snapshot: Snapshot) -> DiscoveredKey | None:
+    """One alias per deployed OpenAI model, named after the model; None for endpoints outside Azure resource listings.
+
+    A model another key of this provider already serves stays with that key.
+    """
+    assert key.azure_key_config is not None
+    token = command_output(["az", "account", "get-access-token", "--resource", ARM, "--query", "accessToken", "-o", "tsv"])
+    account_id = azure_account_id(endpoint=key.azure_key_config.endpoint, token=token, snapshot=snapshot)
+    if account_id is None:
+        return None
+    deployments = list_azure_deployments(account_id=account_id, token=token)
+    served_elsewhere = {model for other in provider.keys if other.name != key.name for model in other.models}
+    chosen = choose_deployment_per_model(deployments=deployments)
+    aliases = {
+        model: Alias(model_id=deployment, model_family="openai", api_version=AZURE_ALIAS_API_VERSION)
+        for model, deployment in sorted(chosen.items())
+        if model not in served_elsewhere
+    }
+    return DiscoveredKey(models=list(aliases), aliases=aliases)
+
+
+def azure_account_id(*, endpoint: str, token: str, snapshot: Snapshot) -> str | None:
+    """The Azure resource behind an endpoint, looked up once and remembered in the snapshot."""
+    wanted = endpoint.rstrip("/").lower()
+    if wanted not in snapshot.azure_accounts:
+        body = http_post_json(url=RESOURCE_GRAPH_URL, token=token, payload={"query": AZURE_ACCOUNTS_QUERY})
+        for row in ResourceGraphResult.model_validate_json(body).data:
+            snapshot.azure_accounts[row.endpoint.rstrip("/").lower()] = row.id
+    return snapshot.azure_accounts.get(wanted)
+
+
+def list_azure_deployments(*, account_id: str, token: str) -> list[AzureDeployment]:
+    url: str | None = f"{ARM}{account_id}/deployments?api-version={ARM_DEPLOYMENTS_API}"
+    deployments: list[AzureDeployment] = []
+    while url:
+        page = AzureDeploymentPage.model_validate_json(http_get(url=url, headers={"Authorization": f"Bearer {token}"}))
+        deployments += page.value
+        url = page.nextLink
+    return deployments
+
+
+def choose_deployment_per_model(*, deployments: list[AzureDeployment]) -> dict[str, str]:
+    """model name → deployment: the one named after the model, else a global one, else any working one."""
+    usable = [d for d in deployments if d.properties.provisioningState == "Succeeded" and d.properties.model.format == AZURE_SERVABLE_FORMAT]
+    ranked = sorted(usable, key=lambda d: (d.name != d.properties.model.name, d.sku.name != AZURE_PREFERRED_SKU, d.name))
+    chosen: dict[str, str] = {}
+    for deployment in ranked:
+        chosen.setdefault(deployment.properties.model.name, deployment.name)
+    return chosen
+
+
+def apply_snapshot_or_report() -> str:
+    """A failed step (chezmoi busy, gateway slow to start) leaves the change pending for the next run."""
+    try:
+        return apply_snapshot()
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+        return f"failed: {' '.join(map(str, error.cmd))}; retrying next run"
+
+
+def apply_snapshot() -> str:
+    """Re-render, check and reload only when this listing differs from the one last applied."""
+    digest = hashlib.sha256(SNAPSHOT_FILE.read_bytes()).hexdigest()
+    if read_apply_state().applied_snapshot == digest:
+        return "unchanged"
+    run(["chezmoi", "apply", "--force", str(CONFIG_FILE)])
+    if not fallbacks_are_safe():
+        record_applied(digest=digest)
+        return "blocked: fallback safety check failed; gateway not reloaded"
+    if gateway_running():
+        if not wait_until_idle():
+            return "deferred: requests in flight; retrying next run"
+        run(["bifrost-gateway", "restart"])
+    run(["chezmoi", "apply", "--force", str(SETTINGS_FILE)])
+    record_applied(digest=digest)
+    return "applied"
+
+
+def record_applied(*, digest: str) -> None:
+    write_json_atomically(path=APPLIED_FILE, payload=ApplyState(applied_snapshot=digest).model_dump())
+
+
+def read_apply_state() -> ApplyState:
+    try:
+        return ApplyState.model_validate_json(APPLIED_FILE.read_text())
+    except (FileNotFoundError, ValidationError):
+        return ApplyState()
+
+
+def fallbacks_are_safe() -> bool:
+    """Same gate as the setup script: repair what is unsafe, then require a clean second check."""
+    check = ["bifrost-fallback-check", "--config", str(CONFIG_FILE)]
+    if subprocess.run([*check, "--repair"], capture_output=True).returncode == 0:
+        return True
+    return subprocess.run(check, capture_output=True).returncode == 0
+
+
+def gateway_running() -> bool:
+    try:
+        with urllib.request.urlopen(HEALTH_URL, timeout=2):
+            return True
+    except OSError:
+        return False
+
+
+def wait_until_idle() -> bool:
+    deadline = time.monotonic() + IDLE_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        if active_requests() == 0:
+            return True
+        time.sleep(IDLE_POLL_SECONDS)
+    return False
+
+
+def active_requests() -> int | None:
+    """Sum of Bifrost's in-flight request gauge; None when it cannot be read."""
+    credentials = base64.b64encode(f"{ADMIN_USER}:{os.environ['BIFROST_ADMIN_PASSWORD']}".encode()).decode()
+    request = urllib.request.Request(METRICS_URL, headers={"Authorization": f"Basic {credentials}"})
+    try:
+        with urllib.request.urlopen(request, timeout=2) as response:
+            lines = response.read().decode().splitlines()
+    except OSError:
+        return None
+    return sum(int(float(line.rsplit(" ", 1)[1])) for line in lines if line.startswith("bifrost_active_requests{"))  # no-smell: Prometheus text format
+
+
+def http_get(*, url: str, headers: dict[str, str]) -> bytes:
+    request = urllib.request.Request(url, headers={"Accept": "application/json", **headers})
+    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
+        return response.read()
+
+
+def http_post_json(*, url: str, token: str, payload: dict[str, str]) -> bytes:
+    request = urllib.request.Request(
+        url, data=json.dumps(payload).encode(), method="POST",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
+        return response.read()
+
+
+def command_output(command: list[str]) -> str:
+    return subprocess.run(command, capture_output=True, text=True, check=True, timeout=HTTP_TIMEOUT_SECONDS).stdout.strip()
+
+
+def run(command: list[str]) -> None:
+    subprocess.run(command, capture_output=True, check=True, timeout=IDLE_WAIT_SECONDS)
+
+
+def unique(items: list[str]) -> list[str]:
+    return list(dict.fromkeys(items))
+
+
+def write_status(*, outcome: str, errors: dict[str, str]) -> None:
+    status = Status(finished_at=datetime.now(UTC).isoformat(timespec="seconds"), outcome=outcome, errors=errors,
+                    applied_snapshot=read_apply_state().applied_snapshot)
+    write_json_atomically(path=STATUS_FILE, payload=status.model_dump())
+
+
+def write_json_atomically(*, path: Path, payload: object) -> None:
+    """Readers never see a partial file: write beside it, then rename over it."""
+    with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False, suffix=".tmp") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    os.replace(handle.name, path)
+
+
+if __name__ == "__main__":
+    typer.run(main)
