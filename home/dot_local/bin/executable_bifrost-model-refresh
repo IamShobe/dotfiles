@@ -18,6 +18,7 @@ import fnmatch
 import hashlib
 import json
 import os
+import re
 import subprocess
 import tempfile
 import time
@@ -27,7 +28,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import typer
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -42,12 +43,15 @@ STATUS_FILE = STATE_DIR / "model-refresh-status.json"
 LOCK_FILE = STATE_DIR / "model-refresh.lock"
 APPLIED_FILE = STATE_DIR / "model-refresh-applied.json"
 GATEWAY_PORT = os.environ.get("CLAUDE_BIFROST_PORT", "4001")
-METRICS_URL = f"http://127.0.0.1:{GATEWAY_PORT}/metrics"
+GATEWAY_URL = f"http://127.0.0.1:{GATEWAY_PORT}"
+GENERATED_RULE_PREFIXES = ("route-claude-", "route-auto-", "route-serve-")
+STORED_RULES_LIMIT = 1000
 ADMIN_USER = "admin"
-HEALTH_URL = f"http://127.0.0.1:{GATEWAY_PORT}/health"
+HEALTH_URL = f"{GATEWAY_URL}/health"
 HTTP_TIMEOUT_SECONDS = 20
 IDLE_WAIT_SECONDS = 120
 IDLE_POLL_SECONDS = 2
+DATASHEET_WAIT_SECONDS = 30
 COPILOT_MODELS_URL = "https://api.githubcopilot.com/models"
 COPILOT_INTEGRATION_ID = "copilot-developer-cli"
 COPILOT_CHAT = "chat"
@@ -61,6 +65,10 @@ AZURE_ACCOUNTS_QUERY = (
 AZURE_PREFERRED_SKU = "GlobalStandard"
 AZURE_SERVABLE_FORMAT = "OpenAI"
 AZURE_ALIAS_API_VERSION = "preview"
+ROUTER_MODELS_PATH = "/openai/v1/models"
+ROUTER_LISTED = "list"
+# Vendor model ids carry their version and family only in the name: gpt-6.1-sol, gemini-4-neon.
+FAMILY_VERSIONED = re.compile(r"[a-z]+-(?P<version>[0-9]+(?:[.][0-9]+)*)-(?P<family>[a-z]+)")
 
 
 class Loose(BaseModel):
@@ -73,12 +81,18 @@ class VertexKeyConfig(Loose):
 
 class AzureKeyConfig(Loose):
     endpoint: str
+    scopes: list[str] = []
+
+
+class ConfiguredAlias(Loose):
+    model_id: str
 
 
 class ProviderKey(Loose):
     name: str
     value: str = ""
     models: list[str] = []
+    aliases: dict[str, ConfiguredAlias] = {}
     vertex_key_config: VertexKeyConfig | None = None
     azure_key_config: AzureKeyConfig | None = None
 
@@ -88,13 +102,20 @@ class Provider(Loose):
 
 
 class DiscoveryRule(BaseModel):
+    """Glob patterns over discovered model names; a provider without a rule keeps everything it lists."""
     model_config = ConfigDict(extra="forbid")
-    include: list[str] = Field(min_length=1)
+    include: list[str] = Field(default=["*"], min_length=1)
+    exclude: list[str] = []
+
+    def keeps(self, name: str) -> bool:
+        return matches_any(name=name, patterns=self.include) and not matches_any(name=name, patterns=self.exclude)
 
 
 class LocalProviders(Loose):
     providers: dict[str, Provider] = {}
     model_discovery: dict[str, DiscoveryRule] = {}
+    same_model_fallbacks: dict[str, list[str]] = {}
+    model_favorites: list[str] = []
 
 
 class Alias(BaseModel):
@@ -104,15 +125,33 @@ class Alias(BaseModel):
     api_version: str
 
 
+# How a key's models were found: a provider catalog, an Azure resource's own deployments, or a
+# router in front of Azure. The /model picker names the path after it.
+type DiscoverySource = Literal["catalog", "deployments", "router"]
+
+
 class DiscoveredKey(BaseModel):
+    """Models a key serves; labels and context windows feed the /model picker and compaction."""
     model_config = ConfigDict(extra="forbid")
     models: list[str]
     aliases: dict[str, Alias] = {}
+    labels: dict[str, str] = {}
+    context_windows: dict[str, int] = {}
+    source: DiscoverySource = "catalog"
+
+
+class FavoriteTarget(BaseModel):
+    """The newest model of a family; the gateway serves the family name as an alias of it."""
+    model_config = ConfigDict(extra="forbid")
+    provider: str
+    key: str
+    model: str
 
 
 class Snapshot(BaseModel):
     model_config = ConfigDict(extra="forbid")
     providers: dict[str, dict[str, DiscoveredKey]] = {}
+    favorites: dict[str, FavoriteTarget] = {}
     azure_accounts: dict[str, str] = {}
 
 
@@ -127,6 +166,22 @@ class Status(BaseModel):
     outcome: str
     errors: dict[str, str] = {}
     applied_snapshot: str = ""
+
+
+class RuleId(Loose):
+    id: str
+
+
+class Governance(Loose):
+    routing_rules: list[RuleId] = []
+
+
+class GatewayRules(Loose):
+    governance: Governance
+
+
+class StoredRules(Loose):
+    rules: list[RuleId]
 
 
 class CopilotCapabilities(Loose):
@@ -150,6 +205,18 @@ class VertexModel(Loose):
 class VertexCatalogPage(Loose):
     publisherModels: list[VertexModel] = []
     nextPageToken: str = ""
+
+
+class RouterModel(Loose):
+    slug: str
+    display_name: str
+    context_window: int | None = None
+    visibility: str = ROUTER_LISTED
+    supported_in_api: bool = True
+
+
+class RouterCatalog(Loose):
+    models: list[RouterModel]
 
 
 class AzureAccountRow(Loose):
@@ -188,11 +255,15 @@ class AzureDeploymentPage(Loose):
 
 def main(
     apply: Annotated[bool, typer.Option(help="Reload the gateway when the discovered models changed")] = True,
+    reload_only: Annotated[bool, typer.Option(help="Only reload the gateway on the current config.json (setup script)")] = False,
 ) -> None:
     """Discover, then apply the change once; a run already in progress makes this one a no-op."""
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     with single_instance() as acquired:
         if not acquired or not PROVIDERS_FILE.exists():
+            return
+        if reload_only:
+            print(f"bifrost gateway: {reload_gateway()}")
             return
         local = LocalProviders.model_validate_json(PROVIDERS_FILE.read_text())
         previous = read_snapshot()
@@ -229,12 +300,62 @@ def discover_all(*, local: LocalProviders, previous: Snapshot) -> tuple[Snapshot
             label = f"{provider_name}/{key.name}"
             try:
                 found = discover_key(provider_name=provider_name, key=key, local=local, snapshot=snapshot)
+                found = found and keep_matching(found=found, key=key, rule=local.model_discovery.get(provider_name, DiscoveryRule()))
             except (OSError, ValueError, subprocess.CalledProcessError) as error:
                 errors[label] = f"{type(error).__name__}: {error}"[:300]
                 found = previous.providers.get(provider_name, {}).get(key.name)
             if found is not None and found.models:
                 snapshot.providers.setdefault(provider_name, {})[key.name] = found
+    snapshot.favorites = newest_per_family(local=local, snapshot=snapshot)
     return snapshot, errors
+
+
+def newest_per_family(*, local: LocalProviders, snapshot: Snapshot) -> dict[str, FavoriteTarget]:
+    """family → its highest-versioned model on a primary provider ("sol" → gpt-6.1-sol).
+
+    Same-model backups are skipped: requests reach them only as fallbacks. On a version tie the
+    provider and key listed first in providers.local.json win. A family name that is already a
+    model name keeps meaning that model.
+    """
+    backups = {backup for entries in local.same_model_fallbacks.values() for backup in entries}
+    candidates = [
+        (FAMILY_VERSIONED.fullmatch(model), FavoriteTarget(provider=provider_name, key=key.name, model=model))
+        for provider_name, provider in local.providers.items() if provider_name not in backups
+        for key in provider.keys
+        for model in served_models(provider_name=provider_name, key=key, snapshot=snapshot)
+    ]
+    taken = {target.model for _, target in candidates}
+    favorites: dict[str, FavoriteTarget] = {}
+    for family in local.model_favorites:
+        if family in taken:
+            continue
+        versions = [(version_of(match=match), target) for match, target in candidates if match and match["family"] == family]
+        if versions:
+            favorites[family] = max(versions, key=lambda pair: pair[0])[1]
+    return favorites
+
+
+def served_models(*, provider_name: str, key: ProviderKey, snapshot: Snapshot) -> list[str]:
+    found = snapshot.providers.get(provider_name, {}).get(key.name)
+    return found.models if found else key.models
+
+
+def version_of(*, match: re.Match[str]) -> tuple[int, ...]:
+    return tuple(int(part) for part in match["version"].split("."))
+
+
+def keep_matching(*, found: DiscoveredKey, key: ProviderKey, rule: DiscoveryRule) -> DiscoveredKey:
+    """Drop discovered models the rule filters out; models configured on the key always stay."""
+    kept = [model for model in found.models if model in key.models or rule.keeps(model)]
+    return found.model_copy(update={
+        "models": kept,
+        "aliases": {name: alias for name, alias in found.aliases.items() if name in kept},
+        "labels": {name: label for name, label in found.labels.items() if name in kept},
+    })
+
+
+def matches_any(*, name: str, patterns: list[str]) -> bool:
+    return any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
 
 
 def discover_key(*, provider_name: str, key: ProviderKey, local: LocalProviders, snapshot: Snapshot) -> DiscoveredKey | None:
@@ -273,29 +394,62 @@ def discover_vertex(*, key: ProviderKey, rule: DiscoveryRule) -> DiscoveredKey:
         page_token = page.nextPageToken
         if not page_token:
             break
-    matched = [name for name in names if any(fnmatch.fnmatchcase(name, pattern) for pattern in rule.include)]
-    return DiscoveredKey(models=sorted(unique(matched)))
+    return DiscoveredKey(models=sorted(unique([name for name in names if rule.keeps(name)])))
 
 
-def discover_azure(*, key: ProviderKey, provider: Provider, snapshot: Snapshot) -> DiscoveredKey | None:
-    """One alias per deployed OpenAI model, named after the model; None for endpoints outside Azure resource listings.
+def discover_azure(*, key: ProviderKey, provider: Provider, snapshot: Snapshot) -> DiscoveredKey:
+    """Deployments of an Azure resource, or the routes of an OpenAI-style router in front of Azure.
 
     A model another key of this provider already serves stays with that key.
     """
     assert key.azure_key_config is not None
-    token = command_output(["az", "account", "get-access-token", "--resource", ARM, "--query", "accessToken", "-o", "tsv"])
+    token = azure_token(scope=f"{ARM}/.default")
     account_id = azure_account_id(endpoint=key.azure_key_config.endpoint, token=token, snapshot=snapshot)
-    if account_id is None:
-        return None
-    deployments = list_azure_deployments(account_id=account_id, token=token)
     served_elsewhere = {model for other in provider.keys if other.name != key.name for model in other.models}
+    if account_id is None:
+        return discover_azure_router(key=key, served_elsewhere=served_elsewhere)
+    return discover_azure_deployments(account_id=account_id, token=token, served_elsewhere=served_elsewhere)
+
+
+def discover_azure_router(*, key: ProviderKey, served_elsewhere: set[str]) -> DiscoveredKey:
+    """Configured models plus every listed route not aliased yet, named after its route id.
+
+    Configured models stay even when the router stops listing them: its list is not complete.
+    """
+    assert key.azure_key_config is not None
+    scope = (key.azure_key_config.scopes or [f"{ARM}/.default"])[0]
+    body = http_get(url=f"{key.azure_key_config.endpoint.rstrip('/')}{ROUTER_MODELS_PATH}", headers={"Authorization": f"Bearer {azure_token(scope=scope)}"})
+    configured_names = {alias.model_id: [name for name, other in key.aliases.items() if other.model_id == alias.model_id] for alias in key.aliases.values()}
+    taken = served_elsewhere | set(key.models)
+    found = DiscoveredKey(models=list(key.models), source="router")
+    for route in RouterCatalog.model_validate_json(body).models:
+        if route.visibility != ROUTER_LISTED or not route.supported_in_api:
+            continue
+        names = configured_names.get(route.slug) or [Path(route.slug).name]  # no-smell: route ids are "<router>/<route>"
+        for name in names:
+            if route.context_window:
+                found.context_windows[name] = route.context_window
+            if name not in key.aliases and name not in taken:
+                found.models.append(name)
+                found.aliases[name] = Alias(model_id=route.slug, model_family="openai", api_version=AZURE_ALIAS_API_VERSION)
+                found.labels[name] = route.display_name
+    return found
+
+
+def azure_token(*, scope: str) -> str:
+    return command_output(["az", "account", "get-access-token", "--scope", scope, "--query", "accessToken", "-o", "tsv"])
+
+
+def discover_azure_deployments(*, account_id: str, token: str, served_elsewhere: set[str]) -> DiscoveredKey:
+    """One alias per deployed OpenAI model, named after the model."""
+    deployments = list_azure_deployments(account_id=account_id, token=token)
     chosen = choose_deployment_per_model(deployments=deployments)
     aliases = {
         model: Alias(model_id=deployment, model_family="openai", api_version=AZURE_ALIAS_API_VERSION)
         for model, deployment in sorted(chosen.items())
         if model not in served_elsewhere
     }
-    return DiscoveredKey(models=list(aliases), aliases=aliases)
+    return DiscoveredKey(models=list(aliases), aliases=aliases, source="deployments")
 
 
 def azure_account_id(*, endpoint: str, token: str, snapshot: Snapshot) -> str | None:
@@ -345,10 +499,8 @@ def apply_snapshot() -> str:
     if not fallbacks_are_safe():
         record_applied(digest=digest)
         return "blocked: fallback safety check failed; gateway not reloaded"
-    if gateway_running():
-        if not wait_until_idle():
-            return "deferred: requests in flight; retrying next run"
-        run(["bifrost-gateway", "restart"])
+    if reload_gateway() == "deferred":
+        return "deferred: requests in flight; retrying next run"
     run(["chezmoi", "apply", "--force", str(SETTINGS_FILE)])
     record_applied(digest=digest)
     return "applied"
@@ -373,6 +525,48 @@ def fallbacks_are_safe() -> bool:
     return subprocess.run(check, capture_output=True).returncode == 0
 
 
+def reload_gateway() -> str:
+    """Restart a running gateway once no request is in flight, so it re-reads config.json.
+
+    Bifrost keeps stored routing rules that config.json no longer has, and refuses a new rule whose
+    priority one of them holds: generated rules missing from config.json are deleted first.
+    """
+    if not gateway_running():
+        return "not running"
+    if not wait_until_idle():
+        return "deferred"
+    delete_stale_generated_rules()
+    run(["bifrost-gateway", "restart"])
+    wait_for_model_datasheet()
+    return "reloaded"
+
+
+def wait_for_model_datasheet() -> None:
+    """The /model merge reads context windows from the gateway's model list; give it time to answer."""
+    deadline = time.monotonic() + DATASHEET_WAIT_SECONDS
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(f"{GATEWAY_URL}/v1/models", timeout=IDLE_POLL_SECONDS):
+                return
+        except OSError:
+            time.sleep(IDLE_POLL_SECONDS)
+
+
+def delete_stale_generated_rules() -> None:
+    wanted = {rule.id for rule in GatewayRules.model_validate_json(CONFIG_FILE.read_text()).governance.routing_rules}
+    stored = StoredRules.model_validate_json(admin_request(method="GET", path=f"/api/governance/routing-rules?limit={STORED_RULES_LIMIT}"))
+    for rule in stored.rules:
+        if rule.id not in wanted and rule.id.startswith(GENERATED_RULE_PREFIXES):
+            admin_request(method="DELETE", path=f"/api/governance/routing-rules/{urllib.parse.quote(rule.id)}")
+
+
+def admin_request(*, method: str, path: str) -> bytes:
+    credentials = base64.b64encode(f"{ADMIN_USER}:{os.environ['BIFROST_ADMIN_PASSWORD']}".encode()).decode()
+    request = urllib.request.Request(f"{GATEWAY_URL}{path}", method=method, headers={"Authorization": f"Basic {credentials}"})
+    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
+        return response.read()
+
+
 def gateway_running() -> bool:
     try:
         with urllib.request.urlopen(HEALTH_URL, timeout=2):
@@ -392,11 +586,8 @@ def wait_until_idle() -> bool:
 
 def active_requests() -> int | None:
     """Sum of Bifrost's in-flight request gauge; None when it cannot be read."""
-    credentials = base64.b64encode(f"{ADMIN_USER}:{os.environ['BIFROST_ADMIN_PASSWORD']}".encode()).decode()
-    request = urllib.request.Request(METRICS_URL, headers={"Authorization": f"Basic {credentials}"})
     try:
-        with urllib.request.urlopen(request, timeout=2) as response:
-            lines = response.read().decode().splitlines()
+        lines = admin_request(method="GET", path="/metrics").decode().splitlines()
     except OSError:
         return None
     return sum(int(float(line.rsplit(" ", 1)[1])) for line in lines if line.startswith("bifrost_active_requests{"))  # no-smell: Prometheus text format

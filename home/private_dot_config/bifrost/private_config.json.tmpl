@@ -5,6 +5,7 @@
     "claude_secondary_fallbacks": {"claude-opus-": ["azure/some-model"]}
     "anthropic_model_aliases": {"canonical-model-id": ["legacy-model-id"]}
     "model_discovery": {"vertex": {"include": ["gemini-4-*"]}}   catalog filter for bifrost-model-refresh
+    "model_favorites": ["sol", "neon"]   each name follows its family's newest model
   Model lists of discoverable keys come from ~/.local/state/bifrost/discovered-models.json
   (written by bifrost-model-refresh) when present; aliases set here win over discovered ones.
     "subscription_fallbacks": ["azure/some-model"]   provider/model entries ("provider/" keeps the model)
@@ -48,8 +49,9 @@
   {{- $local := include $localPath | fromJson -}}
   {{- $localProviders := dig "providers" (dict) $local -}}
   {{- $discoveredPath := joinPath .chezmoi.homeDir ".local/state/bifrost/discovered-models.json" -}}
-  {{- $discovered := dict -}}
-  {{- if stat $discoveredPath -}}{{- $discovered = include $discoveredPath | fromJson | dig "providers" (dict) -}}{{- end -}}
+  {{- $discoveredFile := dict -}}
+  {{- if stat $discoveredPath -}}{{- $discoveredFile = include $discoveredPath | fromJson -}}{{- end -}}
+  {{- $discovered := dig "providers" (dict) $discoveredFile -}}
   {{- range $name, $provider := $localProviders -}}
     {{- if eq $name "anthropic" -}}
       {{- fail "Local providers cannot override the generic Anthropic subscription route" -}}
@@ -63,6 +65,16 @@
       {{- end -}}
     {{- end -}}
     {{- $_ := set $config.providers $name $provider -}}
+  {{- end -}}
+  {{- /* A favorite family name ("sol") is an alias of that family's newest model on its key. */ -}}
+  {{- range $family, $target := dig "favorites" (dict) $discoveredFile -}}
+    {{- range $key := (dig $target.provider "keys" (list) $localProviders) -}}
+      {{- if eq $key.name $target.key -}}
+        {{- $alias := dig "aliases" $target.model (dict "model_id" $target.model) $key -}}
+        {{- $_ := set $key "aliases" (merge (dict $family $alias) (dig "aliases" (dict) $key)) -}}
+        {{- $_ := set $key "models" (append $key.models $family | uniq) -}}
+      {{- end -}}
+    {{- end -}}
   {{- end -}}
   {{- $fallbacks := dig "subscription_fallbacks" (list) $local -}}
   {{- $tierRules := list -}}
@@ -128,37 +140,67 @@
         {{- range $model := $key.models -}}{{- $backupModels = append $backupModels $model -}}{{- end -}}
       {{- end -}}
       {{- if eq $primary "anthropic" -}}
-        {{- $claudePriority := 80 -}}
+        {{- /* Each Claude model on the backup gets an alias under Anthropic's name, so one rule with
+             "<backup>/" (keeps the requested model) covers every version; one rule per distinct
+             secondary chain, because those differ by family (Haiku has none). */ -}}
         {{- $secondaryByFamily := dig "claude_secondary_fallbacks" (dict) $local -}}
         {{- $modelAliases := dig "anthropic_model_aliases" (dict) $local -}}
-        {{- range $copilotModel := $backupModels | uniq | sortAlpha -}}
-          {{- if regexMatch "^claude-[a-z]+-[0-9]+([.][0-9]+)?$" $copilotModel -}}
-            {{- $sourceModel := replace "." "-" $copilotModel -}}
-            {{- $family := regexFind "^claude-[a-z]+-" $copilotModel -}}
-            {{- $version := regexFind "[0-9]+([.][0-9]+)?$" $copilotModel -}}
-            {{- $id := printf "route-%s%s" $family (replace "." "" $version) -}}
-            {{- $sourceNames := prepend (dig $sourceModel (list) $modelAliases) $sourceModel -}}
-            {{- $secondary := dig $family (list) $secondaryByFamily -}}
+        {{- $backupAliases := dict -}}
+        {{- $chains := dict -}}
+        {{- range $backupModel := $backupModels | uniq | sortAlpha -}}
+          {{- if regexMatch "^claude-[a-z]+-[0-9]+([.][0-9]+)?$" $backupModel -}}
+            {{- $sourceModel := replace "." "-" $backupModel -}}
+            {{- $secondary := dig (regexFind "^claude-[a-z]+-" $backupModel) (list) $secondaryByFamily -}}
             {{- range $entry := $secondary -}}
               {{- $provider := index (splitList "/" $entry) 0 -}}
               {{- if or (eq $provider "anthropic") (eq $provider $backup) (not (hasKey $localProviders $provider)) -}}
                 {{- fail (printf "Invalid Claude secondary fallback %q" $entry) -}}
               {{- end -}}
             {{- end -}}
-            {{- if ge $claudePriority 100 -}}{{- fail "Too many Claude fallback rules for the reserved priority range" -}}{{- end -}}
-            {{- $sameModelRules = append $sameModelRules (dict
-              "id" $id "name" (printf "Same-model fallback: anthropic to %s (%s)" $backup $copilotModel)
-              "enabled" true "scope" "global" "priority" $claudePriority
-              "cel_expression" (printf "provider != '%s' && model in %s" $backup (toJson $sourceNames))
-              "targets" (list (dict "provider" "anthropic" "weight" 1.0))
-              "fallbacks" (concat (list (printf "%s/%s" $backup $copilotModel)) $secondary)) -}}
-            {{- $claudePriority = add $claudePriority 1 -}}
+            {{- $chain := join "," $secondary -}}
+            {{- $names := dig $chain (list) $chains -}}
+            {{- range $name := prepend (dig $sourceModel (list) $modelAliases) $sourceModel -}}
+              {{- if ne $name $backupModel -}}{{- $_ := set $backupAliases $name (dict "model_id" $backupModel "model_family" "anthropic") -}}{{- end -}}
+              {{- $names = append $names $name -}}
+            {{- end -}}
+            {{- $_ := set $chains $chain $names -}}
           {{- end -}}
+        {{- end -}}
+        {{- range $key := (index $localProviders $backup).keys -}}
+          {{- $_ := set $key "models" (concat $key.models (keys $backupAliases | sortAlpha) | uniq) -}}
+          {{- $_ := set $key "aliases" (merge (dig "aliases" (dict) $key) $backupAliases) -}}
+        {{- end -}}
+        {{- $claudePriority := 80 -}}
+        {{- range $chain := keys $chains | sortAlpha -}}
+          {{- $secondary := list -}}
+          {{- $id := printf "route-claude-%s" $backup -}}
+          {{- if $chain -}}
+            {{- $secondary = splitList "," $chain -}}
+            {{- $id = printf "%s-then-%s" $id (regexReplaceAll "[^a-z0-9]+" $chain "-") -}}
+          {{- end -}}
+          {{- if ge $claudePriority 100 -}}{{- fail "Too many Claude fallback rules for the reserved priority range" -}}{{- end -}}
+          {{- $sameModelRules = append $sameModelRules (dict
+            "id" $id
+            "name" (printf "Same Claude model on %s%s" $backup (ternary (printf ", then %s" (join ", " $secondary)) "" (gt (len $secondary) 0)))
+            "enabled" true "scope" "global" "priority" $claudePriority
+            "cel_expression" (printf "provider != '%s' && model in %s" $backup (index $chains $chain | sortAlpha | toJson))
+            "targets" (list (dict "provider" "anthropic" "weight" 1.0))
+            "fallbacks" (concat (list (printf "%s/" $backup)) $secondary)) -}}
+          {{- $claudePriority = add $claudePriority 1 -}}
         {{- end -}}
       {{- else -}}
       {{- $sharedModels := list -}}
       {{- range $model := $primaryModels | uniq | sortAlpha -}}
         {{- if has $model $backupModels -}}{{- $sharedModels = append $sharedModels $model -}}{{- end -}}
+      {{- end -}}
+      {{- range $family, $target := dig "favorites" (dict) $discoveredFile -}}
+        {{- if and (eq $target.provider $primary) (has $target.model $sharedModels) -}}
+          {{- $sharedModels = append $sharedModels $family -}}
+          {{- range $key := (index $localProviders $backup).keys -}}
+            {{- $_ := set $key "aliases" (merge (dict $family (dict "model_id" $target.model)) (dig "aliases" (dict) $key)) -}}
+            {{- $_ := set $key "models" (append $key.models $family | uniq) -}}
+          {{- end -}}
+        {{- end -}}
       {{- end -}}
       {{- if $sharedModels -}}
         {{- $sameModelRules = append $sameModelRules (dict

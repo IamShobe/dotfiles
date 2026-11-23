@@ -179,8 +179,10 @@ GATEWAY_TIMEOUT_SECONDS = 2
 GATEWAY_PROVIDERS = os.path.expanduser("~/.config/bifrost/providers.local.json")
 DISCOVERED_MODELS = os.path.expanduser("~/.local/state/bifrost/discovered-models.json")
 GENERATED_PICKER_MODELS = os.path.expanduser("~/.local/state/bifrost/picker-models.json")
+GENERATED_COMPACTION_WINDOWS = os.path.expanduser("~/.local/state/bifrost/compaction-windows.json")
 PROVIDER_NAMES = {"azure": "Azure Foundry", "vertex": "Google Vertex", "bedrock": "AWS Bedrock", "openai": "OpenAI"}
 UPPERCASE_WORDS = {"gpt"}
+SOURCE_WORDS = {"deployments": "direct", "router": "via router"}
 # Keys merged entry by entry: the machine's entries survive, the template's win.
 MERGED_KEYS = ("enabledPlugins", "extraKnownMarketplaces")
 
@@ -245,11 +247,21 @@ def gateway_model_picker(*, current_picker):
     if gateway is None:
         return None
     overrides = gateway.get("model_picker", {})
+    favorites = read_discovered_models().get("favorites", {})
+    labels = discovered_by_model(field="labels")
+    sources = discovered_sources()
+    windows = known_context_windows(overrides=overrides)
     rows = [
-        picker_row(provider=provider, model=model, override=overrides.get(model, {}))
+        favorite_row(family=family, target=target, override=overrides.get(family, {}), window=windows.get(target["model"]))
+        for family, target in favorites.items()
+    ] + [
+        picker_row(
+            provider=provider, model=model, override=overrides.get(model, {}), label=labels.get(model),
+            source=sources.get(provider, {}).get(model), window=windows.get(model),
+        )
         for provider, model in gateway_models(gateway=gateway)
     ]
-    served = {model for _, model in gateway_models(gateway=gateway)}
+    served = {model for _, model in gateway_models(gateway=gateway)} | set(favorites)
     generated_before = read_generated_picker_models()
     by_hand = [
         row for row in current_picker.get("options", [])
@@ -261,33 +273,53 @@ def gateway_model_picker(*, current_picker):
 
 def read_generated_picker_models():
     """Every model this script has listed, so a model the gateway stopped serving loses its row."""
-    try:
-        with open(GENERATED_PICKER_MODELS) as handle:
-            return set(json.load(handle))
-    except (FileNotFoundError, json.JSONDecodeError):
-        return set()
+    return set(read_state(path=GENERATED_PICKER_MODELS, empty=[]))
 
 
 def remember_generated_picker_models(*, models):
-    os.makedirs(os.path.dirname(GENERATED_PICKER_MODELS), exist_ok=True)
-    temporary = f"{GENERATED_PICKER_MODELS}.tmp"
+    write_state(path=GENERATED_PICKER_MODELS, value=sorted(models))
+
+
+def read_state(*, path, empty):
+    try:
+        with open(path) as handle:
+            return json.load(handle)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return empty
+
+
+def write_state(*, path, value):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    temporary = f"{path}.tmp"
     with open(temporary, "w") as handle:
-        json.dump(sorted(models), handle)
-    os.replace(temporary, GENERATED_PICKER_MODELS)
+        json.dump(value, handle)
+    os.replace(temporary, path)
 
 
 def with_gateway_compaction_windows(*, current_settings):
-    """Add autoCompactWindow for gateway models smaller than the assumed 1M; a value set by hand wins."""
+    """autoCompactWindow for gateway models smaller than the assumed 1M.
+
+    Sources, strongest first: "context_window" in model_picker, the provider's own model list
+    (discovered), the gateway datasheet. A value this script did not write is left as set by hand.
+    """
     gateway = read_gateway_providers() or {}
     overrides = gateway.get("model_picker", {})
     datasheet = gateway_context_windows()
+    known = {**datasheet, **discovered_by_model(field="context_windows")}
+    targets = {family: target["model"] for family, target in read_discovered_models().get("favorites", {}).items()}
+    written_before = read_state(path=GENERATED_COMPACTION_WINDOWS, empty={})
     settings = {model: dict(values) for model, values in current_settings.items()}
-    for _, model in gateway_models(gateway=gateway):
-        window = overrides.get(model, {}).get("context_window") or datasheet.get(model)
+    written = {}
+    for model in [model for _, model in gateway_models(gateway=gateway)] + list(targets):
+        window = overrides.get(model, {}).get("context_window") or known.get(targets.get(model, model))
         if not window or window >= ASSUMED_WINDOW:
             continue
-        entry = settings.setdefault(f"{model}[1m]", {})
-        entry.setdefault("autoCompactWindow", window)
+        name = f"{model}[1m]"
+        entry = settings.setdefault(name, {})
+        if entry.get("autoCompactWindow") in (None, written_before.get(name), datasheet.get(model)):
+            entry["autoCompactWindow"] = window
+            written[name] = window
+    write_state(path=GENERATED_COMPACTION_WINDOWS, value={**written_before, **written})
     return settings
 
 
@@ -320,7 +352,7 @@ def gateway_models(*, gateway):
     Same-model backup providers are skipped: requests reach them only as fallbacks. Discovered
     model lists (bifrost-model-refresh) replace a key's configured list, as in the gateway config.
     """
-    discovered = read_discovered_models()
+    discovered = read_discovered_models().get("providers", {})
     backups = {backup for entries in gateway.get("same_model_fallbacks", {}).values() for backup in entries}
     seen = set()
     for provider, config in gateway.get("providers", {}).items():
@@ -335,19 +367,62 @@ def gateway_models(*, gateway):
 
 
 def read_discovered_models():
-    try:
-        with open(DISCOVERED_MODELS) as handle:
-            return json.load(handle).get("providers", {})
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+    return read_state(path=DISCOVERED_MODELS, empty={})
 
 
-def picker_row(*, provider, model, override):
+def discovered_by_model(*, field):
+    """model → value of a discovered per-key field ("labels", "context_windows") across all keys."""
+    merged = {}
+    for keys in read_discovered_models().get("providers", {}).values():
+        for found in keys.values():
+            merged.update(found.get(field, {}))
+    return merged
+
+
+def favorite_row(*, family, target, override, window):
+    return {
+        "model": override.get("model", f"{family}[1m]"),
+        "label": override.get("label", f"{family[:1].upper()}{family[1:]} · latest"),
+        "description": override.get(
+            "description",
+            " · ".join(filter(None, [
+                f"Now {readable_model_name(target['model'])}",
+                PROVIDER_NAMES.get(target["provider"], target["provider"]),
+                context_text(window=window),
+            ])),
+        ),
+    }
+
+
+def picker_row(*, provider, model, override, label, source, window):
+    """"Azure Foundry direct · 272K context": the provider, the path to it and the real window."""
+    path = " ".join(filter(None, [PROVIDER_NAMES.get(provider, provider), SOURCE_WORDS.get(source)]))
     return {
         "model": override.get("model", f"{model}[1m]"),
-        "label": override.get("label", readable_model_name(model)),
-        "description": override.get("description", f"{PROVIDER_NAMES.get(provider, provider)} via local gateway · 1M context"),
+        "label": override.get("label", label or readable_model_name(model)),
+        "description": override.get("description", " · ".join(filter(None, [path, context_text(window=window)]))),
     }
+
+
+def context_text(*, window):
+    if not window:
+        return None
+    return "1M context" if window >= ASSUMED_WINDOW else f"{round(window / 1000)}K context"
+
+
+def discovered_sources():
+    """provider → model → how its key's models were found ("deployments", "router", "catalog")."""
+    sources = {}
+    for provider, keys in read_discovered_models().get("providers", {}).items():
+        for found in keys.values():
+            sources.setdefault(provider, {}).update({model: found.get("source") for model in found.get("models", [])})
+    return sources
+
+
+def known_context_windows(*, overrides):
+    """Context window per model: "context_window" in model_picker, then the provider's list, then the gateway."""
+    known = {**gateway_context_windows(), **discovered_by_model(field="context_windows")}
+    return {**known, **{model: values["context_window"] for model, values in overrides.items() if "context_window" in values}}
 
 
 def readable_model_name(model):

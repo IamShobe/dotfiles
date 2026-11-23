@@ -37,7 +37,8 @@ gateway_up() { curl -sf -m 1 "http://127.0.0.1:${PORT}/health" >/dev/null 2>&1; 
 
 # Start/restart with the claude wrapper's environment (az shim for Azure tokens).
 start_gateway() { "${HOME}/.local/bin/bifrost-gateway" start; }
-restart_gateway() { "${HOME}/.local/bin/bifrost-gateway" restart; }
+# Waits for in-flight requests and drops stored generated rules that config.json no longer has.
+restart_gateway() { ( set -a; . "${SECRETS}"; set +a; exec "${HOME}/.local/bin/bifrost-model-refresh" --reload-only ); }
 
 # --- 1. binary ---------------------------------------------------------------
 installed_version="$(cat "${VERSION_FILE}" 2>/dev/null || true)"
