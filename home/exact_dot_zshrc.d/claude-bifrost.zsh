@@ -24,8 +24,16 @@ _claude_bifrost_start() {
   print -u2 "Bifrost did not start; see ~/.cache/bifrost/proxy.log"
   return 1
 }
+# Claude Code's hyperlink detection doesn't recognize TERM_PROGRAM=herdr yet
+# (anthropics/claude-code#101490), so it prints bare URLs; force OSC 8 links there only.
+_claude_hyperlink_env() {
+  reply=()
+  [[ "$TERM_PROGRAM" == herdr && -z "${FORCE_HYPERLINK+x}" ]] && reply=(FORCE_HYPERLINK=1)
+}
 _claude_direct() {
-  env -u ANTHROPIC_BASE_URL -u ANTHROPIC_CUSTOM_HEADERS command claude "$@"
+  local -a reply
+  _claude_hyperlink_env
+  env -u ANTHROPIC_BASE_URL -u ANTHROPIC_CUSTOM_HEADERS "${reply[@]}" command claude "$@"
 }
 claude() {
   if [[ -n "$CLAUDE_DIRECT" ]]; then
@@ -51,7 +59,9 @@ claude() {
   # OAuth stays owned by Claude Code; never replace it with a gateway token.
   local headers="${ANTHROPIC_CUSTOM_HEADERS:-}"
   headers="$(printf '%s\n' "$headers" | grep -ivE '^x-litellm-api-key:|^x-bf-direct-key:' )"
-  ENABLE_TOOL_SEARCH="${ENABLE_TOOL_SEARCH:-true}" ANTHROPIC_BASE_URL="http://127.0.0.1:${CLAUDE_BIFROST_PORT}/anthropic"   ANTHROPIC_CUSTOM_HEADERS="$headers" command claude "$@"
+  local -a reply
+  _claude_hyperlink_env
+  ENABLE_TOOL_SEARCH="${ENABLE_TOOL_SEARCH:-true}" ANTHROPIC_BASE_URL="http://127.0.0.1:${CLAUDE_BIFROST_PORT}/anthropic"   ANTHROPIC_CUSTOM_HEADERS="$headers" env "${reply[@]}" command claude "$@"
 }
 claude-proxy() {
   case "$1" in
