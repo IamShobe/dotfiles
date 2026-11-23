@@ -35,6 +35,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 HOME = Path.home()
 PROVIDERS_FILE = HOME / ".config/bifrost/providers.local.json"
+DEFAULTS_FILE = HOME / ".config/bifrost/defaults.json"
 CONFIG_FILE = HOME / ".config/bifrost/config.json"
 SETTINGS_FILE = HOME / ".claude/settings.json"
 STATE_DIR = HOME / ".local/state/bifrost"
@@ -265,12 +266,26 @@ def main(
         if reload_only:
             print(f"bifrost gateway: {reload_gateway()}")
             return
-        local = LocalProviders.model_validate_json(PROVIDERS_FILE.read_text())
+        local = LocalProviders.model_validate(gateway_settings())
         previous = read_snapshot()
         snapshot, errors = discover_all(local=local, previous=previous)
         write_json_atomically(path=SNAPSHOT_FILE, payload=snapshot.model_dump(mode="json"))
         outcome = apply_snapshot_or_report() if apply else "discovered"
         write_status(outcome=outcome, errors=errors)
+
+
+def gateway_settings() -> object:
+    """providers.local.json over the tracked generic defaults; the machine's keys win, maps are merged."""
+    machine = json.loads(PROVIDERS_FILE.read_text())
+    defaults = json.loads(DEFAULTS_FILE.read_text()) if DEFAULTS_FILE.exists() else {}
+    return merge_under(top=machine, bottom=defaults)
+
+
+def merge_under(*, top: object, bottom: object) -> object:
+    if isinstance(top, dict) and isinstance(bottom, dict):
+        return {key: merge_under(top=top[key], bottom=bottom[key]) if key in top and key in bottom else top.get(key, bottom.get(key))
+                for key in bottom | top}
+    return top
 
 
 @contextmanager

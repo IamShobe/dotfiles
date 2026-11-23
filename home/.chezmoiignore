@@ -2,6 +2,7 @@
 # Bifrost runtime and private provider data: never import into dotfiles.
 .config/bifrost/*
 !.config/bifrost/config.json
+!.config/bifrost/defaults.json
 .cache/bifrost/**
 .local/state/proxy-migration-backup/**
 

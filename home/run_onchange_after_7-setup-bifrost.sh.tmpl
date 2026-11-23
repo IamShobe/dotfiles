@@ -21,6 +21,7 @@
 # Config template and providers.local.json hashes, so a local provider change reruns this. Discovered
 # model lists are left out: bifrost-model-refresh reloads the gateway for those itself.
 # template hash: {{ include "private_dot_config/bifrost/private_config.json.tmpl" | sha256sum }}
+# defaults hash: {{ include "private_dot_config/bifrost/defaults.json" | sha256sum }}
 # providers hash: {{ $providers := joinPath .chezmoi.homeDir ".config/bifrost/providers.local.json" }}{{ if stat $providers }}{{ include $providers | sha256sum }}{{ end }}
 # refresh hash: {{ include "dot_local/bin/executable_bifrost-model-refresh" | sha256sum }}
 

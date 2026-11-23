@@ -5,7 +5,9 @@
     "claude_secondary_fallbacks": {"claude-opus-": ["azure/some-model"]}
     "anthropic_model_aliases": {"canonical-model-id": ["legacy-model-id"]}
     "model_discovery": {"vertex": {"include": ["gemini-4-*"]}}   catalog filter for bifrost-model-refresh
-    "model_favorites": ["sol", "neon"]   each name follows its family's newest model
+    "model_favorites": ["sol", "neon"]   per machine: each name follows its family's newest model
+  Provider-independent policy (Claude Code model-name aliases) lives in defaults.json next to
+  this template; a key set in providers.local.json wins over it, maps are merged.
   Model lists of discoverable keys come from ~/.local/state/bifrost/discovered-models.json
   (written by bifrost-model-refresh) when present; aliases set here win over discovered ones.
     "subscription_fallbacks": ["azure/some-model"]   provider/model entries ("provider/" keeps the model)
@@ -46,7 +48,8 @@
 -}}
 {{- $localPath := joinPath .chezmoi.homeDir ".config/bifrost/providers.local.json" -}}
 {{- if stat $localPath -}}
-  {{- $local := include $localPath | fromJson -}}
+  {{- /* Generic policy (defaults.json, tracked) under this machine's file: the machine wins key by key. */ -}}
+  {{- $local := merge (include $localPath | fromJson) (include "private_dot_config/bifrost/defaults.json" | fromJson) -}}
   {{- $localProviders := dig "providers" (dict) $local -}}
   {{- $discoveredPath := joinPath .chezmoi.homeDir ".local/state/bifrost/discovered-models.json" -}}
   {{- $discoveredFile := dict -}}

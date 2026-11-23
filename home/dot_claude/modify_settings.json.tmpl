@@ -177,6 +177,8 @@ GATEWAY_TIMEOUT_SECONDS = 2
 # serve gets a /model row; optional "model_picker": {"<model>": {"label", "description",
 # "model"}} in the same file overrides a generated row.
 GATEWAY_PROVIDERS = os.path.expanduser("~/.config/bifrost/providers.local.json")
+GATEWAY_DEFAULTS = os.path.expanduser("~/.config/bifrost/defaults.json")
+GATEWAY_DATASHEET_CACHE = os.path.expanduser("~/.local/state/bifrost/gateway-context-windows.json")
 DISCOVERED_MODELS = os.path.expanduser("~/.local/state/bifrost/discovered-models.json")
 GENERATED_PICKER_MODELS = os.path.expanduser("~/.local/state/bifrost/picker-models.json")
 GENERATED_COMPACTION_WINDOWS = os.path.expanduser("~/.local/state/bifrost/compaction-windows.json")
@@ -324,26 +326,34 @@ def with_gateway_compaction_windows(*, current_settings):
 
 
 def gateway_context_windows():
-    """model → context window from the running gateway's datasheet; empty when it is not running."""
+    """model → context window from the running gateway's datasheet, or its last answer when it is slow or down."""
     try:
         with urllib.request.urlopen(GATEWAY_MODELS_URL, timeout=GATEWAY_TIMEOUT_SECONDS) as response:
             listing = json.load(response)
     except (OSError, json.JSONDecodeError):
-        return {}
+        return read_state(path=GATEWAY_DATASHEET_CACHE, empty={})
     windows = {}
     for entry in listing.get("data", []):
         window = entry.get("context_length")
         if isinstance(window, int):
             windows[entry.get("id", "").split("/", 1)[-1]] = window
+    write_state(path=GATEWAY_DATASHEET_CACHE, value=windows)
     return windows
 
 
 def read_gateway_providers():
-    try:
-        with open(GATEWAY_PROVIDERS) as handle:
-            return json.load(handle)
-    except (FileNotFoundError, json.JSONDecodeError):
+    """providers.local.json over the tracked generic defaults (same merge as the gateway config)."""
+    machine = read_state(path=GATEWAY_PROVIDERS, empty=None)
+    if machine is None:
         return None
+    return merge_under(top=machine, bottom=read_state(path=GATEWAY_DEFAULTS, empty={}))
+
+
+def merge_under(*, top, bottom):
+    if isinstance(top, dict) and isinstance(bottom, dict):
+        return {key: merge_under(top=top[key], bottom=bottom[key]) if key in top and key in bottom else top.get(key, bottom.get(key))
+                for key in bottom | top}
+    return top
 
 
 def gateway_models(*, gateway):
