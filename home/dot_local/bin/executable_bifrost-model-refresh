@@ -43,6 +43,8 @@ SNAPSHOT_FILE = STATE_DIR / "discovered-models.json"
 STATUS_FILE = STATE_DIR / "model-refresh-status.json"
 LOCK_FILE = STATE_DIR / "model-refresh.lock"
 APPLIED_FILE = STATE_DIR / "model-refresh-applied.json"
+SECRETS_FILE = HOME / ".config/bifrost/secrets.env"
+SECRET_LINE = re.compile(r"^(?:export\s+)?(?P<name>[A-Z_][A-Z0-9_]*)=(?P<value>.*)$")
 GATEWAY_PORT = os.environ.get("CLAUDE_BIFROST_PORT", "4001")
 GATEWAY_URL = f"http://127.0.0.1:{GATEWAY_PORT}"
 GENERATED_RULE_PREFIXES = ("route-claude-", "route-auto-", "route-serve-")
@@ -260,6 +262,7 @@ def main(
 ) -> None:
     """Discover, then apply the change once; a run already in progress makes this one a no-op."""
     STATE_DIR.mkdir(parents=True, exist_ok=True)
+    load_gateway_secrets()
     with single_instance() as acquired:
         if not acquired or not PROVIDERS_FILE.exists():
             return
@@ -287,6 +290,14 @@ def merge_under(*, top: object, bottom: object) -> object:
                 for key in bottom | top}
     return top
 
+
+def load_gateway_secrets() -> None:
+    """Read secrets.env so a plain shell run works like the launchd one; the environment wins."""
+    if not SECRETS_FILE.exists():
+        return
+    for line in SECRETS_FILE.read_text().splitlines():
+        if found := SECRET_LINE.match(line.strip()):
+            os.environ.setdefault(found["name"], found["value"].strip("'\""))
 
 @contextmanager
 def single_instance() -> Iterator[bool]:
